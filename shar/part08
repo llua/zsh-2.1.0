@@ -1,0 +1,2271 @@
+Path: funic!news.funet.fi!sunic!seunet!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i008:  zsh2.1 - The Z shell, Part08/19
+Message-ID: <1991Oct24.190925.25848@sparky.imd.sterling.com>
+Date: 24 Oct 91 19:09:25 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 2257
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 45b7c4db263877d30de733d36d186705
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 8
+Archive-name: zsh2.1/part08
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.08 (part 8 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/jobs.c continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 8; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/jobs.c'
+else
+echo 'x - continuing file zsh2.1/src/jobs.c'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/jobs.c' &&
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X#include <sys/errno.h>
+X
+X/* != 0 means the handler is active */
+X
+Xstatic int handling = 0;
+X
+X/* != 0 means the shell is waiting for a job to complete */
+X
+Xstatic int waiting = 0;
+X
+X#ifdef INTHANDTYPE
+X#define RETURN return 0
+X#else
+X#define RETURN return
+X#endif
+X
+X/* the signal handler */
+X
+XHANDTYPE handler(sig,code) /**/
+Xint sig;int code;
+X{
+Xlong pid;
+Xint statusp;
+XJob jn;
+Xstruct process *pn;
+Xstruct rusage ru;
+X
+X#ifdef RESETHANDNEEDED
+X	signal(sig,handler);
+X#endif
+X	if (sig == SIGINT)
+X		{
+X		if (sigtrapped[SIGINT])
+X			dotrap(SIGINT);
+X		else
+X			errflag = 1;
+X		RETURN;
+X		}
+X#ifdef SIGWINCH
+X	if (sig == SIGWINCH)
+X		adjustwinsize();
+X#endif
+X	if (sig != SIGCHLD)
+X		{
+X		dotrap(sig);
+X		if (sig == SIGALRM && !sigtrapped[SIGALRM])
+X			{
+X			zerr("timeout",NULL,0);
+X			exit(1);
+X			}
+X		RETURN;
+X		}
+X	for (;;)
+X		{
+X#ifdef SYSV
+X		pid = wait(&statusp);
+X#else
+X#if defined(RLIM_INFINITY)  & ! defined(__hpux)
+X		pid = wait3(&statusp,WNOHANG|WUNTRACED,&ru);
+X#else
+X		pid = wait3(&statusp,WNOHANG|WUNTRACED,NULL);
+X#endif
+X#endif
+X		if (pid == -1)
+X			{
+X			if (errno != ECHILD)
+X				zerr("wait failed: %e",NULL,errno);
+X			RETURN;
+X			}
+X		if (!pid)
+X			RETURN;
+X		findproc(pid,&jn,&pn);	/* find the process of this pid */
+X		if (jn)
+X			{
+X			pn->statusp = statusp;
+X			handling = 1;
+X			pn->ru = ru;
+X			pn->endtime = time(NULL);
+X			updatestatus(jn);
+X			handling = 0;
+X			if (zleactive)
+X				refresh();
+X			}
+X		else if (WIFSTOPPED(SP(statusp)))
+X			kill(pid,SIGKILL);	/* kill stopped untraced children */
+X		}
+X	RETURN;
+X}
+X
+X/* change job table entry from stopped to running */
+X
+Xvoid makerunning(jn) /**/
+XJob jn;
+X{
+Xstruct process *pn;
+X
+X	jn->stat &= ~STAT_STOPPED;
+X	for (pn = jn->procs; pn; pn = pn->next)
+X		if (WIFSTOPPED(SP(pn->statusp)))
+X			pn->statusp = SP_RUNNING;
+X}
+X
+X/* update status of job, possibly printing it */
+X
+Xvoid updatestatus(jn) /**/
+XJob jn;
+X{
+Xstruct process *pn;
+Xint notrunning = 1,alldone = 1,val,job = jn-jobtab,somestopped = 0;
+X
+X	for (pn = jn->procs; pn; pn = pn->next)
+X		{
+X		if (pn->statusp == SP_RUNNING)
+X			notrunning = 0;
+X		if (pn->statusp == SP_RUNNING || WIFSTOPPED(SP(pn->statusp)))
+X			alldone = 0;
+X		if (WIFSTOPPED(SP(pn->statusp)))
+X			somestopped = 1;
+X		if (!pn->next && jn)
+X			val = (WIFSIGNALED(SP(pn->statusp))) ?
+X				0200 | WTERMSIG(SP(pn->statusp)) : WEXITSTATUS(SP(pn->statusp));
+X		}
+X	if (!notrunning)
+X		return;
+X	if (somestopped && (jn->stat & STAT_STOPPED))
+X		return;
+X	jn->stat |= (alldone) ? STAT_CHANGED|STAT_DONE :
+X		STAT_CHANGED|STAT_STOPPED;
+X	if (alldone && job == thisjob)
+X		{
+X		if (!val) {
+X			gettyinfo(&shttyinfo);
+X			if (interact && isset(SHINSTDIN) && SHTTY != -1 && isset(USEZLE))
+X				sanetty(&shttyinfo);
+X#ifdef TIOCSWINSZ
+X			if (!(columns = shttyinfo.winsize.ws_col))
+X				columns = 80;
+X			lines = shttyinfo.winsize.ws_row;
+X#endif
+X		} else
+X			settyinfo(&shttyinfo);
+X		lastval = val;
+X		}
+X	if ((jn->stat & (STAT_DONE|STAT_STOPPED)) == STAT_STOPPED) {
+X		prevjob = curjob;
+X		curjob = job;
+X	}
+X	if ((isset(NOTIFY) || job == thisjob) && jn->stat & STAT_LOCKED)
+X		printjob(jn,!!isset(LONGLISTJOBS));
+X	if (sigtrapped[SIGCHLD] && job != thisjob)
+X		dotrap(SIGCHLD);
+X}
+X
+X/* find process and job associated with pid */
+X
+Xvoid findproc(pid,jptr,pptr) /**/
+Xint pid;Job *jptr;struct process **pptr;
+X{
+Xstruct process *pn;
+Xint jn;
+X
+X	for (jn = 1; jn != MAXJOB; jn++)
+X		for (pn = jobtab[jn].procs; pn; pn = pn->next)
+X			if (pn->pid == pid)
+X				{
+X				*pptr = pn;
+X				*jptr = jobtab+jn;
+X				return;
+X				}
+X	*pptr = NULL;
+X	*jptr = NULL;
+X}
+X
+X/*
+X	lng = 0 means jobs 
+X	lng = 1 means jobs -l
+X	lng = 2 means jobs -p
+X*/
+X
+Xvoid printjob(jn,lng) /**/
+XJob jn;int lng;
+X{
+Xint job = jn-jobtab,len = 9,sig = -1,sflag = 0,llen,printed = 0;
+Xint conted = 0,lineleng = getlineleng(),skip = 0,doputnl = 0;
+Xstruct process *pn;
+X
+X	if (lng < 0)
+X		{
+X		conted = 1;
+X		lng = 0;
+X		}
+X
+X	/* find length of longest signame, check to see if we
+X		really need to print this job */
+X
+X	for (pn = jn->procs; pn; pn = pn->next)
+X		{
+X		if (pn->statusp != SP_RUNNING)
+X			if (WIFSIGNALED(SP(pn->statusp)))
+X				{
+X				sig = WTERMSIG(SP(pn->statusp));
+X				llen = strlen(sigmsg[sig]);
+X				if (WCOREDUMPED(pn->statusp))
+X					llen += 14;
+X				if (llen > len)
+X					len = llen;
+X				if (sig != SIGINT && sig != SIGPIPE)
+X					sflag = 1;
+X				else if (sig == SIGINT)
+X					errflag = 1;
+X				if (job == thisjob && sig == SIGINT)
+X					doputnl = 1;
+X				}
+X			else if (WIFSTOPPED(SP(pn->statusp)))
+X				{
+X				sig = WSTOPSIG(SP(pn->statusp));
+X				if (strlen(sigmsg[sig]) > len)
+X					len = strlen(sigmsg[sig]);
+X				if (job == thisjob && sig == SIGTSTP)
+X					doputnl = 1;
+X				}
+X			else if (isset(PRINTEXITVALUE) && WEXITSTATUS(SP(pn->statusp)))
+X				sflag = 1;
+X		}
+X
+X	/* print if necessary */
+X
+X	if (interact && jobbing && ((jn->stat & STAT_STOPPED) || sflag ||
+X			job != thisjob))
+X		{
+X		int len2,fline = 1;
+X		struct process *qn;
+X
+X		trashzle();
+X		if (doputnl)
+X			putc('\n',stderr);
+X		for (pn = jn->procs; pn;)
+X			{
+X			len2 = ((job == thisjob) ? 5 : 10)+len; /* 2 spaces */
+X			if (lng)
+X				qn = pn->next;
+X			else for (qn = pn->next; qn; qn = qn->next)
+X				{
+X				if (qn->statusp != pn->statusp)
+X					break;
+X				if (strlen(qn->text)+len2+((qn->next) ? 3 : 0) > lineleng)
+X					break;
+X				len2 += strlen(qn->text)+2;
+X				}
+X			if (job != thisjob)
+X				if (fline)
+X					fprintf(stderr,"[%d]  %c ",jn-jobtab,(job == curjob) ? '+' :
+X						(job == prevjob) ? '-' : ' ');
+X				else
+X					fprintf(stderr,(job > 9) ? "        " : "       ");
+X			else
+X				fprintf(stderr,"zsh: ");
+X			if (lng)
+X				if (lng == 1)
+X					fprintf(stderr,"%d ",pn->pid);
+X				else
+X					{
+X					int x = jn->gleader;
+X
+X					fprintf(stderr,"%d ",x);
+X					do skip++; while (x /= 10);
+X					skip++;
+X					lng = 0;
+X					}
+X			else
+X				fprintf(stderr,"%*s",skip,"");
+X			if (pn->statusp == SP_RUNNING)
+X				if (!conted)
+X					fprintf(stderr,"running%*s",len-7+2,"");
+X				else
+X					fprintf(stderr,"continued%*s",len-9+2,"");
+X			else if (WIFEXITED(SP(pn->statusp)))
+X				if (WEXITSTATUS(SP(pn->statusp)))
+X					fprintf(stderr,"exit %-4d%*s",WEXITSTATUS(SP(pn->statusp)),
+X						len-9+2,"");
+X				else
+X					fprintf(stderr,"done%*s",len-4+2,"");
+X			else if (WIFSTOPPED(SP(pn->statusp)))
+X				fprintf(stderr,"%-*s",len+2,sigmsg[WSTOPSIG(SP(pn->statusp))]);
+X			else if (WCOREDUMPED(pn->statusp))
+X				fprintf(stderr,"%s (core dumped)%*s",
+X					sigmsg[WTERMSIG(SP(pn->statusp))],
+X					len-14+2-strlen(sigmsg[WTERMSIG(SP(pn->statusp))]),"");
+X			else
+X				fprintf(stderr,"%-*s",len+2,sigmsg[WTERMSIG(SP(pn->statusp))]);
+X			for (; pn != qn; pn = pn->next)
+X				fprintf(stderr,(pn->next) ? "%s | " : "%s",pn->text);
+X			putc('\n',stderr);
+X			fline = 0;
+X			}
+X		printed = 1;
+X		}
+X	else if (doputnl && interact)
+X		putc('\n',stderr);
+X	fflush(stderr);
+X
+X	/* print "(pwd now: foo)" messages */
+X
+X	if (interact && job==thisjob && strcmp(jn->cwd,cwd))
+X		{
+X		printf("(pwd now: ");
+X		printdir(cwd);
+X		printf(")\n");
+X		fflush(stdout);
+X		}
+X
+X	/* delete job if done */
+X
+X	if (jn->stat & STAT_DONE)
+X		{
+X		static struct job zero;
+X		struct process *nx;
+X		char *s;
+X
+X		if (jn->stat & STAT_TIMED)
+X			{
+X			dumptime(jn);
+X			printed = 1;
+X			}
+X		for (pn = jn->procs; pn; pn = nx)
+X			{
+X			nx = pn->next;
+X			if (pn->text)
+X				free(pn->text);
+X			free(pn);
+X			}
+X		free(jn->cwd);
+X		if (jn->filelist)
+X			{
+X			while (s = getnode(jn->filelist))
+X				{
+X				unlink(s);
+X				free(s);
+X				}
+X			free(jn->filelist);
+X			}
+X		*jn = zero;
+X		if (job == curjob)
+X			{
+X			curjob = prevjob;
+X			prevjob = job;
+X			}
+X		if (job == prevjob)
+X			setprevjob();
+X		}
+X	else
+X		jn->stat &= ~STAT_CHANGED;
+X}
+X
+X/* set the previous job to something reasonable */
+X
+Xvoid setprevjob() /**/
+X{
+Xint t0;
+X
+X	for (t0 = MAXJOB-1; t0; t0--)
+X		if ((jobtab[t0].stat & STAT_INUSE) && (jobtab[t0].stat & STAT_STOPPED) &&
+X				t0 != curjob && t0 != thisjob)
+X			break;
+X	if (!t0)
+X		for (t0 = MAXJOB-1; t0; t0--)
+X			if ((jobtab[t0].stat & STAT_INUSE) && t0 != curjob && t0 != thisjob)
+X				break;
+X	prevjob = (t0) ? t0 : -1;
+X}
+X
+X/* initialize a job table entry */
+X
+Xvoid initjob() /**/
+X{
+X	jobtab[thisjob].cwd = ztrdup(cwd);
+X	jobtab[thisjob].stat = STAT_INUSE;
+X	jobtab[thisjob].gleader = 0;
+X}
+X
+X/* add a process to the current job */
+X
+Xstruct process *addproc(pid,text) /**/
+Xlong pid;char *text;
+X{
+Xstruct process *process;
+X
+X	if (!jobtab[thisjob].gleader)
+X		jobtab[thisjob].gleader = lastpid = pid;
+X	lastpid = pid;
+X	process = zcalloc(sizeof *process);
+X	process->pid = pid;
+X	process->text = text;
+X	process->next = NULL;
+X	process->statusp = SP_RUNNING;
+X	process->bgtime = time(NULL);
+X	if (jobtab[thisjob].procs)
+X		{
+X		struct process *n;
+X
+X		for (n = jobtab[thisjob].procs; n->next && !n->next->lastfg; n = n->next);
+X		process->next = n->next;
+X		n->next = process;
+X		}
+X	else
+X		jobtab[thisjob].procs = process;
+X	return process;
+X}
+X
+X/* determine if it's all right to exec a command without
+X	forking in last component of subshells; it's not ok if we have files
+X	to delete */
+X
+Xint execok() /**/
+X{
+XJob jn;
+X
+X	if (!exiting)
+X		return 0;
+X	for (jn = jobtab+1; jn != jobtab+MAXJOB; jn++)
+X		if (jn->stat && jn->filelist)
+X			return 0;
+X	return 1;
+X}
+X
+X/* wait for a job to finish */
+X
+Xvoid waitjob(job) /**/
+Xint job;
+X{
+Xstatic struct job zero;
+XJob jn;
+X
+X	if (jobtab[job].procs)	/* if any forks were done */
+X		{
+X		jobtab[job].stat |= STAT_LOCKED;
+X		waiting = 1;
+X		if (jobtab[job].stat & STAT_CHANGED)
+X			printjob(jobtab+job,!!isset(LONGLISTJOBS));
+X		while (jobtab[job].stat &&
+X				!(jobtab[job].stat & (STAT_DONE|STAT_STOPPED)))
+X			chldsuspend();
+X		waiting = 0;
+X		}
+X	else	/* else do what printjob() usually does */
+X		{
+X		char *s;
+X
+X		jn = jobtab+job;
+X		free(jn->cwd);
+X		if (jn->filelist)
+X			{
+X			while (s = getnode(jn->filelist))
+X				{
+X				unlink(s);
+X				free(s);
+X				}
+X			free(jn->filelist);
+X			}
+X		*jn = zero;
+X		}
+X}
+X
+X/* wait for running job to finish */
+X
+Xvoid waitjobs() /**/
+X{
+X	waitjob(thisjob);
+X	thisjob = -1;
+X}
+X
+X/* clear job table when entering subshells */
+X
+Xvoid clearjobtab() /**/
+X{
+Xstatic struct job zero;
+Xint t0;
+X
+X	for (t0 = 1; t0 != MAXJOB; t0++)
+X		jobtab[thisjob] = zero;
+X}
+X
+X/* get a free entry in the job table to use */
+X
+Xint getfreejob() /**/
+X{
+Xint t0;
+X
+X	for (t0 = 1; t0 != MAXJOB; t0++)
+X		if (!jobtab[t0].stat) {
+X			jobtab[t0].stat |= STAT_INUSE;
+X			return t0;
+X		}
+X	zerr("job table full or recursion limit exceeded",NULL,0);
+X	return -1;
+X}
+X
+X/* print pids for & */
+X
+Xvoid spawnjob() /**/
+X{
+Xstruct process *pn;
+X
+X	if (!subsh)
+X		{
+X		if (curjob == -1 || !(jobtab[curjob].stat & STAT_STOPPED))
+X			{
+X			curjob = thisjob;
+X			setprevjob();
+X			}
+X		else if (prevjob == -1 || !(jobtab[prevjob].stat & STAT_STOPPED))
+X			prevjob = thisjob;
+X		if (interact && jobbing && jobtab[thisjob].procs)
+X			{
+X			fprintf(stderr,"[%d]",thisjob);
+X			for (pn = jobtab[thisjob].procs; pn; pn = pn->next)
+X				fprintf(stderr," %d",pn->pid);
+X			fprintf(stderr,"\n");
+X			fflush(stderr);
+X			}
+X		}
+X	if (!jobtab[thisjob].procs)
+X		{
+X		char *s;
+X		static struct job zero;
+X		struct job *jn;
+X
+X		jn = jobtab+thisjob;
+X		free(jn->cwd);
+X		if (jn->filelist)
+X			{
+X			while (s = getnode(jn->filelist))
+X				{
+X				unlink(s);
+X				free(s);
+X				}
+X			free(jn->filelist);
+X			}
+X		*jn = zero;
+X		}
+X	else
+X		jobtab[thisjob].stat |= STAT_LOCKED;
+X	thisjob = -1;
+X}
+X
+Xvoid fixsigs() /**/
+X{
+X	unblockchld();
+X}
+X
+Xvoid printtime(real,ru,desc) /**/
+Xtime_t real;struct rusage *ru;char *desc;
+X{
+Xchar *s;
+X
+X	if (!desc)
+X		desc = "";
+X	for (s = (timefmt) ? timefmt : DEFTIMEFMT; *s; s++)
+X		if (*s == '%')
+X			switch(s++,*s)
+X				{
+X				case 'E': fprintf(stderr,"%lds",real); break;
+X				case 'U': fprintf(stderr,"%ld.%03lds",
+X					ru->ru_utime.tv_sec,ru->ru_utime.tv_usec/1000); break;
+X				case 'S': fprintf(stderr,"%ld.%03lds",
+X					ru->ru_stime.tv_sec,ru->ru_stime.tv_usec/1000); break;
+X				case 'P':
+X					if (real)
+X						fprintf(stderr,"%d%%",
+X							(int) (100*ru->ru_utime.tv_sec+ru->ru_stime.tv_sec)
+X								/ real);
+X					break;
+X				case 'W': fprintf(stderr,"%ld",ru->ru_nswap); break;
+X				case 'X': fprintf(stderr,"%ld",ru->ru_ixrss); break;
+X				case 'D': fprintf(stderr,"%ld",ru->ru_idrss); break;
+X				case 'K': fprintf(stderr,"%ld",ru->ru_ixrss+ru->ru_idrss); break;
+X				case 'M': fprintf(stderr,"%ld",ru->ru_maxrss); break;
+X				case 'F': fprintf(stderr,"%ld",ru->ru_majflt); break;
+X				case 'R': fprintf(stderr,"%ld",ru->ru_minflt); break;
+X				case 'I': fprintf(stderr,"%ld",ru->ru_inblock); break;
+X				case 'O': fprintf(stderr,"%ld",ru->ru_oublock); break;
+X				case 'r': fprintf(stderr,"%ld",ru->ru_msgrcv); break;
+X				case 's': fprintf(stderr,"%ld",ru->ru_msgsnd); break;
+X				case 'k': fprintf(stderr,"%ld",ru->ru_nsignals); break;
+X				case 'w': fprintf(stderr,"%ld",ru->ru_nvcsw); break;
+X				case 'c': fprintf(stderr,"%ld",ru->ru_nivcsw); break;
+X				default: fprintf(stderr,"%%%c",s[-1]); break;
+X				}
+X		else
+X			putc(*s,stderr);
+X	putc('\n',stderr);
+X	fflush(stderr);
+X}
+X
+Xvoid dumptime(jn) /**/
+XJob jn;
+X{
+Xstruct process *pn = jn->procs;
+X
+X	if (!jn->procs)
+X		return;
+X	for (pn = jn->procs; pn; pn = pn->next)
+X		printtime(pn->endtime-pn->bgtime,&pn->ru,pn->text);
+X}
+X
+X/* SIGHUP any jobs left running */
+X
+Xvoid killrunjobs() /**/
+X{
+Xint t0,killed = 0;
+X
+X	if (isset(NOHUP)) return;
+X	for (t0 = 1; t0 != MAXJOB; t0++)
+X		if (t0 != thisjob && jobtab[t0].stat &&
+X				!(jobtab[t0].stat & STAT_STOPPED))
+X			{
+X			kill(-jobtab[t0].gleader,SIGHUP);
+X			killed++;
+X			}
+X	if (killed)
+X		zerr("warning: %d jobs SIGHUPed",NULL,killed);
+X}
+X
+X/* check to see if user has jobs running/stopped */
+X
+Xvoid checkjobs() /**/
+X{
+Xint t0;
+X
+X	for (t0 = 1; t0 != MAXJOB; t0++)
+X		if (t0 != thisjob && jobtab[t0].stat)
+X			break;
+X	if (t0 != MAXJOB)
+X		{
+X		if (jobtab[t0].stat & STAT_STOPPED)
+X			{
+X#ifdef USE_SUSPENDED
+X			zerr("you have suspended jobs.",NULL,0);
+X#else
+X			zerr("you have stopped jobs.",NULL,0);
+X#endif
+X			}
+X		else
+X			zerr("you have running jobs.",NULL,0);
+X		stopmsg = 1;
+X		}
+X}
+X
+X/* send a signal to a job (simply involves kill if monitoring is on) */
+X
+Xint killjb(jn,sig) /**/
+XJob jn;int sig;
+X{
+Xstruct process *pn;
+Xint err;
+X
+X	if (jobbing)
+X		return(kill(-jn->gleader,sig));
+X	for (pn = jn->procs; pn; pn = pn->next)
+X		if ((err = kill(pn->pid,sig)) == -1 && errno != ESRCH)
+X			return -1;
+X	return err;
+X}
+X
+SHAR_EOF
+echo 'File zsh2.1/src/jobs.c is complete' &&
+chmod 0644 zsh2.1/src/jobs.c ||
+echo 'restore of zsh2.1/src/jobs.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/jobs.c'`"
+test 14918 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/jobs.c: original size 14918, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/lex.c ==============
+if test -f 'zsh2.1/src/lex.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/lex.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/lex.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/lex.c' &&
+X/*
+X
+X	lex.c - lexical analysis
+X
+X	This file is part of zsh, the Z shell.
+X
+X   zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X
+X/* lexical state */
+X
+Xstatic int xincmdpos,xincond,xincasepat,dbparens,xdbparens,xalstat;
+Xstatic char *xhlastw;
+X
+Xstatic int xisfirstln, xisfirstch, xhistremmed, xhistdone,
+X	xspaceflag, xstophist, xlithist, xalstackind,xhlinesz;
+Xstatic char *xhline, *xhptr;
+X
+X/* save the lexical state */
+X
+X/* is this a hack or what? */
+X
+Xvoid lexsave() /**/
+X{
+X	xincmdpos = incmdpos;
+X	xincond = incond;
+X	xincasepat = incasepat;
+X	xdbparens = dbparens;
+X	xalstat = alstat;
+X	xalstackind = alstackind;
+X	xisfirstln = isfirstln;
+X	xisfirstch = isfirstch;
+X	xhistremmed = histremmed;
+X	xhistdone = histdone;
+X	xspaceflag = spaceflag;
+X	xstophist = stophist;
+X	xlithist = lithist;
+X	xhline = hline;
+X	xhptr = hptr;
+X	xhlastw = hlastw;
+X	xhlinesz = hlinesz;
+X}
+X
+X/* restore lexical state */
+X
+Xvoid lexrestore() /**/
+X{
+X	incmdpos = xincmdpos;
+X	incond = xincond;
+X	incasepat = xincasepat;
+X	dbparens = xdbparens;
+X	alstat = xalstat;
+X	isfirstln = xisfirstln;
+X	isfirstch = xisfirstch;
+X	histremmed = xhistremmed;
+X	histdone = xhistdone;
+X	spaceflag = xspaceflag;
+X	stophist = xstophist;
+X	lithist = xlithist;
+X	hline = xhline;
+X	hptr = xhptr;
+X	hlastw = xhlastw;
+X	clearalstack();
+X	alstackind = xalstackind;
+X	hlinesz = xhlinesz;
+X	lexstop = errflag = 0;
+X}
+X
+Xvoid yylex() /**/
+X{
+X	if (tok == LEXERR) return;
+X	do
+X		tok = gettok();
+X	while (tok != ENDINPUT && exalias());
+X	isnewlin = (tok == NEWLIN && !inbufct);
+X	if (tok == SEMI || tok == NEWLIN)
+X		tok = SEPER;
+X}
+X
+Xvoid ctxtlex() /**/
+X{
+Xstatic int oldpos,inredir = 0;
+X
+X	yylex();
+X	switch (tok) {
+X	case SEPER: case NEWLIN: case SEMI: case DSEMI: case AMPER:
+X	case INPAR: case INBRACE: case DBAR: case DAMPER: case BAR:
+X	case BARAMP: case INOUTPAR: case DO: case THEN: case ELIF:
+X	case ELSE: incmdpos = 1; break;
+X	case STRING: case ENVSTRING: case ENVARRAY: case OUTPAR:
+X	case FOR: case SELECT: case FOREACH: case CASE: incmdpos = 0; break;
+X	}
+X	if (IS_REDIROP(tok)) {
+X		inredir = 2;
+X		oldpos = incmdpos;
+X		incmdpos = 0;
+X	} else if (inredir) {
+X		if (!--inredir) incmdpos = oldpos;
+X		else incmdpos = 0;
+X	}
+X}
+X
+X#define LX1_BKSLASH 0
+X#define LX1_COMMENT 1
+X#define LX1_NEWLIN 2
+X#define LX1_SEMI 3
+X#define LX1_BANG 4
+X#define LX1_AMPER 5
+X#define LX1_BAR 6
+X#define LX1_INPAR 7
+X#define LX1_OUTPAR 8
+X#define LX1_INBRACE 9
+X#define LX1_OUTBRACE 10
+X#define LX1_INBRACK 11
+X#define LX1_OUTBRACK 12
+X#define LX1_INANG 13
+X#define LX1_OUTANG 14
+X#define LX1_OTHER 15
+X
+X#define LX2_BREAK 0
+X#define LX2_OUTPAR 1
+X#define LX2_BAR 2
+X#define LX2_STRING 3
+X#define LX2_INBRACK 4
+X#define LX2_OUTBRACK 5
+X#define LX2_TILDE 6
+X#define LX2_INPAR 7
+X#define LX2_INBRACE 8
+X#define LX2_OUTBRACE 9
+X#define LX2_OUTANG 10
+X#define LX2_INANG 11
+X#define LX2_EQUALS 12
+X#define LX2_BKSLASH 13
+X#define LX2_QUOTE 14
+X#define LX2_DQUOTE 15
+X#define LX2_BQUOTE 16
+X#define LX2_OTHER 17
+X
+Xunsigned char lexact1[256],lexact2[256],lextok2[256];
+X
+Xvoid initlextabs() /**/
+X{
+Xint t0;
+Xstatic char *lx1 = "\\q\n;!&|(){}[]<>xx";
+Xstatic char *lx2 = "x)|$[]~({}><=\\\'\"`x";
+X
+X	for (t0 = 0; t0 != 256; t0++) {
+X		lexact1[t0] = LX1_OTHER;
+X		lexact2[t0] = LX2_OTHER;
+X		lextok2[t0] = t0;
+X	}
+X	for (t0 = 0; lx1[t0]; t0++)
+X		if (lx1[t0] != 'x')
+X			lexact1[lx1[t0]] = t0;
+X	for (t0 = 0; lx2[t0]; t0++)
+X		if (lx2[t0] != 'x')
+X			lexact2[lx2[t0]] = t0;
+X	lexact2[';'] = LX2_BREAK;
+X	lexact2['&'] = LX2_BREAK;
+X	lextok2[','] = Comma;
+X	lextok2['*'] = Star;
+X	lextok2['?'] = Quest;
+X	lextok2['{'] = Inbrace;
+X	lextok2['['] = Inbrack;
+X	lextok2['$'] = String;
+X}
+X
+X/* initialize lexical state */
+X
+Xvoid lexinit() /**/
+X{
+X	incond = incasepat = nocorrect =
+X		dbparens = alstat = lexstop = 0;
+X	incmdpos = 1;
+X	tok = ENDINPUT;
+X	if (isset(EXTENDEDGLOB))
+X		{
+X		lextok2['#'] = Pound;
+X		lextok2['^'] = Hat;
+X		}
+X	else
+X		{
+X		lextok2['#'] = '#'; 
+X		lextok2['^'] = '^';
+X		}
+X}
+X
+Xint len = 0,bsiz = 256;
+Xchar *bptr;
+X
+X/* add a char to the string buffer */
+X
+Xvoid add(c) /**/
+Xint c;
+X{
+X	*bptr++ = c;
+X	if (bsiz == ++len)
+X		{
+X		int newbsiz;
+X
+X		newbsiz = bsiz * 8;
+X		while (newbsiz < inbufct)
+X			newbsiz *= 2;
+X		bptr = len+(tokstr = hrealloc(tokstr,bsiz,newbsiz));
+X		bsiz = newbsiz;
+X		}
+X}
+X
+Xstatic void unadd()
+X{
+X	bptr--; bsiz--;
+X}
+X
+Xint gettok() /**/
+X{
+Xint bct = 0,pct = 0,brct = 0;
+Xint c,d,intpos = 1;
+Xint peekfd = -1,peek;
+X
+Xbeginning:
+X	hlastw = NULL;
+X	tokstr = NULL;
+X	parbegin = -1;
+X	while (iblank(c = hgetc()) && !lexstop);
+X	isfirstln = 0;
+X	wordbeg = inbufct;
+X	hwbegin();
+X	hwaddc(c);
+X	if (dbparens)	/* handle ((...)) */
+X		{
+X		pct = 2;
+X		peek = STRING;
+X		len = dbparens = 0;
+X		bptr = tokstr = ncalloc(bsiz = 256);
+X		for (;;)
+X			{
+X			if (c == '(')
+X				pct++;
+X			else if (c == ')')
+X				pct--;
+X			else if (c == '\n')
+X				{
+X				zerr("parse error: )) expected",NULL,0);
+X				peek = LEXERR;
+X				return peek;
+X				}
+X			else if (c == '$')
+X				c = Qstring;
+X			if (pct >= 2)
+X				add(c);
+X			if (pct)
+X				c = hgetc();
+X			else
+X				break;
+X			}
+X		*bptr = '\0';
+X		return peek;
+X		}
+X	if (idigit(c))	/* handle 1< foo */
+X		{
+X		d = hgetc();
+X		hungetc(d);
+X		lexstop = 0;
+X		if (d == '>' || d == '<')
+X			{
+X			peekfd = c-'0';
+X			c = hgetc();
+X			}
+X		}
+X
+X	/* chars in initial position in word */
+X
+X	if (c == hashchar &&
+X			(isset(INTERACTIVECOMMENTS) ||
+X			(!zleparse && (!interact || unset(SHINSTDIN) || strin))))
+X		{
+X		/* changed hgetch to hgetc so comments appear in history */
+X		stophist = 1;
+X		while ((c = hgetc()) != '\n' && !lexstop);
+X		if (c == '\n') {
+X			hwaddc('\n');
+X			peek = NEWLIN;
+X		} else {
+X			peek = (errflag) ? LEXERR : ENDINPUT;
+X			errflag = 1;
+X		}
+X		return peek;
+X		}
+X	if (lexstop)
+X		return (errflag) ? LEXERR : ENDINPUT;
+X	switch (lexact1[(unsigned char) c])
+X		{
+X		case LX1_BKSLASH:
+X			d = hgetc();
+X			if (d == '\n')
+X				goto beginning;
+X			hungetc(d);
+X			break;
+X		case LX1_NEWLIN: return NEWLIN;
+X		case LX1_SEMI:
+X			d = hgetc();
+X			if (d != ';')
+X				{
+X				hungetc(d);
+X				return SEMI;
+X				}
+X			return DSEMI;
+X		case LX1_BANG:
+X			d = hgetc();
+X			hungetc(d);
+X			if (!inblank(d))
+X				break;
+X			if (incmdpos || incond)
+X				return BANG;
+X			break;
+X		case LX1_AMPER:
+X			d = hgetc();
+X			if (d != '&')
+X				{
+X				hungetc(d);
+X				return AMPER;
+X				}
+X			return DAMPER;
+X		case LX1_BAR:
+X			d = hgetc();
+X			if (d == '|')
+X				return DBAR;
+X			else if (d == '&')
+X				return BARAMP;
+X			hungetc(d);
+X			return BAR;
+X		case LX1_INPAR:
+X			d = hgetc();
+X			if (d == '(' && incmdpos)
+X				{
+X				tokstr = strdup("let");
+X				dbparens = 1;
+X				return STRING;
+X				}
+X			else if (d == ')')
+X				return INOUTPAR;
+X			hungetc(d);
+X			if (!(incond || incmdpos))
+X				break;
+X			return INPAR;
+X		case LX1_OUTPAR: return OUTPAR;
+X		case LX1_INBRACE: if (!incmdpos) break; return INBRACE;
+X		case LX1_OUTBRACE: return OUTBRACE;
+X		case LX1_INBRACK:
+X			if (!incmdpos)
+X				break;
+X			d = hgetc();
+X			if (d == '[')
+X				return DINBRACK;
+X			hungetc(d);
+X			break;
+X		case LX1_OUTBRACK:
+X			if (!incond)
+X				break;
+X			d = hgetc();
+X			if (d == ']')
+X				return DOUTBRACK;
+X			hungetc(d);
+X			break;
+X		case LX1_INANG:
+X			d = hgetc();
+X			if ((!incmdpos && d == '(') || incasepat) {
+X				hungetc(d);
+X				break;
+X			} else if (d == '<') {
+X				int e = hgetc();
+X
+X				if (e == '(') {
+X					hungetc(e);
+X					hungetc(d);
+X					peek = INANG;
+X				} else if (e == '<')
+X					peek = TRINANG;
+X				else if (e == '-')
+X					peek = DINANGDASH;
+X				else {
+X					hungetc(e);
+X					peek = DINANG;
+X				}
+X			} else if (d == '&')
+X				peek = INANGAMP;
+X			else {
+X				peek = INANG;
+X				hungetc(d);
+X			}
+X			tokfd = peekfd;
+X			return peek;
+X		case LX1_OUTANG:
+X			d = hgetc();
+X			if (d == '(')
+X				{
+X				hungetc(d);
+X				break;
+X				}
+X			else if (d == '&')
+X				{
+X				d = hgetc();
+X				if (d == '!')
+X					peek = OUTANGAMPBANG;
+X				else
+X					{
+X					hungetc(d);
+X					peek = OUTANGAMP;
+X					}
+X				}
+X			else if (d == '!')
+X				peek = OUTANGBANG;
+X			else if (d == '>')
+X				{
+X				d = hgetc();
+X				if (d == '&')
+X					{
+X					d = hgetc();
+X					if (d == '!')
+X						peek = DOUTANGAMPBANG;
+X					else
+X						{
+X						hungetc(d);
+X						peek = DOUTANGAMP;
+X						}
+X					}
+X				else if (d == '!')
+X					peek = DOUTANGBANG;
+X				else if (d == '(')
+X					{
+X					hungetc(d);
+X					hungetc('>');
+X					peek = OUTANG;
+X					}
+X				else
+X					{
+X					hungetc(d);
+X					peek = DOUTANG;
+X					if (isset(NOCLOBBER)) hwaddc('!');
+X					}
+X				}
+X			else
+X				{
+X				hungetc(d);
+X				peek = OUTANG;
+X				if (isset(NOCLOBBER)) hwaddc('!');
+X				}
+X			tokfd = peekfd;
+X			return peek;
+X		}
+X
+X	/* we've started a string, now get the rest of it, performing
+X		tokenization */
+X
+X	peek = STRING;
+X	len = 0;
+X	bptr = tokstr = ncalloc(bsiz = 256);
+X	for(;;)
+X		{
+X		int act;
+X		int d;
+X		
+X		if (inblank(c))
+X			act = LX2_BREAK;
+X		else
+X			{
+X			act = lexact2[(unsigned char) c];
+X			c = lextok2[(unsigned char) c];
+X			}
+X		switch (act)
+X			{
+X			case LX2_BREAK: goto brk;
+X			case LX2_OUTPAR:
+X				if (!pct)
+X					goto brk;
+X				c = Outpar;
+X				pct--;
+X				break;
+X			case LX2_BAR:
+X				if (!pct && !incasepat)
+X					goto brk;
+X				c = Bar;
+X				break;
+X			case LX2_STRING:
+X				d = hgetc();
+X				if (d == '[')
+X					{
+X					add(String);
+X					add(Inbrack);
+X					while ((c = hgetc()) != ']' && !lexstop)
+X						add(c);
+X					c = Outbrack;
+X					}
+X				else if (d == '(')
+X					{
+X					add(String);
+X					if (skipcomm()) { peek = LEXERR; goto brk; }
+X					c = Outpar;
+X					}
+X				else
+X					hungetc(d);
+X				break;
+X			case LX2_INBRACK: brct++; break;
+X			case LX2_OUTBRACK:
+X				if (incond && !brct)
+X					goto brk;
+X				brct--;
+X				c = Outbrack;
+X				break;
+X			case LX2_TILDE: /* if (intpos) */ c = Tilde; break;
+X			case LX2_INPAR:
+X				d = hgetc();
+X				hungetc(d);
+X				if (d == ')' || incmdpos)
+X					goto brk;
+X				pct++;
+X				c = Inpar;
+X				break;
+X			case LX2_INBRACE: bct++; break;
+X			case LX2_OUTBRACE:
+X				if (!bct)
+X					goto brk;
+X				bct--;
+X				c = Outbrace;
+X				break;
+X			case LX2_OUTANG:
+X				d = hgetc();
+X				if (d != '(')
+X					{
+X					hungetc(d);
+X					goto brk;
+X					}
+X				add(Outang);
+X				if (skipcomm()) { peek = LEXERR; goto brk; }
+X				c = Outpar;
+X				break;
+X			case LX2_INANG:
+X				d = hgetc();
+X				if (!(idigit(d) || d == '-' || d == '>' || d == '(' || d == ')'))
+X					{
+X					hungetc(d);
+X					goto brk;
+X					}
+X				c = Inang;
+X				if (d == '(')
+X					{
+X					add(c);
+X					if (skipcomm()) { peek = LEXERR; goto brk; }
+X					c = Outpar;
+X					}
+X				else if (d == ')')
+X					hungetc(d);
+X				else
+X					{
+X					add(c);
+X					c = d;
+X					while (c != '>' && !lexstop)
+X						add(c),c = hgetc();
+X					c = Outang;
+X					}
+X				break;
+X			case LX2_EQUALS:
+X				if (intpos)
+X					{
+X					d = hgetc();
+X					if (d != '(')
+X						{
+X						hungetc(d);
+X						c = Equals;
+X						}
+X					else
+X						{
+X						add(Equals);
+X						if (skipcomm()) { peek = LEXERR; goto brk; }
+X						c = Outpar;
+X						}
+X					}
+X				else if (peek != ENVSTRING && incmdpos)
+X					{
+X					d = hgetc();
+X					if (d == '(' && incmdpos)
+X						{
+X						*bptr = '\0';
+X						return ENVARRAY;
+X						}
+X					hungetc(d);
+X					peek = ENVSTRING;
+X					intpos = 2;
+X					}
+X				break;
+X			case LX2_BKSLASH:
+X				c = hgetc();
+X				if (c == '\n')
+X					{
+X					c = hgetc();
+X					continue;
+X					}
+X				add(c);
+X				c = hgetc();
+X				continue;
+X			case LX2_QUOTE:
+X				add(Nularg);
+X
+X				/* we add the Nularg to prevent this:
+X
+X				echo $PA'TH'
+X
+X				from printing the path. */
+X
+X				for (;;) {
+X					while ((c = hgetc()) != '\'' && !lexstop) {
+X						if (isset(CSHJUNKIEQUOTES) && c == '\n') {
+X							if (bptr[-1] == '\\') unadd(); else break;
+X						}
+X						add(c);
+X					}
+X					if (c != '\'') {
+X						zerr("unmatched \'",NULL,0);
+X						peek = LEXERR;
+X						goto brk;
+X					}
+X					d = hgetc();
+X					if (d != '\'' || unset(RCQUOTES)) break;
+X					add(c);
+X				}
+X				hungetc(d);
+X				c = Nularg;
+X				break;
+X			case LX2_DQUOTE:
+X				add(Nularg);
+X				while ((c = hgetc()) != '\"' && !lexstop)
+X					if (c == '\\')
+X						{
+X						c = hgetc();
+X						if (c != '\n')
+X							{
+X							if (c != '$' && c != '\\' && c != '\"' && c != '`')
+X								add('\\');
+X							add(c);
+X							}
+X						}
+X					else {
+X						if (isset(CSHJUNKIEQUOTES) && c == '\n') {
+X							if (bptr[-1] == '\\') unadd(); else break;
+X						}
+X						if (c == '$') {
+X							d = hgetc();
+X							if (d == '(') {
+X								add(Qstring);
+X								if (skipcomm()) { peek = LEXERR; goto brk; }
+X								c = Outpar;
+X							} else if (d == '[') {
+X								add(String);
+X								add(Inbrack);
+X								while ((c = hgetc()) != ']' && !lexstop)
+X									add(c);
+X								c = Outbrack;
+X							} else {
+X								c = Qstring;
+X								hungetc(d);
+X							}
+X						} else if (c == '`')
+X							c = Qtick;
+X						add(c);
+X					}
+X				if (c != '\"') {
+X					zerr("unmatched \"",NULL,0);
+X					peek = LEXERR;
+X					goto brk;
+X				}
+X				c = Nularg;
+X				break;
+X			case LX2_BQUOTE:
+X				add(Tick);
+X				parbegin = inbufct;
+X				while ((c = hgetc()) != '`' && !lexstop)
+X					if (c == '\\')
+X						{
+X						c = hgetc();
+X						if (c != '\n')
+X							{
+X							if (c != '`' && c != '\\' && c != '$')
+X								add('\\');
+X							add(c);
+X							}
+X						}
+X					else {
+X						if (isset(CSHJUNKIEQUOTES) && c == '\n') {
+X							if (bptr[-1] == '\\') unadd(); else break;
+X						}
+X						add(c);
+X					}
+X				if (c != '`') {
+X					if (!zleparse) zerr("unmatched `",NULL,0);
+X					peek = LEXERR;
+X					goto brk;
+X				}
+X				c = Tick;
+X				parbegin = -1;
+X				break;
+X			}
+X		add(c);
+X		c = hgetc();
+X		if (intpos)
+X			intpos--;
+X		if (lexstop)
+X			break;
+X		}
+Xbrk:
+X	hungetc(c);
+X	*bptr = '\0';
+X	return peek;
+X}
+X
+X/* expand aliases, perhaps */
+X
+Xint exalias() /**/
+X{
+Xstruct alias *an;
+Xchar *s,*t;
+X
+X	s = yytext = hwadd();
+X	for (t = s; *t && *t != HISTSPACE; t++);
+X	if (!*t)
+X		t = NULL;
+X	else
+X		*t = '\0';
+X	if (interact && isset(SHINSTDIN) && !strin && !incasepat && tok == STRING &&
+X		(isset(CORRECTALL) || (isset(CORRECT) && incmdpos)) && !nocorrect)
+X			spckword(&tokstr,&s,&t,!incmdpos,1);
+X	if (zleparse && !alstackind)
+X		gotword(s);
+X	an = gethnode(s,aliastab);
+X	if (t)
+X		*t = HISTSPACE;
+X	if (alstackind != MAXAL && an && !an->inuse)
+X		if (!(an->cmd && !incmdpos && alstat != ALSTAT_MORE))
+X			{
+X			if (an->cmd < 0)
+X				{
+X				tok = DO-an->cmd-1;
+X				return 0;
+X				}
+X			else
+X				{
+X				an->inuse = 1;
+X				hungets(ALPOPS);
+X				hungets((alstack[alstackind++] = an)->text);
+X				alstat = 0;
+X				/* remove from history if it begins with space */
+X				if (isset(HISTIGNORESPACE) && an->text[0] == ' ')
+X				    remhist();
+X				lexstop = 0;
+X				return 1;
+X				}
+X			}
+X	return 0;
+X}
+X
+X/* skip (...) */
+X
+Xint skipcomm() /**/
+X{
+Xint pct = 1,c;
+X
+X	parbegin = inbufct;
+X	c = Inpar;
+X	do
+X		{
+X		add(c);
+X		c = hgetc();
+X		if (itok(c) || lexstop)
+X			break;
+X		else if (c == '(') pct++;
+X		else if (c == ')') pct--;
+X		else if (c == '\\')
+X			{
+X			add(c);
+X			c = hgetc();
+X			}
+X		else if (c == '\'')
+X			{
+X			add(c);
+X			while ((c = hgetc()) != '\'' && !lexstop)
+X				add(c);
+X			}
+X		else if (c == '\"')
+X			{
+X			add(c);
+X			while ((c = hgetc()) != '\"' && !lexstop)
+X				if (c == '\\')
+X					{
+X					add(c);
+X					add(hgetc());
+X					}
+X				else add(c);
+X			}
+X		else if (c == '`')
+X			{
+X			add(c);
+X			while ((c = hgetc()) != '`' && !lexstop)
+X				if (c == '\\') add(c), add(hgetc());
+X				else add(c);
+X			}
+X		}
+X	while(pct);
+X	if (!lexstop) parbegin = -1;
+X	return lexstop;
+X}
+X
+SHAR_EOF
+chmod 0644 zsh2.1/src/lex.c ||
+echo 'restore of zsh2.1/src/lex.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/lex.c'`"
+test 15750 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/lex.c: original size 15750, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/loop.c ==============
+if test -f 'zsh2.1/src/loop.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/loop.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/loop.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/loop.c' &&
+X/*
+X
+X	loop.c - loop execution
+X
+X	This file is part of zsh, the Z shell.
+X
+X   zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X
+Xint execfor(cmd) /**/
+XCmd cmd;
+X{
+XList list;
+Xstruct forcmd *node;
+Xchar *str;
+XLklist args;
+Xint cj = thisjob;
+X
+X	loops++;
+X	exiting = 0;
+X	node = cmd->u.forcmd;
+X	args = cmd->args;
+X	if (!node->inflag)
+X		{
+X		char **x;
+X
+X		args = newlist();
+X		for (x = pparams; *x; x++)
+X			addnode(args,ztrdup(*x));
+X		}
+X	pushheap();
+X	while (str = ugetnode(args))
+X		{
+X		setsparam(node->name,ztrdup(str));
+X		list = dupstruct(node->list);
+X		execlist(list);
+X		if (breaks)
+X			{
+X			breaks--;
+X			if (breaks || !contflag)
+X				break;
+X			contflag = 0;
+X			}
+X		if (errflag)
+X			{
+X			lastval = 1;
+X			break;
+X			}
+X		freeheap();
+X		}
+X	popheap();
+X	thisjob = cj;
+X	return lastval;
+X}
+X
+Xint execselect(cmd) /**/
+XCmd cmd;
+X{
+XList list;
+Xstruct forcmd *node;
+Xchar *str,*s;
+XLklist args;
+XLknode n;
+Xint cj = thisjob,t0;
+X
+X	loops++;
+X	node = cmd->u.forcmd;
+X	args = cmd->args;
+X	if (!full(args))
+X		return 1;
+X	exiting = 0;
+X	pushheap();
+X	for (;;)
+X		{
+X		do
+X			{
+X			selectlist(args);
+X			if (interact && SHTTY != -1 && isset(USEZLE))
+X				{
+X				int pl;
+X
+X				str = putprompt(prompt3,&pl);
+X				str = zleread(str,NULL,pl);
+X				}
+X			else
+X				str = fgets(zalloc(256),256,bshin);
+X			if (!str || errflag)
+X				{
+X				fprintf(stderr,"\n");
+X				fflush(stderr);
+X				goto done;
+X				}
+X			if (s = strchr(str,'\n'))
+X				*s = '\0';
+X			}
+X		while (!*str);
+X		setsparam("REPLY",ztrdup(str));
+X		t0 = atoi(str);
+X		if (!t0)
+X			str = "";
+X		else
+X			{
+X			for (t0--,n = firstnode(args); n && t0; incnode(n),t0--);
+X			if (n)
+X				str = getdata(n);
+X			else
+X				str = "";
+X			}
+X		setsparam(node->name,ztrdup(str));
+X		list = dupstruct(node->list);
+X		execlist(list);
+X		freeheap();
+X		if (breaks)
+X			{
+X			breaks--;
+X			if (breaks || !contflag)
+X				break;
+X			contflag = 0;
+X			}
+X		if (errflag)
+X			break;
+X		}
+Xdone:
+X	popheap();
+X	thisjob = cj;
+X	return lastval;
+X}
+X 
+Xint execwhile(cmd) /**/
+XCmd cmd;
+X{
+XList list;
+Xstruct whilecmd *node;
+Xint cj = thisjob; 
+X
+X	loops++;
+X	node = cmd->u.whilecmd;
+X	exiting = 0;
+X	pushheap();
+X	for(;;)
+X		{
+X		list = dupstruct(node->cont);
+X		execlist(list);
+X		if (!((lastval == 0) ^ node->cond))
+X			break;
+X		list = dupstruct(node->loop);
+X		execlist(list);
+X		if (breaks)
+X			{
+X			breaks--;
+X			if (breaks || !contflag)
+X				break;
+X			contflag = 0;
+X			}
+X		freeheap();
+X		if (errflag)
+X			{
+X			lastval = 1;
+X			break;
+X			}
+X		}
+X	popheap();
+X	thisjob = cj;
+X	return lastval;
+X}
+X 
+Xint execrepeat(cmd) /**/
+XCmd cmd;
+X{
+XList list;
+Xint cj = thisjob,count;
+X
+X	loops++;
+X	exiting = 0;
+X	if (!full(cmd->args) || nextnode(firstnode(cmd->args)))
+X		{
+X		zerr("bad argument for repeat",NULL,0);
+X		return 1;
+X		}
+X	count = atoi(peekfirst(cmd->args));
+X	pushheap();
+X	while (count--)
+X		{
+X		list = dupstruct(cmd->u.list);
+X		execlist(list);
+X		freeheap();
+X		if (breaks)
+X			{
+X			breaks--;
+X			if (breaks || !contflag)
+X				break;
+X			contflag = 0;
+X			}
+X		if (lastval)
+X			break;
+X		if (errflag)
+X			{
+X			lastval = 1;
+X			break;
+X			}
+X		}
+X	popheap();
+X	thisjob = cj;
+X	return lastval;
+X}
+X 
+Xint execif(cmd) /**/
+XCmd cmd;
+X{
+Xstruct ifcmd *node;
+Xint cj = thisjob;
+X
+X	node = cmd->u.ifcmd;
+X	exiting = 0;
+X	while (node)
+X		{
+X		if (node->ifl)
+X			{
+X			execlist(node->ifl);
+X			if (lastval)
+X				{
+X				node = node->next;
+X				continue;
+X				}
+X			}
+X		execlist(node->thenl);
+X		break;
+X		}
+X	thisjob = cj;
+X	return lastval;
+X}
+X 
+Xint execcase(cmd) /**/
+XCmd cmd;
+X{
+Xstruct casecmd *node;
+Xchar *word;
+XLklist args;
+Xint cj = thisjob;
+X
+X	node = cmd->u.casecmd;
+X	args = cmd->args;
+X	exiting = 0;
+X	if (firstnode(args) && nextnode(firstnode(args)))
+X		{
+X		zerr("too many arguments to case",NULL,0);
+X		errflag = 1;
+X		return 1;
+X		}
+X	if (!full(args))
+X		word = strdup("");
+X	else
+X		word = peekfirst(args);
+X	while (node)
+X		{
+X		singsub(&(node->pat));
+X		if (matchpat(word,node->pat))
+X			break;
+X		else
+X			node = node->next;
+X		}
+X	if (node && node->list)
+X		execlist(node->list);
+X	thisjob = cj;
+X	return lastval;
+X}
+SHAR_EOF
+chmod 0644 zsh2.1/src/loop.c ||
+echo 'restore of zsh2.1/src/loop.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/loop.c'`"
+test 4854 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/loop.c: original size 4854, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/math.c ==============
+if test -f 'zsh2.1/src/math.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/math.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/math.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/math.c' &&
+X/*
+X
+X	math.c - mathematical expression evaluation
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X
+Xstatic char *ptr;
+X
+Xtypedef int LV;
+X
+Xstatic long yyval;
+Xstatic LV yylval;
+X
+X/* nonzero means we are not evaluating, just parsing */
+X
+Xstatic int noeval = 0;
+X
+X/* != 0 means recognize unary plus, minus, etc. */
+X
+Xstatic int unary = 1;
+X
+Xvoid mathparse DCLPROTO((int));
+X
+X/* LR = left-to-right associativity
+X	RL = right-to-left associativity
+X	BOO = short-circuiting boolean */
+X
+X#define LR 0
+X#define RL 1
+X#define BOOL 2
+X
+X#define M_INPAR 0
+X#define M_OUTPAR 1
+X#define NOT 2
+X#define COMP 3
+X#define POSTPLUS 4
+X#define POSTMINUS 5
+X#define UPLUS 6
+X#define UMINUS 7
+X#define AND 8
+X#define XOR 9
+X#define OR 10
+X#define MUL 11
+X#define DIV 12
+X#define MOD 13
+X#define PLUS 14
+X#define MINUS 15
+X#define SHLEFT 16
+X#define SHRIGHT 17
+X#define LES 18
+X#define LEQ 19
+X#define GRE 20
+X#define GEQ 21
+X#define DEQ 22
+X#define NEQ 23
+X#define DAND 24
+X#define DOR 25
+X#define DXOR 26
+X#define QUEST 27
+X#define COLON 28
+X#define EQ 29
+X#define PLUSEQ 30
+X#define MINUSEQ 31
+X#define MULEQ 32
+X#define DIVEQ 33
+X#define MODEQ 34
+X#define ANDEQ 35
+X#define XOREQ 36
+X#define OREQ 37
+X#define SHLEFTEQ 38
+X#define SHRIGHTEQ 39
+X#define DANDEQ 40
+X#define DOREQ 41
+X#define DXOREQ 42
+X#define COMMA 43
+X#define EOI 44
+X#define PREPLUS 45
+X#define PREMINUS 46
+X#define NUM 47
+X#define ID 48
+X#define TOKCOUNT 49
+X
+X/* precedences */
+X
+Xstatic int prec[TOKCOUNT] = {
+X	1,137,2,2,2,
+X	2,2,2,4,5,
+X	6,7,7,7,8,
+X	8,3,3,9,9,
+X	9,9,10,10,11,
+X	12,12,13,13,14,
+X	14,14,14,14,14,
+X	14,14,14,14,14,
+X	14,14,14,15,200,
+X	2,2,0,0,
+X};
+X
+X#define TOPPREC 15
+X#define ARGPREC (15-1)
+X
+Xstatic int type[TOKCOUNT] = {
+X	LR,LR,RL,RL,RL,
+X	RL,RL,RL,LR,LR,
+X	LR,LR,LR,LR,LR,
+X	LR,LR,LR,LR,LR,
+X	LR,LR,LR,LR,BOOL,
+X	BOOL,LR,RL,RL,RL,
+X	RL,RL,RL,RL,RL,
+X	RL,RL,RL,RL,RL,
+X	BOOL,BOOL,RL,RL,RL,
+X	RL,RL,LR,LR,
+X};
+X
+X#define LVCOUNT 32
+X
+X/* list of lvalues (variables) */
+X
+Xstatic int lvc;
+Xstatic char *lvals[LVCOUNT];
+X
+Xint zzlex() /**/
+X{
+X	for(;;)
+X		switch (*ptr++)
+X			{
+X			case '+':
+X				if (*ptr == '+' && (unary || !ialnum(*ptr)))
+X					{
+X					ptr++;
+X					return (unary) ? PREPLUS : POSTPLUS;
+X					}
+X				if (*ptr == '=') { unary = 1; ptr++; return PLUSEQ; }
+X				return (unary) ? UPLUS : PLUS;
+X			case '-':
+X				if (*ptr == '-' && (unary || !ialnum(*ptr)))
+X					{
+X					ptr++;
+X					return (unary) ? PREMINUS : POSTMINUS;
+X					}
+X				if (*ptr == '=') { unary = 1; ptr++; return MINUSEQ; }
+X				return (unary) ? UMINUS : MINUS;
+X			case '(': unary = 1; return M_INPAR;
+X			case ')': return M_OUTPAR;
+X			case '!': if (*ptr == '=')
+X						{ unary = 1; ptr++; return NEQ; }
+X						return NOT;
+X			case '~': return COMP;
+X			case '&': unary = 1;
+X				if (*ptr == '&') { if (*++ptr == '=')
+X				{ ptr++; return DANDEQ; } return DAND; }
+X				else if (*ptr == '=') { ptr++; return ANDEQ; } return AND;
+X			case '|': unary = 1;
+X				if (*ptr == '|') { if (*++ptr == '=')
+X				{ ptr++; return DOREQ; } return DOR; }
+X				else if (*ptr == '=') { ptr++; return OREQ; } return OR;
+X			case '^': unary = 1;
+X				if (*ptr == '^') { if (*++ptr == '=')
+X				{ ptr++; return DXOREQ; } return DXOR; }
+X				else if (*ptr == '=') { ptr++; return XOREQ; } return XOR;
+X			case '*': unary = 1;
+X				if (*ptr == '=') { ptr++; return MULEQ; } return MUL;
+X			case '/': unary = 1;
+X				if (*ptr == '=') { ptr++; return DIVEQ; } return DIV;
+X			case '%': unary = 1;
+X				if (*ptr == '=') { ptr++; return MODEQ; } return MOD;
+X			case '<': unary = 1; if (*ptr == '<')
+X				{ if (*++ptr == '=') { ptr++; return SHLEFTEQ; } return SHLEFT; }
+X				else if (*ptr == '=') { ptr++; return LEQ; } return LES;
+X			case '>': unary = 1; if (*ptr == '>')
+X				{ if (*++ptr == '=') { ptr++; return SHRIGHTEQ; } return SHRIGHT; }
+X				else if (*ptr == '=') { ptr++; return GEQ; } return GRE;
+X			case '=': unary = 1; if (*ptr == '=') { ptr++; return DEQ; }
+X				return EQ;
+X			case '?': unary = 1; return QUEST;
+X			case ':': unary = 1; return COLON;
+X			case ',': unary = 1; return COMMA;
+X			case '\0': unary = 1; ptr--; return EOI;
+X			case '[': unary = 0;
+X				{ int base = zstrtol(ptr,&ptr,10);
+X					if (*ptr == ']') ptr++;
+X					yyval = zstrtol(ptr,&ptr,lastbase = base);
+X					return NUM; }
+X			case ' ': case '\t':
+X				break;
+X			default:
+X				if (idigit(*--ptr))
+X					{ unary = 0; yyval = zstrtol(ptr,&ptr,10); return NUM; }
+X				if (ialpha(*ptr) || *ptr == '$')
+X					{
+X					char *p,q;
+X
+X					if (*ptr == '$')
+X						ptr++;
+X					p = ptr;
+X					if (lvc == LVCOUNT)
+X						{
+X						zerr("too many identifiers (complain to author)",NULL,0);
+X						return EOI;
+X						}
+X					unary = 0;
+X					while(ialpha(*++ptr));
+X					q = *ptr;
+X					*ptr = '\0';
+X					lvals[yylval = lvc++] = ztrdup(p);
+X					*ptr = q;
+X					return ID;
+X					}
+X				return EOI;
+X			}
+X}
+X
+X/* the value stack */
+X
+X#define STACKSZ 100
+Xint mtok;			/* last token */
+Xint sp = -1;	/* stack pointer */
+Xstruct mathvalue {
+X	LV lval;
+X	long val;
+X	} stack[STACKSZ];
+X
+Xvoid push(val,lval)
+Xlong val;LV lval;
+X{
+X	if (sp == STACKSZ-1)
+X		zerr("stack overflow",NULL,0);
+X	else
+X		sp++;
+X	stack[sp].val = val;
+X	stack[sp].lval = lval;
+X}
+X
+Xlong getvar(s)
+XLV s;
+X{
+Xlong t;
+X
+X	if (!(t = getiparam(lvals[s])))
+X		return 0;
+X	return t;
+X}
+X
+Xlong setvar(s,v)
+XLV s;long v;
+X{
+X	if (s == -1 || s >= lvc)
+X		{
+X		zerr("lvalue required",NULL,0);
+X		return 0;
+X		}
+X	if (noeval)
+X		return v;
+X	setiparam(lvals[s],v);
+X	return v;
+X}
+X
+Xint notzero(a) /**/
+Xint a;
+X{
+X	if (a == 0)
+X		{
+X		zerr("division by zero",NULL,0);
+X		return 0;
+X		}
+X	return 1;
+X}
+X
+X#define pop2() { b = stack[sp--].val; a = stack[sp--].val; }
+X#define pop3() {c=stack[sp--].val;b=stack[sp--].val;a=stack[sp--].val;}
+X#define nolval() {stack[sp].lval= -1;}
+X#define pushv(X) { push(X,-1); }
+X#define pop2lv() { pop2() lv = stack[sp+1].lval; }
+X#define set(X) { push(setvar(lv,X),lv); }
+X
+Xvoid op(what) /**/
+Xint what;
+X{
+Xlong a,b,c;
+XLV lv;
+X
+X	if (sp < 0)
+X		{
+X		zerr("bad math expression: stack empty",NULL,0);
+X		return;
+X		}
+X	switch(what) {
+X		case NOT: stack[sp].val = !stack[sp].val; nolval(); break;
+X		case COMP: stack[sp].val = ~stack[sp].val; nolval(); break;
+X		case POSTPLUS: ( void ) setvar(stack[sp].lval,stack[sp].val+1); break;
+X		case POSTMINUS: ( void ) setvar(stack[sp].lval,stack[sp].val-1); break;
+X		case UPLUS: nolval(); break;
+X		case UMINUS: stack[sp].val = -stack[sp].val; nolval(); break;
+X		case AND: pop2(); pushv(a&b); break;
+X		case XOR: pop2(); pushv(a^b); break;
+X		case OR: pop2(); pushv(a|b); break;
+X		case MUL: pop2(); pushv(a*b); break;
+X		case DIV: pop2(); if (notzero(b)) pushv(a/b); break;
+X		case MOD: pop2(); if (notzero(b)) pushv(a%b); break;
+X		case PLUS: pop2(); pushv(a+b); break;
+X		case MINUS: pop2(); pushv(a-b); break;
+X		case SHLEFT: pop2(); pushv(a<<b); break;
+X		case SHRIGHT: pop2(); pushv(a>>b); break;
+X		case LES: pop2(); pushv(a<b); break;
+X		case LEQ: pop2(); pushv(a<=b); break;
+X		case GRE: pop2(); pushv(a>b); break;
+X		case GEQ: pop2(); pushv(a>=b); break;
+X		case DEQ: pop2(); pushv(a==b); break;
+X		case NEQ: pop2(); pushv(a!=b); break;
+X		case DAND: pop2(); pushv(a&&b); break;
+X		case DOR: pop2(); pushv(a||b); break;
+X		case DXOR: pop2(); pushv(a&&!b||!a&&b); break;
+X		case QUEST: pop3(); pushv((a)?b:c); break;
+X		case COLON: break;
+X		case EQ: pop2lv(); set(b); break;
+X		case PLUSEQ: pop2lv(); set(a+b); break;
+X		case MINUSEQ: pop2lv(); set(a-b); break;
+X		case MULEQ: pop2lv(); set(a*b); break;
+X		case DIVEQ: pop2lv(); if (notzero(b)) set(a/b); break;
+X		case MODEQ: pop2lv(); if (notzero(b)) set(a%b); break;
+X		case ANDEQ: pop2lv(); set(a&b); break;
+X		case XOREQ: pop2lv(); set(a^b); break;
+X		case OREQ: pop2lv(); set(a|b); break;
+X		case SHLEFTEQ: pop2lv(); set(a<<b); break;
+X		case SHRIGHTEQ: pop2lv(); set(a>>b); break;
+X		case DANDEQ: pop2lv(); set(a&&b); break;
+X		case DOREQ: pop2lv(); set(a||b); break;
+X		case DXOREQ: pop2lv(); set(a&&!b||!a&&b); break;
+X		case COMMA: pop2(); pushv(b); break;
+X		case PREPLUS: stack[sp].val = setvar(stack[sp].lval,
+X			stack[sp].val+1); break;
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/math.c failed'
+fi
+echo 'End of zsh2.1.0 part 8'
+echo 'File zsh2.1/src/math.c is continued in part 9'
+echo 9 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

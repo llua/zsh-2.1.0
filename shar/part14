@@ -1,0 +1,1444 @@
+Path: funic!fuug!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i014:  zsh2.1 - The Z shell, Part14/19
+Message-ID: <1991Oct26.015023.19646@sparky.imd.sterling.com>
+Date: 26 Oct 91 01:50:23 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 1430
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: f6041c7100ec21c1dea2c6576988dc32
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 14
+Archive-name: zsh2.1/part14
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.14 (part 14 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/zle_tricky.c continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 14; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/zle_tricky.c'
+else
+echo 'x - continuing file zsh2.1/src/zle_tricky.c'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/zle_tricky.c' &&
+X	strinbeg();
+X	pushheap();
+X	do {
+X		lincmd = incmdpos;
+X		ctxtlex();
+X		if (tok == ENDINPUT) break;
+X		if (tok == STRING && lincmd) {
+X			if (s) free(s);
+X			s = ztrdup(tokstr);
+X			cmdwb = ll-wordbeg; cmdwe = ll+1-inbufct;
+X		}
+X		lincmd = incmdpos;
+X	} while (tok != ENDINPUT && zleparse);
+X	hflush();
+X	popheap();
+X	strinend();
+X	errflag = zleparse = 0;
+X	lexrestore();
+X	return s;
+X}
+X
+Xvoid processcmd() /**/
+X{
+Xchar *s,*t;
+X
+X	s = getcurcmd();
+X	if (!s) { feep(); return; }
+X	t = zlecmds[bindk].name;
+X	mult = 1;
+X	pushline();
+X	sizeline(strlen(s)+strlen(t)+1);
+X	strcpy(line,t);
+X	strcat(line," ");
+X	cs = ll = strlen(line);
+X	inststr(s);
+X	free(s);
+X	done = 1;
+X}
+X
+Xvoid expandcmdpath() /**/
+X{
+Xint oldcs = cs;
+Xchar *s,*str;
+X
+X	s = getcurcmd();
+X	if (!s) { feep(); return; }
+X	str = findcmd(s);
+X	free(s);
+X	if (!str) { feep(); return; }
+X	cs = cmdwb;
+X	foredel(cmdwe-cmdwb);
+X	spaceinline(strlen(str));
+X	strncpy(line+cs,str,strlen(str));
+X	cs = oldcs;
+X	if (cs >= cmdwe) cs += cmdwe-cmdwb+strlen(str);
+X	if (cs > ll) cs = ll;
+X	free(str);
+X}
+X
+Xvoid freemenu() /**/
+X{
+X	if (menucmp && (unset(LASTMENU) || lastmenu == NULL)) {
+X		menucmp = 0;
+X		freetable(menulist,freestr);
+X	}
+X}
+X
+Xint inarray(s,a) /**/
+Xchar *s; char **a;
+X{
+X	for (; *a; a++) if (!strcmp(*a,s)) return 1;
+X	return 0;
+X}
+X
+SHAR_EOF
+echo 'File zsh2.1/src/zle_tricky.c is complete' &&
+chmod 0644 zsh2.1/src/zle_tricky.c ||
+echo 'restore of zsh2.1/src/zle_tricky.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_tricky.c'`"
+test 24239 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_tricky.c: original size 24239, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/builtin.pro ==============
+if test -f 'zsh2.1/src/builtin.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/builtin.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/builtin.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/builtin.pro' &&
+Xvoid addbuiltins DCLPROTO((void));
+Xint bin_enable DCLPROTO((char *name,char **argv,char *ops,int whocares));
+Xint bin_colon DCLPROTO((char *name,char **argv,char *ops,int whocares));
+Xint bin_break DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_fg DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_let DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint zexit DCLPROTO((int val));
+Xint optlookup DCLPROTO((char *s));
+Xint bin_setopt DCLPROTO((char *nam,char **args,char *ops,int isun));
+Xvoid listhtable DCLPROTO((Hashtab ht,HFunc func));
+Xvoid pshfunc DCLPROTO((char *s,Cmdnam cc));
+Xvoid niceprint DCLPROTO((char *s));
+Xvoid niceprintf DCLPROTO((char *s,FILE *f));
+Xint bin_umask DCLPROTO((char *nam,char **args,char *ops,int func));
+Xint bin_whence DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xint bin_cd DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xchar *cd_get_dest DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xchar *cd_do_chdir DCLPROTO((char *nam, char *dest));
+Xvoid cd_new_pwd DCLPROTO((int func, char *s));
+Xvoid convertwd DCLPROTO((char *s, char *t));
+Xint bin_rehash DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_hash DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint prefix DCLPROTO((char *s,char *t));
+Xint getjob DCLPROTO((char *s,char *prog));
+Xint findjobnam DCLPROTO((char *s));
+Xint bin_kill DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xint bin_limit DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xint bin_unlimit DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xvoid showlimits DCLPROTO((int hard,int lim));
+Xint bin_sched DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xint bin_eval DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xint fcgetcomm DCLPROTO((char *s));
+Xint fcsubs DCLPROTO((char **sp,struct asgment *sub));
+Xint fclist DCLPROTO((FILE *f,int n,int r,int first,int last,struct asgment *subs));
+Xint fcedit DCLPROTO((char *ename,char *fn));
+Xint bin_fc DCLPROTO((char *nam,char **argv,char *ops,int func));
+Xint bin_suspend DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_alias DCLPROTO((char *name,char **argv,char *ops,int func));
+Xvoid printalias DCLPROTO((char *s,struct alias *a));
+Xvoid printparam DCLPROTO((char *s,Param p));
+Xint bin_typeset DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint escputs DCLPROTO((char *s));
+Xint bin_print DCLPROTO((char *name,char **args,char *ops,int func));
+Xint bin_dirs DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_unalias DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_unhash DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_unset DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint zread DCLPROTO((void));
+Xint bin_read DCLPROTO((char *name,char **args,char *ops,int func));
+Xint bin_vared DCLPROTO((char *name,char **args,char *ops,int func));
+Xint execbin DCLPROTO((Lklist args,Cmdnam cnode));
+Xstruct asgment *getasg DCLPROTO((char *s));
+Xint bin_dot DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_set DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_times DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_getopts DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint getsignum DCLPROTO((char *s));
+Xint bin_trap DCLPROTO((char *name,char **argv,char *ops,int func));
+Xvoid printulimit DCLPROTO((int lim,int hard));
+Xint bin_ulimit DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint putraw DCLPROTO((int c));
+Xint bin_echotc DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_pwd DCLPROTO((char *name,char **argv,char *ops,int func));
+Xint bin_test DCLPROTO((char *name,char **argv,char *ops,int func));
+XCond partest DCLPROTO((int level));
+SHAR_EOF
+chmod 0644 zsh2.1/src/builtin.pro ||
+echo 'restore of zsh2.1/src/builtin.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/builtin.pro'`"
+test 3753 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/builtin.pro: original size 3753, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/cond.pro ==============
+if test -f 'zsh2.1/src/cond.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/cond.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/cond.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/cond.pro' &&
+Xint evalcond DCLPROTO((Cond c));
+Xint doaccess DCLPROTO((char *s,int c));
+Xstruct stat *getstat DCLPROTO((char *s));
+Xunsigned short dostat DCLPROTO((char *s));
+Xunsigned short dolstat DCLPROTO((char *s));
+Xint optison DCLPROTO((char *s));
+SHAR_EOF
+chmod 0644 zsh2.1/src/cond.pro ||
+echo 'restore of zsh2.1/src/cond.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/cond.pro'`"
+test 235 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/cond.pro: original size 235, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/exec.pro ==============
+if test -f 'zsh2.1/src/exec.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/exec.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/exec.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/exec.pro' &&
+XList parselstring DCLPROTO((char *s));
+Xvoid execstring DCLPROTO((char *s));
+Xvoid newrunlist DCLPROTO((List l));
+Xint phork DCLPROTO((void));
+Xint execcursh DCLPROTO((Cmd cmd));
+Xvoid zexecve DCLPROTO((char *pth,char **argv,int *ee,char *b1,char *b2));
+Xvoid execute DCLPROTO((Lklist args,int dash));
+Xchar *findcmd DCLPROTO((char *arg0));
+Xvoid execlist DCLPROTO((List list));
+Xvoid execlist2 DCLPROTO((Sublist list,int type,int last1));
+Xint execpline DCLPROTO((Sublist l,int how,int last1));
+Xvoid execpline2 DCLPROTO((Pline pline,int how,int input,int output,int last1));
+Xchar **makecline DCLPROTO((struct lklist *list));
+Xvoid fixcline DCLPROTO((Lklist l));
+Xvoid untokenize DCLPROTO((char *s));
+Xint dontclob DCLPROTO((struct redir *f));
+Xvoid closemn DCLPROTO((struct multio **mfds,int fd));
+Xvoid closemnodes DCLPROTO((struct multio **mfds));
+Xvoid addfd DCLPROTO((int forked,int *save,struct multio **mfds,int fd1,int fd2,int rflag));
+Xvoid addvars DCLPROTO((Lklist l,int export));
+Xvoid execcmd DCLPROTO((Cmd cmd,int input,int output,int bkg,int last1));
+Xvoid fixfds DCLPROTO((int *save));
+Xvoid entersubsh DCLPROTO((int bkg));
+Xvoid closem DCLPROTO((void));
+Xchar *gethere DCLPROTO((char *str,int typ));
+Xint getherestr DCLPROTO((struct redir *fn));
+Xvoid catproc DCLPROTO((struct multio *mn));
+Xvoid teeproc DCLPROTO((struct multio *mn));
+Xvoid closeallelse DCLPROTO((struct multio *mn));
+Xlong int zstrtol DCLPROTO((char *s,char **t,int base));
+XLklist getoutput DCLPROTO((char *cmd,int qt));
+XLklist readoutput DCLPROTO((int in,int qt));
+Xchar *getoutputfile DCLPROTO((char *cmd));
+Xchar *namedpipe DCLPROTO((void));
+Xchar *getoutproc DCLPROTO((char *cmd));
+Xchar *getinproc DCLPROTO((char *cmd));
+Xint getinpipe DCLPROTO((char *cmd));
+Xint getoutpipe DCLPROTO((char *cmd));
+Xvoid runlist DCLPROTO((List l));
+Xchar *gettemp DCLPROTO((void));
+Xchar *zgetwd DCLPROTO((void));
+Xvoid mpipe DCLPROTO((int *pp));
+Xvoid spawnpipes DCLPROTO((Lklist l));
+Xint exectime DCLPROTO((Cmd cmd));
+Xint execfuncdef DCLPROTO((Cmd cmd));
+Xint execcond DCLPROTO((Cmd cmd));
+Xvoid execshfunc DCLPROTO((Cmd cmd,Cmdnam cn));
+XList getfpfunc DCLPROTO((char *s));
+SHAR_EOF
+chmod 0644 zsh2.1/src/exec.pro ||
+echo 'restore of zsh2.1/src/exec.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/exec.pro'`"
+test 2109 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/exec.pro: original size 2109, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/glob.pro ==============
+if test -f 'zsh2.1/src/glob.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/glob.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/glob.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/glob.pro' &&
+Xvoid glob DCLPROTO((Lklist list,Lknode *np));
+Xlong qgetnum DCLPROTO((char **s));
+Xint notstrcmp DCLPROTO((char **a,char **b));
+Xint forstrcmp DCLPROTO((char **a,char **b));
+Xvoid insert DCLPROTO((char *s));
+Xint haswilds DCLPROTO((char *str));
+Xint hasbraces DCLPROTO((char *str));
+Xint xpandredir DCLPROTO((struct redir *fn,Lklist tab));
+Xchar *dyncat DCLPROTO((char *s1,char *s2));
+Xchar *tricat DCLPROTO((char *s1,char *s2,char *s3));
+Xvoid xpandbraces DCLPROTO((Lklist list,Lknode *np));
+Xchar *getparen DCLPROTO((char *str));
+Xint matchpat DCLPROTO((char *a,char *b));
+Xvoid getmatch DCLPROTO((char **sp,char *pat,int dd));
+Xchar *getfullpath DCLPROTO((char *s));
+Xvoid scanner DCLPROTO((Complist q));
+Xint minimatch DCLPROTO((char **pat,char **str));
+Xint domatch DCLPROTO((char *str,Comp c,int fist));
+Xint doesmatch DCLPROTO((Comp c));
+XComplist parsepat DCLPROTO((char *str));
+XComp parsereg DCLPROTO((char *str));
+XComplist parsecomplist DCLPROTO((void));
+XComp parsecomp DCLPROTO((void));
+XComp parsecompsw DCLPROTO((void));
+Xint patmatch DCLPROTO((char *ss,char *tt));
+Xvoid remnulargs DCLPROTO((char *s));
+Xint qualdev DCLPROTO((struct stat *buf,long dv));
+Xint qualnlink DCLPROTO((struct stat *buf,long ct));
+Xint qualuid DCLPROTO((struct stat *buf,long uid));
+Xint qualgid DCLPROTO((struct stat *buf,long gid));
+Xint qualisdev DCLPROTO((struct stat *buf,long junk));
+Xint qualmode DCLPROTO((struct stat *buf,long mod));
+Xint qualflags DCLPROTO((struct stat *buf,long mod));
+Xint qualiscom DCLPROTO((struct stat *buf,long mod));
+SHAR_EOF
+chmod 0644 zsh2.1/src/glob.pro ||
+echo 'restore of zsh2.1/src/glob.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/glob.pro'`"
+test 1511 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/glob.pro: original size 1511, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/hist.pro ==============
+if test -f 'zsh2.1/src/hist.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/hist.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/hist.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/hist.pro' &&
+Xvoid hwaddc DCLPROTO((int c));
+Xint hgetc DCLPROTO((void));
+Xvoid clearalstack DCLPROTO((void));
+Xint hgetch DCLPROTO((void));
+Xvoid hungets DCLPROTO((char *str));
+Xvoid hungetc DCLPROTO((int c));
+Xvoid hungetch DCLPROTO((int c));
+Xvoid strinbeg DCLPROTO((void));
+Xvoid strinend DCLPROTO((void));
+Xint stuff DCLPROTO((char *fn));
+Xvoid hflush DCLPROTO((void));
+Xvoid hbegin DCLPROTO((void));
+Xvoid inittty DCLPROTO((void));
+Xint hend DCLPROTO((void));
+Xvoid remhist DCLPROTO((void));
+Xvoid hwbegin DCLPROTO((void));
+Xchar *hwadd DCLPROTO((void));
+Xint getargspec DCLPROTO((int argc,int marg));
+Xint hconsearch DCLPROTO((char *str,int *marg));
+Xint hcomsearch DCLPROTO((char *str));
+Xint remtpath DCLPROTO((char **junkptr));
+Xint remtext DCLPROTO((char **junkptr));
+Xint rembutext DCLPROTO((char **junkptr));
+Xint remlpaths DCLPROTO((char **junkptr));
+Xint makeuppercase DCLPROTO((char **junkptr));
+Xint makelowercase DCLPROTO((char **junkptr));
+Xvoid subst DCLPROTO((char **strptr,char *in,char *out,int gbal));
+Xchar *convamps DCLPROTO((char *out,char *in));
+Xchar *makehstr DCLPROTO((char *s));
+Xchar *quietgetevent DCLPROTO((int ev));
+Xchar *getevent DCLPROTO((int ev));
+Xint getargc DCLPROTO((char *list));
+Xchar *getargs DCLPROTO((char *elist,int arg1,int arg2));
+Xvoid upcase DCLPROTO((char **x));
+Xvoid downcase DCLPROTO((char **x));
+Xint quote DCLPROTO((char **tr));
+Xint quotebreak DCLPROTO((char **tr));
+Xvoid stradd DCLPROTO((char *d));
+Xint putstr DCLPROTO((int d));
+Xchar *putprompt DCLPROTO((char *fm,int *lenp));
+Xvoid herrflush DCLPROTO((void));
+Xchar *hdynread DCLPROTO((int stop));
+Xchar *hdynread2 DCLPROTO((int stop));
+Xvoid setcbreak DCLPROTO((void));
+Xint getlineleng DCLPROTO((void));
+Xvoid unsetcbreak DCLPROTO((void));
+Xvoid attachtty DCLPROTO((long pgrp));
+SHAR_EOF
+chmod 0644 zsh2.1/src/hist.pro ||
+echo 'restore of zsh2.1/src/hist.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/hist.pro'`"
+test 1737 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/hist.pro: original size 1737, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/init.pro ==============
+if test -f 'zsh2.1/src/init.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/init.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/init.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/init.pro' &&
+Xvoid main DCLPROTO((int argc, char **argv, char **envp));
+Xvoid loop DCLPROTO((void));
+Xvoid setflags DCLPROTO((void));
+Xvoid parseargs DCLPROTO((char **argv));
+Xvoid setmoreflags DCLPROTO((void));
+Xvoid setupvals DCLPROTO((void));
+Xvoid initialize DCLPROTO((void));
+Xvoid addreswords DCLPROTO((void));
+Xvoid runscripts DCLPROTO((void));
+Xvoid ainit DCLPROTO((void));
+Xvoid readhistfile DCLPROTO((char *s,int err));
+Xvoid savehistfile DCLPROTO((char *s,int err));
+SHAR_EOF
+chmod 0644 zsh2.1/src/init.pro ||
+echo 'restore of zsh2.1/src/init.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/init.pro'`"
+test 453 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/init.pro: original size 453, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/jobs.pro ==============
+if test -f 'zsh2.1/src/jobs.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/jobs.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/jobs.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/jobs.pro' &&
+XHANDTYPE handler DCLPROTO((int sig,int code));
+Xvoid makerunning DCLPROTO((Job jn));
+Xvoid updatestatus DCLPROTO((Job jn));
+Xvoid findproc DCLPROTO((int pid,Job *jptr,struct process **pptr));
+Xvoid printjob DCLPROTO((Job jn,int lng));
+Xvoid setprevjob DCLPROTO((void));
+Xvoid initjob DCLPROTO((void));
+Xstruct process *addproc DCLPROTO((long pid,char *text));
+Xint execok DCLPROTO((void));
+Xvoid waitjob DCLPROTO((int job));
+Xvoid waitjobs DCLPROTO((void));
+Xvoid clearjobtab DCLPROTO((void));
+Xint getfreejob DCLPROTO((void));
+Xvoid spawnjob DCLPROTO((void));
+Xvoid fixsigs DCLPROTO((void));
+Xvoid printtime DCLPROTO((time_t real,struct rusage *ru,char *desc));
+Xvoid dumptime DCLPROTO((Job jn));
+Xvoid killrunjobs DCLPROTO((void));
+Xvoid checkjobs DCLPROTO((void));
+Xint killjb DCLPROTO((Job jn,int sig));
+SHAR_EOF
+chmod 0644 zsh2.1/src/jobs.pro ||
+echo 'restore of zsh2.1/src/jobs.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/jobs.pro'`"
+test 789 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/jobs.pro: original size 789, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/loop.pro ==============
+if test -f 'zsh2.1/src/loop.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/loop.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/loop.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/loop.pro' &&
+Xint execfor DCLPROTO((Cmd cmd));
+Xint execselect DCLPROTO((Cmd cmd));
+Xint execwhile DCLPROTO((Cmd cmd));
+Xint execrepeat DCLPROTO((Cmd cmd));
+Xint execif DCLPROTO((Cmd cmd));
+Xint execcase DCLPROTO((Cmd cmd));
+SHAR_EOF
+chmod 0644 zsh2.1/src/loop.pro ||
+echo 'restore of zsh2.1/src/loop.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/loop.pro'`"
+test 206 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/loop.pro: original size 206, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/math.pro ==============
+if test -f 'zsh2.1/src/math.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/math.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/math.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/math.pro' &&
+Xint zzlex DCLPROTO((void));
+Xint notzero DCLPROTO((int a));
+Xvoid op DCLPROTO((int what));
+Xvoid bop DCLPROTO((int tk));
+Xlong mathevall DCLPROTO((char *s,int prek,char **ep));
+Xlong matheval DCLPROTO((char *s));
+Xlong mathevalarg DCLPROTO((char *s,char **ss));
+Xvoid mathparse DCLPROTO((int pc));
+SHAR_EOF
+chmod 0644 zsh2.1/src/math.pro ||
+echo 'restore of zsh2.1/src/math.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/math.pro'`"
+test 291 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/math.pro: original size 291, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/mem.pro ==============
+if test -f 'zsh2.1/src/mem.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/mem.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/mem.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/mem.pro' &&
+Xvoid meminit DCLPROTO((void));
+Xvoid heapalloc DCLPROTO((void));
+Xvoid permalloc DCLPROTO((void));
+Xvoid lastalloc DCLPROTO((void));
+Xvoid pushheap DCLPROTO((void));
+Xvoid freeheap DCLPROTO((void));
+Xvoid popheap DCLPROTO((void));
+Xvoid freeh DCLPROTO((Heap h));
+Xvptr halloc DCLPROTO((int size));
+Xvptr hcalloc DCLPROTO((int size));
+Xvptr hrealloc DCLPROTO((char *p,int old,int new));
+Xvptr zalloc DCLPROTO((int l));
+Xvptr zcalloc DCLPROTO((int size));
+Xchar *strdup DCLPROTO((char *s));
+Xchar *ztrdup DCLPROTO((char *s));
+SHAR_EOF
+chmod 0644 zsh2.1/src/mem.pro ||
+echo 'restore of zsh2.1/src/mem.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/mem.pro'`"
+test 510 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/mem.pro: original size 510, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/params.pro ==============
+if test -f 'zsh2.1/src/params.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/params.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/params.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/params.pro' &&
+Xvoid setupparams DCLPROTO((void));
+Xstruct param *createparam DCLPROTO((char *name,vptr value,int flags));
+Xint isident DCLPROTO((char *s));
+XValue getvalue DCLPROTO((char **pptr,int bracks));
+Xchar *getstrvalue DCLPROTO((Value v));
+Xchar **getarrvalue DCLPROTO((Value v));
+Xlong getintvalue DCLPROTO((Value v));
+Xvoid setstrvalue DCLPROTO((Value v,char *val));
+Xvoid setintvalue DCLPROTO((Value v,long val));
+Xvoid setarrvalue DCLPROTO((Value v,char **val));
+Xchar *getsparamval DCLPROTO((char *s,int l));
+Xlong getiparam DCLPROTO((char *s));
+Xchar *getsparam DCLPROTO((char *s));
+XParam setsparam DCLPROTO((char *s,char *val));
+XParam setaparam DCLPROTO((char *s,char **val));
+XParam setiparam DCLPROTO((char *s,long val));
+Xvoid unsetparam DCLPROTO((char *s));
+Xvoid intsetfn DCLPROTO((Param pm,long x));
+Xlong intgetfn DCLPROTO((Param pm));
+Xvoid strsetfn DCLPROTO((Param pm,char *x));
+Xchar *strgetfn DCLPROTO((Param pm));
+Xvoid arrsetfn DCLPROTO((Param pm,char **x));
+Xchar **arrgetfn DCLPROTO((Param pm));
+Xvoid intvarsetfn DCLPROTO((Param pm,long x));
+Xlong intvargetfn DCLPROTO((Param pm));
+Xvoid strvarsetfn DCLPROTO((Param pm,char *x));
+Xvoid strvarnonullsetfn DCLPROTO((Param pm,char *x));
+Xchar *strvargetfn DCLPROTO((Param pm));
+Xchar *strconstgetfn DCLPROTO((Param pm));
+Xvoid colonarrsetfn DCLPROTO((Param pm,char *x));
+Xchar *colonarrgetfn DCLPROTO((Param pm));
+Xchar **arrvargetfn DCLPROTO((Param pm));
+Xvoid arrvarsetfn DCLPROTO((Param pm,char **x));
+Xchar **pathgetfn DCLPROTO((Param pm));
+Xvoid pathsetfn DCLPROTO((Param pm,char **x));
+Xvoid unsettablesetfn DCLPROTO((Param pm,char *x));
+Xlong poundgetfn DCLPROTO((Param pm));
+Xlong randomgetfn DCLPROTO((Param pm));
+Xvoid randomsetfn DCLPROTO((Param pm,long v));
+Xlong secondsgetfn DCLPROTO((Param pm));
+Xvoid secondssetfn DCLPROTO((Param pm,long x));
+Xlong uidgetfn DCLPROTO((Param pm));
+Xlong gidgetfn DCLPROTO((Param pm));
+Xchar *usernamegetfn DCLPROTO((Param pm));
+Xchar *hostgetfn DCLPROTO((Param pm));
+Xchar *ifsgetfn DCLPROTO((Param pm));
+Xvoid ifssetfn DCLPROTO((Param pm,char *x));
+Xvoid histsizesetfn DCLPROTO((Param pm,long v));
+Xlong histsizegetfn DCLPROTO((Param pm));
+Xvoid lithistsizesetfn DCLPROTO((Param pm,long v));
+Xlong lithistsizegetfn DCLPROTO((Param pm));
+Xvoid mailchecksetfn DCLPROTO((Param pm,long x));
+Xvoid pathasetfn DCLPROTO((Param pm,char **x));
+Xchar **pathagetfn DCLPROTO((Param pm));
+Xlong errnogetfn DCLPROTO((Param pm));
+Xchar *dashgetfn DCLPROTO((Param pm));
+Xchar *ttygetfn DCLPROTO((Param pm));
+Xvoid histcharssetfn DCLPROTO((Param pm,char *x));
+Xchar *histcharsgetfn DCLPROTO((Param pm));
+Xchar *homegetfn DCLPROTO((Param pm));
+Xvoid homesetfn DCLPROTO((Param pm,char *x));
+Xchar *wordcharsgetfn DCLPROTO((Param pm));
+Xvoid wordcharssetfn DCLPROTO((Param pm,char *x));
+Xchar *underscoregetfn DCLPROTO((Param pm));
+Xchar *termgetfn DCLPROTO((Param pm));
+Xvoid termsetfn DCLPROTO((Param pm,char *x));
+Xvoid setparams DCLPROTO((void));
+Xchar *mkenvstr DCLPROTO((char *x,char *y));
+Xvoid arrfixenv DCLPROTO((char *s,char **t));
+Xchar *replenv DCLPROTO((char *e,char *value));
+Xchar *addenv DCLPROTO((char *name,char *value));
+Xvoid delenv DCLPROTO((char *x));
+Xvoid convbase DCLPROTO((char *s,long v,int base));
+SHAR_EOF
+chmod 0644 zsh2.1/src/params.pro ||
+echo 'restore of zsh2.1/src/params.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/params.pro'`"
+test 3148 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/params.pro: original size 3148, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/subst.pro ==============
+if test -f 'zsh2.1/src/subst.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/subst.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/subst.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/subst.pro' &&
+Xvoid prefork DCLPROTO((Lklist list));
+Xvoid postfork DCLPROTO((Lklist list,int doglob));
+Xvoid singsub DCLPROTO((char **s));
+Xvptr nstrdup DCLPROTO((vptr s));
+Xchar *dynread DCLPROTO((int stop));
+Xint filesub DCLPROTO((char **namptr));
+Xchar *gethome DCLPROTO((char *user,int len));
+Xvoid commsubst DCLPROTO((Lklist l,Lknode n,char *str3,char *str,int qt));
+Xvoid paramsubst DCLPROTO((Lklist l,Lknode n,char *aptr,char *bptr,int qt));
+Xvoid arithsubst DCLPROTO((vptr *aptr,char **bptr));
+Xvoid modify DCLPROTO((char **str,char **ptr));
+Xchar *dstackent DCLPROTO((int val));
+Xstruct alias *mkanode DCLPROTO((char *txt,int cmflag));
+SHAR_EOF
+chmod 0644 zsh2.1/src/subst.pro ||
+echo 'restore of zsh2.1/src/subst.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/subst.pro'`"
+test 619 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/subst.pro: original size 619, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/table.pro ==============
+if test -f 'zsh2.1/src/table.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/table.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/table.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/table.pro' &&
+XLklist newlist DCLPROTO((void));
+XHashtab newhtable DCLPROTO((int size));
+Xint hasher DCLPROTO((char *s));
+Xvoid Addhnode DCLPROTO((char *nam,vptr dat,Hashtab ht,FFunc freefunc,int canfree));
+Xvoid expandhtab DCLPROTO((Hashtab ht));
+Xvptr gethnode DCLPROTO((char *nam,Hashtab ht));
+Xvoid freehtab DCLPROTO((Hashtab ht,FFunc freefunc));
+Xvptr remhnode DCLPROTO((char *nam,Hashtab ht));
+Xvoid insnode DCLPROTO((Lklist list,Lknode llast,vptr dat));
+Xvoid addnodeinorder DCLPROTO((Lklist x, char *dat));
+Xvptr remnode DCLPROTO((Lklist list,Lknode nd));
+Xvptr uremnode DCLPROTO((Lklist list,Lknode nd));
+Xvoid chuck DCLPROTO((char *str));
+Xvptr getnode DCLPROTO((Lklist list));
+Xvptr ugetnode DCLPROTO((Lklist list));
+Xvoid freetable DCLPROTO((Lklist tab,FFunc freefunc));
+Xchar *ztrstr DCLPROTO((char *s,char *t));
+Xvoid inslist DCLPROTO((Lklist l,Lknode where,Lklist x));
+Xint countnodes DCLPROTO((Lklist x));
+SHAR_EOF
+chmod 0644 zsh2.1/src/table.pro ||
+echo 'restore of zsh2.1/src/table.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/table.pro'`"
+test 889 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/table.pro: original size 889, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/text.pro ==============
+if test -f 'zsh2.1/src/text.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/text.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/text.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/text.pro' &&
+Xvoid taddchr DCLPROTO((int c));
+Xvoid taddstr DCLPROTO((char *s));
+Xvoid taddint DCLPROTO((int x));
+Xvoid taddnl DCLPROTO((void));
+Xchar *gettext DCLPROTO((struct node *n,int nls));
+Xvoid gettext2 DCLPROTO((struct node *n));
+Xvoid getsimptext DCLPROTO((Cmd cmd));
+Xvoid getredirs DCLPROTO((Cmd cmd));
+Xvoid taddlist DCLPROTO((Lklist l));
+SHAR_EOF
+chmod 0644 zsh2.1/src/text.pro ||
+echo 'restore of zsh2.1/src/text.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/text.pro'`"
+test 330 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/text.pro: original size 330, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/utils.pro ==============
+if test -f 'zsh2.1/src/utils.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/utils.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/utils.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/utils.pro' &&
+Xint source DCLPROTO((char *s));
+Xvoid sourcehome DCLPROTO((char *s));
+Xvoid zerrnam DCLPROTO((char *cmd, char *fmt, char *str,int num));
+Xvoid zerr DCLPROTO((char *fmt, char *str,int num));
+Xvoid niceputc DCLPROTO((int c,FILE *f));
+Xvoid intr DCLPROTO((void));
+Xvoid noholdintr DCLPROTO((void));
+Xvoid holdintr DCLPROTO((void));
+Xchar *fgetline DCLPROTO((char *buf,int len,FILE *in));
+Xchar *findcwd DCLPROTO((char *s));
+Xchar *fixcwd DCLPROTO((char *s));
+Xint ispwd DCLPROTO((char *s));
+Xchar *xsymlink DCLPROTO((char *s));
+Xchar **slashsplit DCLPROTO((char *s));
+Xint islink DCLPROTO((char *s));
+Xint xsymlinks DCLPROTO((char *s,int flag));
+Xvoid printdir DCLPROTO((char *s));
+Xint finddir DCLPROTO((char *s));
+Xvoid adduserdir DCLPROTO((char *s,char *t));
+Xint dircmp DCLPROTO((char *s,char *t));
+Xint ddifftime DCLPROTO((time_t t1,time_t t2));
+Xvoid scanjobs DCLPROTO((void));
+Xvoid preprompt DCLPROTO((void));
+Xint arrlen DCLPROTO((char **s));
+Xvoid checkmailpath DCLPROTO((char **s));
+Xvoid saveoldfuncs DCLPROTO((char *x,Cmdnam y));
+Xvoid newcmdnamtab DCLPROTO((void));
+Xvoid freecmdnam DCLPROTO((vptr a));
+Xvoid freestr DCLPROTO((vptr a));
+Xvoid freeanode DCLPROTO((vptr a));
+Xvoid freepm DCLPROTO((vptr a));
+Xvoid restoretty DCLPROTO((void));
+Xvoid gettyinfo DCLPROTO((struct ttyinfo *ti));
+Xvoid settyinfo DCLPROTO((struct ttyinfo *ti));
+Xvoid sanetty DCLPROTO((struct ttyinfo *ti));
+Xvoid adjustwinsize DCLPROTO((void));
+Xint zyztem DCLPROTO((char *s,char *t));
+Xint waitfork DCLPROTO((void));
+Xint movefd DCLPROTO((int fd));
+Xvoid redup DCLPROTO((int x,int y));
+Xvoid settrap DCLPROTO((int t0,List l));
+Xvoid unsettrap DCLPROTO((int t0));
+Xvoid dotrap DCLPROTO((int sig));
+Xvoid ztrncpy DCLPROTO((char *s,char *t,int len));
+Xvoid strucpy DCLPROTO((char **s,char *t));
+Xvoid struncpy DCLPROTO((char **s,char *t,int n));
+Xvoid checkrmall DCLPROTO((void));
+Xint getquery DCLPROTO((void));
+Xvoid spscannodis DCLPROTO((char *s,char *cn));
+Xvoid spscan DCLPROTO((char *s,char *junk));
+Xvoid spckword DCLPROTO((char **s,char **s2,char **tptr,int cmd,int ask));
+Xint ztrftime DCLPROTO((char *buf,int bufsize,char *fmt,struct tm *tm));
+Xchar *join DCLPROTO((char **arr,int delim));
+Xchar *spacejoin DCLPROTO((char **s));
+Xchar *colonjoin DCLPROTO((char **s));
+Xchar **colonsplit DCLPROTO((char *s));
+Xchar **spacesplit DCLPROTO((char *s));
+XList getshfunc DCLPROTO((char *nam));
+Xvptr allocnode DCLPROTO((int type));
+Xvptr dupstruct DCLPROTO((vptr a));
+Xvoid freestruct DCLPROTO((vptr a));
+XLklist duplist DCLPROTO((Lklist l,VFunc func));
+Xchar **mkarray DCLPROTO((char *s));
+Xvoid feep DCLPROTO((void));
+Xvoid freearray DCLPROTO((char **s));
+Xint equalsplit DCLPROTO((char *s,char **t));
+Xvoid simplifyright DCLPROTO((List l));
+Xvoid inittyptab DCLPROTO((void));
+Xchar **arrdup DCLPROTO((char **s));
+Xchar *spname  DCLPROTO((char *oldname));
+Xint mindist DCLPROTO((char *dir,char *guess,char *best));
+Xint spdist DCLPROTO((char *s,char *t,int thresh));
+Xchar *zgetenv DCLPROTO((char *s));
+Xint tulower DCLPROTO((int c));
+Xint tuupper DCLPROTO((int c));
+SHAR_EOF
+chmod 0644 zsh2.1/src/utils.pro ||
+echo 'restore of zsh2.1/src/utils.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/utils.pro'`"
+test 2983 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/utils.pro: original size 2983, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/watch.pro ==============
+if test -f 'zsh2.1/src/watch.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/watch.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/watch.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/watch.pro' &&
+Xtime_t getlogtime DCLPROTO((struct utmp *u,int inout));
+Xvoid watchlog2 DCLPROTO((int inout,struct utmp *u,char *fmt));
+Xvoid watchlog DCLPROTO((int inout,struct utmp *u,char **w,char *fmt));
+Xint ucmp DCLPROTO((struct utmp *u,struct utmp *v));
+Xvoid readwtab DCLPROTO((void));
+Xvoid dowatch DCLPROTO((void));
+Xint bin_log DCLPROTO((char *nam,char **argv,char *ops,int func));
+SHAR_EOF
+chmod 0644 zsh2.1/src/watch.pro ||
+echo 'restore of zsh2.1/src/watch.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/watch.pro'`"
+test 371 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/watch.pro: original size 371, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_bindings.pro ==============
+if test -f 'zsh2.1/src/zle_bindings.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_bindings.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_bindings.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_bindings.pro' &&
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_bindings.pro ||
+echo 'restore of zsh2.1/src/zle_bindings.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_bindings.pro'`"
+test 0 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_bindings.pro: original size 0, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_main.pro ==============
+if test -f 'zsh2.1/src/zle_main.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_main.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_main.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_main.pro' &&
+Xvoid setterm DCLPROTO((void));
+Xvoid unsetterm DCLPROTO((void));
+Xvoid ungetkey DCLPROTO((int ch));
+Xvoid ungetkeys DCLPROTO((char *s,int len));
+Xunsigned int getkey DCLPROTO((int tmok));
+Xchar *zleread DCLPROTO((char *ppt,char *ppt2,int plen));
+Xint getkeycmd DCLPROTO((void));
+Xvoid sendstring DCLPROTO((void));
+XKey makefunckey DCLPROTO((int fun));
+Xvoid initxbindtab DCLPROTO((void));
+Xchar *getkeystring DCLPROTO((char *s,int *len));
+Xvoid printbind DCLPROTO((char *s,int len));
+Xvoid printbinding DCLPROTO((char *str,Key k));
+Xint bin_bindkey DCLPROTO((char *name,char **argv,char *ops,int junc));
+Xvoid freekey DCLPROTO((vptr x));
+Xvoid drainoutput DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_main.pro ||
+echo 'restore of zsh2.1/src/zle_main.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_main.pro'`"
+test 659 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_main.pro: original size 659, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_refresh.pro ==============
+if test -f 'zsh2.1/src/zle_refresh.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_refresh.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_refresh.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_refresh.pro' &&
+Xvoid resetvideo DCLPROTO((void));
+Xint scrollwindow DCLPROTO((void));
+Xvoid refresh DCLPROTO((void));
+Xvoid refreshline DCLPROTO((int ln));
+Xvoid moveto DCLPROTO((int ln,int cl));
+Xvoid tcmultout DCLPROTO((int cap,int multcap,int ct));
+Xvoid tc_rightcurs DCLPROTO((int ct));
+Xvoid tc_downcurs DCLPROTO((int ct));
+Xvoid tcout DCLPROTO((int cap));
+Xvoid tcoutarg DCLPROTO((int cap,int arg));
+Xvoid clearscreen DCLPROTO((void));
+Xvoid redisplay DCLPROTO((void));
+Xvoid trashzle DCLPROTO((void));
+Xvoid singlerefresh DCLPROTO((void));
+Xvoid singmoveto DCLPROTO((int pos));
+Xint streqct DCLPROTO((char *s,char *t));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_refresh.pro ||
+echo 'restore of zsh2.1/src/zle_refresh.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_refresh.pro'`"
+test 596 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_refresh.pro: original size 596, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_vi.pro ==============
+if test -f 'zsh2.1/src/zle_vi.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_vi.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_vi.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_vi.pro' &&
+Xint vigetkey DCLPROTO((void));
+Xint getvirange DCLPROTO((void));
+Xvoid viaddnext DCLPROTO((void));
+Xvoid viaddeol DCLPROTO((void));
+Xvoid viinsert DCLPROTO((void));
+Xvoid viinsertbol DCLPROTO((void));
+Xvoid videlete DCLPROTO((void));
+Xvoid vichange DCLPROTO((void));
+Xvoid visubstitute DCLPROTO((void));
+Xvoid vichangeeol DCLPROTO((void));
+Xvoid vichangewholeline DCLPROTO((void));
+Xvoid viyank DCLPROTO((void));
+Xvoid viyankeol DCLPROTO((void));
+Xvoid vireplace DCLPROTO((void));
+Xvoid vireplacechars DCLPROTO((void));
+Xvoid vicmdmode DCLPROTO((void));
+Xvoid viopenlinebelow DCLPROTO((void));
+Xvoid viopenlineabove DCLPROTO((void));
+Xvoid vioperswapcase DCLPROTO((void));
+Xvoid virepeatchange DCLPROTO((void));
+Xvoid viindent DCLPROTO((void));
+Xvoid viunindent DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_vi.pro ||
+echo 'restore of zsh2.1/src/zle_vi.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_vi.pro'`"
+test 759 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_vi.pro: original size 759, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/parse.pro ==============
+if test -f 'zsh2.1/src/parse.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/parse.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/parse.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/parse.pro' &&
+XList parse_event DCLPROTO((void));
+XList par_event DCLPROTO((void));
+XList parse_list DCLPROTO((void));
+XList par_list DCLPROTO((void));
+XList par_list1 DCLPROTO((void));
+XSublist par_sublist DCLPROTO((void));
+XSublist par_sublist2 DCLPROTO((void));
+XPline par_pline DCLPROTO((void));
+XCmd par_cmd DCLPROTO((void));
+Xvoid par_for DCLPROTO((Cmd c));
+Xvoid par_case DCLPROTO((Cmd c));
+Xvoid par_if DCLPROTO((Cmd c));
+Xvoid par_while DCLPROTO((Cmd c));
+Xvoid par_repeat DCLPROTO((Cmd c));
+Xvoid par_subsh DCLPROTO((Cmd c));
+Xvoid par_funcdef DCLPROTO((Cmd c));
+Xvoid par_time DCLPROTO((Cmd c));
+Xvoid par_dinbrack DCLPROTO((Cmd c));
+XCmd par_simple DCLPROTO((Cmd c));
+XCond par_cond DCLPROTO((void));
+XCond par_cond_1 DCLPROTO((void));
+XCond par_cond_2 DCLPROTO((void));
+Xvoid par_redir DCLPROTO((Lklist l));
+XLklist par_wordlist DCLPROTO((void));
+XLklist par_nl_wordlist DCLPROTO((void));
+Xint getfdstr DCLPROTO((char *s));
+XCond par_cond_double DCLPROTO((char *a,char *b));
+XCond par_cond_triple DCLPROTO((char *a,char *b,char *c));
+Xvoid yyerror DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/parse.pro ||
+echo 'restore of zsh2.1/src/parse.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/parse.pro'`"
+test 1036 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/parse.pro: original size 1036, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_tricky.pro ==============
+if test -f 'zsh2.1/src/zle_tricky.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_tricky.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_tricky.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_tricky.pro' &&
+Xint usetab DCLPROTO((void));
+Xvoid completeword DCLPROTO((void));
+Xvoid menucompleteword DCLPROTO((void));
+Xvoid listchoices DCLPROTO((void));
+Xvoid spellword DCLPROTO((void));
+Xvoid deletecharorlist DCLPROTO((void));
+Xvoid expandword DCLPROTO((void));
+Xvoid expandorcomplete DCLPROTO((void));
+Xvoid menuexpandorcomplete DCLPROTO((void));
+Xvoid listexpand DCLPROTO((void));
+Xvoid reversemenucomplete DCLPROTO((void));
+Xvoid acceptandmenucomplete DCLPROTO((void));
+Xvoid docomplete DCLPROTO((int lst));
+Xvoid do_menucmp DCLPROTO((int lst));
+Xchar *get_comp_string DCLPROTO((void));
+Xvoid doexpansion DCLPROTO((char *s,int lst,int lincmd));
+Xvoid gotword DCLPROTO((char *s));
+Xvoid inststrlen DCLPROTO((char *s,int l));
+Xvoid addmatch DCLPROTO((char *s));
+Xvoid addcmdmatch DCLPROTO((char *s,char *t));
+Xvoid addcmdnodis DCLPROTO((char *s,char *t));
+Xvoid maketildelist DCLPROTO((char	*s));
+Xint Isdir DCLPROTO((char *s));
+Xint isdir DCLPROTO((char *t,char *s));
+Xvoid docompletion DCLPROTO((char *s,int lst,int incmd));
+Xvoid gen_matches_glob DCLPROTO((char *s,int incmd));
+Xvoid gen_matches_reg DCLPROTO((char *s,int incmd));
+Xvoid do_fignore DCLPROTO((char *origstr));
+Xvoid do_ambiguous DCLPROTO((char *s));
+Xvoid do_single DCLPROTO((char *s));
+Xvoid do_ambig_menu DCLPROTO((char *s));
+Xint strpfx DCLPROTO((char *s,char *t));
+Xint pfxlen DCLPROTO((char *s,char *t));
+Xvoid listmatches DCLPROTO((Lklist l,char *apps));
+Xvoid selectlist DCLPROTO((Lklist l));
+Xint doexpandhist DCLPROTO((void));
+Xvoid magicspace DCLPROTO((void));
+Xvoid expandhistory DCLPROTO((void));
+Xchar *getcurcmd DCLPROTO((void));
+Xvoid processcmd DCLPROTO((void));
+Xvoid expandcmdpath DCLPROTO((void));
+Xvoid freemenu DCLPROTO((void));
+Xint inarray DCLPROTO((char *s, char **a));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_tricky.pro ||
+echo 'restore of zsh2.1/src/zle_tricky.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_tricky.pro'`"
+test 1712 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_tricky.pro: original size 1712, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/parse.c ==============
+if test -f 'zsh2.1/src/parse.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/parse.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/parse.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/parse.c' &&
+X/*
+X
+X	parse.c - parser
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X#include "funcs.h"
+X
+X#define YYERROR { tok = LEXERR; return NULL; }
+X#define YYERRORV { tok = LEXERR; return; }
+X
+X#define make_list() allocnode(N_LIST)
+X#define make_sublist() allocnode(N_SUBLIST)
+X#define make_pline() allocnode(N_PLINE)
+X#define make_cmd() allocnode(N_CMD)
+X#define make_forcmd() allocnode(N_FOR)
+X#define make_casecmd() allocnode(N_CASE)
+X#define make_ifcmd() allocnode(N_IF)
+X#define make_whilecmd() allocnode(N_WHILE)
+X#define make_varnode() allocnode(N_VARASG)
+X#define make_cond() allocnode(N_COND)
+X
+X/*
+X * event	: ENDINPUT
+X *			| SEPER
+X *			| sublist [ SEPER | AMPER ]
+X */
+XList parse_event() /**/
+X{
+X	tok = ENDINPUT;
+X	incmdpos = 1;
+X	yylex();
+X	return par_event();
+X}
+X
+XList par_event() /**/
+X{
+XSublist sl;
+XList l = NULL;
+X
+X	while (tok == SEPER) {
+X		if (isnewlin) return NULL;
+X		yylex();
+X	}
+X	if (tok == ENDINPUT) return NULL;
+X	if (sl = par_sublist())
+X		if (tok == ENDINPUT) {
+X			l = make_list();
+X			l->type = SYNC; l->left = sl;
+X		} else if (tok == SEPER) {
+X			l = make_list();
+X			l->type = SYNC; l->left = sl;
+X			if (!isnewlin) yylex();
+X		} else if (tok == AMPER) {
+X			l = make_list();
+X			l->type = ASYNC; l->left = sl;
+X			yylex();
+X		} else
+X			l = NULL;
+X	if (!l) {
+X		if (errflag) { yyerror(); return NULL; }
+X		yyerror();
+X		errflag = 0;
+X		if (!isnewlin) {
+X			int c;
+X
+X			hwbegin();
+X			while ((c = hgetc()) != '\n' && !lexstop);
+X			if (c == '\n') hungetc('\n');
+X			hwaddc(HISTSPACE);
+X			hwadd();
+X		}
+X		errflag = 1;
+X		return NULL;
+X	} else {
+X		l->right = par_event();
+X	}
+X	return l;
+X}
+X
+XList parse_list() /**/
+X{
+X	tok = ENDINPUT;
+X	incmdpos = 1;
+X	yylex();
+X	return par_list();
+X}
+X
+X/*
+X * list	: { SEPER } [ sublist [ { SEPER | AMPER } list ] ]
+X */
+XList par_list() /**/
+X{
+XSublist sl;
+XList l = NULL;
+X
+X	while (tok == SEPER) yylex();
+X	if (sl = par_sublist())
+X		if (tok == SEPER || tok == AMPER) {
+X			l = make_list();
+X			l->left = sl;
+X			l->type = (tok == SEPER) ? SYNC : ASYNC;
+X			incmdpos = 1;
+X			while (tok == SEPER || tok == AMPER) yylex();
+X			l->right = par_list();
+X		} else {
+X			l = make_list();
+X			l->left = sl;
+X			l->type = SYNC;
+X		}
+X	return l;
+X}
+X
+XList par_list1() /**/
+X{
+XSublist sl;
+XList l = NULL;
+X
+X	if (sl = par_sublist()) {
+X		l = make_list();
+X		l->type = SYNC;
+X		l->left = sl;
+X	}
+X	return l;
+X}
+X
+X/*
+X * sublist	: sublist2 [ ( DBAR | DAMPER ) { SEPER } sublist ]
+X */
+XSublist par_sublist() /**/
+X{
+XSublist sl;
+X
+X	if (sl = par_sublist2())
+X		if (tok == DBAR || tok == DAMPER) {
+X			int qtok = tok;
+X			yylex();
+X			while (tok == SEPER) yylex();
+X			sl->right = par_sublist();
+X			sl->type = (qtok == DBAR) ? ORNEXT : ANDNEXT;
+X		}
+X	return sl;
+X}
+X
+X/*
+X * sublist2	: [ COPROC | BANG ] pline
+X */
+XSublist par_sublist2() /**/
+X{
+XSublist sl;
+XPline p;
+X
+X	sl = make_sublist();
+X	if (tok == COPROC) { sl->flags |= PFLAG_COPROC; yylex(); }
+X	else if (tok == BANG) { sl->flags |= PFLAG_NOT; yylex(); }
+X	if (!(p = par_pline()))
+X		return NULL;
+X	sl->left = p;
+X	return sl;
+X}
+X
+X/*
+X * pline	: cmd [ ( BAR | BARAMP ) { SEPER } pline ]
+X */
+XPline par_pline() /**/
+X{
+XCmd c;
+XPline p,p2;
+X
+X	if (!(c = par_cmd()))
+X		return NULL;
+X	if (tok == BAR) {
+X		yylex();
+X		while (tok == SEPER) yylex();
+X		p2 = par_pline();
+X		p = make_pline();
+X		p->left = c; p->right = p2; p->type = PIPE;
+X		return p;
+X	} else if (tok == BARAMP) {
+X		struct redir *rdr = alloc(sizeof *rdr);
+X		rdr->type = MERGE; rdr->fd1 = 2; rdr->fd2 = 1;
+X		addnode(c->redir,rdr);
+X
+X		yylex();
+X		p2 = par_pline();
+X		p = make_pline();
+X		p->left = c; p->right = p2; p->type = PIPE;
+X		return p;
+X	} else {
+X		p = make_pline();
+X		p->left = c; p->type = END;
+X		return p;
+X	}
+X}
+X
+X/*
+X * cmd	: { redir } ( for | case | if | while | repeat |
+X *				subsh | funcdef | time | dinbrack | simple ) { redir }
+X */
+XCmd par_cmd() /**/
+X{
+XCmd c;
+X
+X	c = make_cmd();
+X	c->args = newlist();
+X	c->redir = newlist();
+X	c->vars = newlist();
+X	while (IS_REDIROP(tok))
+X		par_redir(c->redir);
+X	switch (tok) {
+X	case FOR: case FOREACH: case SELECT: par_for(c); break;
+X	case CASE: par_case(c); break;
+X	case IF: par_if(c); break;
+X	case WHILE: case UNTIL: par_while(c); break;
+X	case REPEAT: par_repeat(c); break;
+X	case INPAR: case INBRACE: par_subsh(c); break;
+X	case FUNC: par_funcdef(c); break;
+X	case TIME: par_time(c); break;
+X	case DINBRACK: par_dinbrack(c); break;
+X	default: if (!par_simple(c)) return NULL; break;
+X	}
+X	while (IS_REDIROP(tok))
+X		par_redir(c->redir);
+X	incmdpos = 1;
+X	incasepat = 0;
+X	incond = 0;
+X	return c;
+X}
+X
+X/*
+X * for	: ( FOR[EACH] | SELECT ) name ( "in" wordlist | INPAR wordlist OUTPAR )
+X				{ SEPER } ( DO list DONE | INBRACE list OUTBRACE |
+X				list ZEND | list1 )
+X */
+Xvoid par_for(c) /**/
+XCmd c;
+X{
+Xstruct forcmd *f;
+Xint csh = (tok == FOREACH || isset(CSHJUNKIELOOPS));
+X
+X	f = make_forcmd();
+X	c->type = (tok == SELECT) ? CSELECT : CFOR;
+X	incmdpos = 0;
+X	yylex();
+X	if (tok != STRING) YYERRORV;
+X	f->name = tokstr;
+X	incmdpos = 1;
+X	yylex();
+X	if (tok == STRING && !strcmp(tokstr,"in")) {
+X		f->inflag = 1;
+X		incmdpos = 0;
+X		yylex();
+X		c->args = par_wordlist();
+X		if (tok != SEPER) YYERRORV;
+X	} else if (tok == INPAR) {
+X		f->inflag = 1;
+X		incmdpos = 0;
+X		yylex();
+X		c->args = par_nl_wordlist();
+X		if (tok != OUTPAR) YYERRORV;
+X		incmdpos = 1;
+X		yylex();
+X	}
+X	incmdpos = 1;
+X	while (tok == SEPER) yylex();
+X	if (tok == DO) {
+X		yylex();
+X		f->list = par_list();
+X		if (tok != DONE) YYERRORV;
+X		yylex();
+X	} else if (tok == INBRACE) {
+X		yylex();
+X		f->list = par_list();
+X		if (tok != OUTBRACE) YYERRORV;
+X		yylex();
+X	} else if (csh) {
+X		f->list = par_list();
+X		if (tok != ZEND) YYERRORV;
+X		yylex();
+X	} else if (isset(NOSHORTLOOPS)) {
+X		YYERRORV;
+X	} else
+X		f->list = par_list1();
+X	c->u.forcmd = f;
+X}
+X
+X/*
+X * case	: CASE STRING { SEPER } ( "in" | INBRACE )
+X				{ { SEPER } STRING { BAR STRING } OUTPAR list [ DSEMI ] }
+X				{ SEPER } ( "esac" | OUTBRACE )
+X */
+Xvoid par_case(c) /**/
+XCmd c;
+X{
+Xstruct casecmd **ccp;
+Xint brflag;
+X
+X	c->type = CCASE;
+X	incmdpos = 0;
+X	yylex();
+X	if (tok != STRING) YYERRORV;
+X	addnode(c->args,tokstr);
+X	incmdpos = 1;
+X	yylex();
+X	while (tok == SEPER) yylex();
+X	if (!(tok == STRING && !strcmp(tokstr,"in")) && tok != INBRACE) YYERRORV;
+X	brflag = (tok == INBRACE);
+X	incasepat = 1;
+X	incmdpos = 0;
+X	yylex();
+X	ccp = &c->u.casecmd;
+X	for (;;) {
+X		char *str;
+X		struct casecmd *cc;
+X
+X		*ccp = cc = make_casecmd();
+X		while (tok == SEPER) yylex();
+X		if (tok == OUTBRACE) {
+X			yylex();
+X			break;
+X		}
+X		if (tok != STRING) YYERRORV;
+X		if (!strcmp(tokstr,"esac")) {
+X			yylex();
+X			break;
+X		}
+X		str = tokstr;
+X		yylex();
+X		while (tok == BAR) {
+X			char *str2;
+X			int sl = strlen(str);
+X
+X			yylex();
+X			if (tok != STRING) YYERRORV;
+X			str2 = alloc(sl+strlen(tokstr)+1);
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/parse.c failed'
+fi
+echo 'End of zsh2.1.0 part 14'
+echo 'File zsh2.1/src/parse.c is continued in part 15'
+echo 15 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

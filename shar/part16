@@ -1,0 +1,2755 @@
+Path: funic!fuug!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i016:  zsh2.1 - The Z shell, Part16/19
+Message-ID: <1991Oct26.020727.20450@sparky.imd.sterling.com>
+Date: 26 Oct 91 02:07:27 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 2741
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 3ac42365823c49c08322932ff003c643
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 16
+Archive-name: zsh2.1/part16
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.16 (part 16 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/zle_hist.c continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 16; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/zle_hist.c'
+else
+echo 'x - continuing file zsh2.1/src/zle_hist.c'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/zle_hist.c' &&
+X{
+Xint t0;
+Xchar *s,*t;
+X
+X	done = 1;
+X	for (t0 = histline-2;;t0--)
+X		{
+X		if (!(s = qgetevent(t0)))
+X			return;
+X		if (!hstrncmp(s,line,ll))
+X			break;
+X		}
+X	if (!(s = qgetevent(t0+1)))
+X		return;
+X	pushnode(bufstack,t = ztrdup(s));
+X	for (; *t; t++)
+X		if (*t == HISTSPACE)
+X			*t = ' ';
+X	stackhist = t0+1;
+X}
+X
+Xvoid infernexthistory() /**/
+X{
+Xint t0;
+Xchar *s,*t;
+X
+X	if (!(t = qgetevent(histline-1)))
+X		{
+X		feep();
+X		return;
+X		}
+X	for (t0 = histline-2;;t0--)
+X		{
+X		if (!(s = qgetevent(t0)))
+X			{
+X			feep();
+X			return;
+X			}
+X		if (!strcmp(s,t))
+X			break;
+X		}
+X	if (!(s = qgetevent(t0+1)))
+X		{
+X		feep();
+X		return;
+X		}
+X	histline = t0+1;
+X	sethistline(s);
+X}
+X
+Xvoid vifetchhistory() /**/
+X{
+Xchar *s;
+X
+X	if (mult < 0) return;
+X	if (histline == curhist) {
+X		if (!(lastcmd & ZLE_ARG)) {
+X			cs = ll;
+X			cs = findbol();
+X			return;
+X		}
+X		if (curhistline)
+X			free(curhistline);
+X		curhistline = ztrdup(line);
+X	}
+X	if (!(lastcmd & ZLE_ARG)) mult = curhist;
+X	if (!(s = qgetevent(mult)))
+X		feep();
+X	else {
+X		histline = mult;
+X		sethistline(s);
+X	}
+X}
+X
+Xint getvisrchstr() /**/
+X{
+Xchar sbuf[80];
+Xint sptr = 1;
+X
+X	if (visrchstr)
+X		{
+X		free(visrchstr);
+X		visrchstr = NULL;
+X		}
+X	statusline = sbuf;
+X	sbuf[0] = c;
+X	sbuf[1] = '\0';
+X	while (sptr)
+X		{
+X		refresh();
+X		c = getkey(0);
+X		if (c == '\r' || c == '\n' || c == '\033')
+X			{
+X			visrchstr = ztrdup(sbuf+1);
+X			return 1;
+X			}
+X		if (c == '\b')
+X			{
+X			sbuf[--sptr] = '\0';
+X			continue;
+X			}
+X		if (sptr != 79)
+X			{
+X			sbuf[sptr++] = c;
+X			sbuf[sptr] = '\0';
+X			}
+X		}
+X	return 0;
+X}
+X
+Xvoid vihistorysearchforward() /**/
+X{
+X	visrchsense = 1;
+X	if (getvisrchstr())
+X		virepeatsearch();
+X}
+X
+Xvoid vihistorysearchbackward() /**/
+X{
+X	visrchsense = -1;
+X	if (getvisrchstr())
+X		virepeatsearch();
+X}
+X
+Xvoid virepeatsearch() /**/
+X{
+Xint ohistline = histline,t0;
+Xchar *s;
+X
+X	if (!visrchstr)
+X		{
+X		feep();
+X		return;
+X		}
+X	t0 = strlen(visrchstr);
+X	if (histline == curhist)
+X		{
+X		if (curhistline)
+X			free(curhistline);
+X		curhistline = ztrdup(line);
+X		}
+X	for (;;)
+X		{
+X		histline += visrchsense;
+X		if (!(s = qgetevent(histline)))
+X			{
+X			feep();
+X			histline = ohistline;
+X			return;
+X			}
+X		if (!hstrcmp(line,s))
+X			continue;
+X		if (*visrchstr == '^')
+X			{
+X			if (!hstrncmp(s,visrchstr+1,t0-1))
+X				break;
+X			}
+X		else
+X			if (hstrnstr(s,visrchstr,t0))
+X				break;
+X		}
+X	sethistline(s);
+X}
+X
+Xvoid virevrepeatsearch() /**/
+X{
+X	visrchsense = -visrchsense;
+X	virepeatsearch();
+X	visrchsense = -visrchsense;
+X}
+X
+SHAR_EOF
+echo 'File zsh2.1/src/zle_hist.c is complete' &&
+chmod 0644 zsh2.1/src/zle_hist.c ||
+echo 'restore of zsh2.1/src/zle_hist.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_hist.c'`"
+test 10175 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_hist.c: original size 10175, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_hist.pro ==============
+if test -f 'zsh2.1/src/zle_hist.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_hist.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_hist.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_hist.pro' &&
+Xvoid toggleliteralhistory DCLPROTO((void));
+Xvoid uphistory DCLPROTO((void));
+Xvoid uplineorhistory DCLPROTO((void));
+Xvoid downlineorhistory DCLPROTO((void));
+Xvoid acceptlineanddownhistory DCLPROTO((void));
+Xvoid downhistory DCLPROTO((void));
+Xvoid historysearchbackward DCLPROTO((void));
+Xvoid historysearchforward DCLPROTO((void));
+Xvoid beginningofbufferorhistory DCLPROTO((void));
+Xvoid beginningofhistory DCLPROTO((void));
+Xvoid endofbufferorhistory DCLPROTO((void));
+Xvoid endofhistory DCLPROTO((void));
+Xvoid insertlastword DCLPROTO((void));
+Xchar *qgetevent DCLPROTO((int ev));
+Xvoid pushline DCLPROTO((void));
+Xvoid getline DCLPROTO((void));
+Xvoid historyincrementalsearchbackward DCLPROTO((void));
+Xvoid historyincrementalsearchforward DCLPROTO((void));
+Xvoid doisearch DCLPROTO((int dir));
+Xvoid acceptandinfernexthistory DCLPROTO((void));
+Xvoid infernexthistory DCLPROTO((void));
+Xvoid vifetchhistory DCLPROTO((void));
+Xint getvisrchstr DCLPROTO((void));
+Xvoid vihistorysearchforward DCLPROTO((void));
+Xvoid vihistorysearchbackward DCLPROTO((void));
+Xvoid virepeatsearch DCLPROTO((void));
+Xvoid virevrepeatsearch DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_hist.pro ||
+echo 'restore of zsh2.1/src/zle_hist.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_hist.pro'`"
+test 1119 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_hist.pro: original size 1119, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_misc.pro ==============
+if test -f 'zsh2.1/src/zle_misc.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_misc.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_misc.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_misc.pro' &&
+Xvoid selfinsert DCLPROTO((void));
+Xvoid selfinsertunmeta DCLPROTO((void));
+Xvoid deletechar DCLPROTO((void));
+Xvoid backwarddeletechar DCLPROTO((void));
+Xvoid videletechar DCLPROTO((void));
+Xvoid vibackwarddeletechar DCLPROTO((void));
+Xvoid vikillline DCLPROTO((void));
+Xvoid killwholeline DCLPROTO((void));
+Xvoid killbuffer DCLPROTO((void));
+Xvoid backwardkillline DCLPROTO((void));
+Xvoid gosmacstransposechars DCLPROTO((void));
+Xvoid transposechars DCLPROTO((void));
+Xvoid acceptline DCLPROTO((void));
+Xvoid acceptandhold DCLPROTO((void));
+Xvoid killline DCLPROTO((void));
+Xvoid killregion DCLPROTO((void));
+Xvoid copyregionaskill DCLPROTO((void));
+Xvoid yank DCLPROTO((void));
+Xvoid viputafter DCLPROTO((void));
+Xvoid yankpop DCLPROTO((void));
+Xvoid overwritemode DCLPROTO((void));
+Xvoid undefinedkey DCLPROTO((void));
+Xvoid quotedinsert DCLPROTO((void));
+Xvoid digitargument DCLPROTO((void));
+Xvoid negargument DCLPROTO((void));
+Xvoid universalargument DCLPROTO((void));
+Xvoid copyprevword DCLPROTO((void));
+Xvoid sendbreak DCLPROTO((void));
+Xvoid undo DCLPROTO((void));
+Xvoid quoteregion DCLPROTO((void));
+Xvoid quoteline DCLPROTO((void));
+Xchar *makequote DCLPROTO((char *s));
+Xint executenamedcommand DCLPROTO((void));
+Xvoid vijoin DCLPROTO((void));
+Xvoid viswapcase DCLPROTO((void));
+Xvoid vicapslockpanic DCLPROTO((void));
+Xvoid visetbuffer DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_misc.pro ||
+echo 'restore of zsh2.1/src/zle_misc.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_misc.pro'`"
+test 1332 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_misc.pro: original size 1332, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_move.pro ==============
+if test -f 'zsh2.1/src/zle_move.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_move.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_move.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_move.pro' &&
+Xvoid beginningofline DCLPROTO((void));
+Xvoid endofline DCLPROTO((void));
+Xvoid beginningoflinehist DCLPROTO((void));
+Xvoid endoflinehist DCLPROTO((void));
+Xvoid forwardchar DCLPROTO((void));
+Xvoid backwardchar DCLPROTO((void));
+Xvoid setmarkcommand DCLPROTO((void));
+Xvoid exchangepointandmark DCLPROTO((void));
+Xvoid vigotocolumn DCLPROTO((void));
+Xvoid vimatchbracket DCLPROTO((void));
+Xvoid viforwardchar DCLPROTO((void));
+Xvoid vibackwardchar DCLPROTO((void));
+Xvoid viendofline DCLPROTO((void));
+Xvoid vibeginningofline DCLPROTO((void));
+Xvoid vifindnextchar DCLPROTO((void));
+Xvoid vifindprevchar DCLPROTO((void));
+Xvoid vifindnextcharskip DCLPROTO((void));
+Xvoid vifindprevcharskip DCLPROTO((void));
+Xvoid virepeatfind DCLPROTO((void));
+Xvoid virevrepeatfind DCLPROTO((void));
+Xvoid vifirstnonblank DCLPROTO((void));
+Xvoid visetmark DCLPROTO((void));
+Xvoid vigotomark DCLPROTO((void));
+Xvoid vigotomarkline DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_move.pro ||
+echo 'restore of zsh2.1/src/zle_move.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_move.pro'`"
+test 909 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_move.pro: original size 909, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_word.pro ==============
+if test -f 'zsh2.1/src/zle_word.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_word.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_word.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_word.pro' &&
+Xvoid forwardword DCLPROTO((void));
+Xvoid viforwardblankword DCLPROTO((void));
+Xvoid emacsforwardword DCLPROTO((void));
+Xvoid viforwardblankwordend DCLPROTO((void));
+Xvoid viforwardwordend DCLPROTO((void));
+Xvoid backwardword DCLPROTO((void));
+Xvoid vibackwardblankword DCLPROTO((void));
+Xvoid emacsbackwardword DCLPROTO((void));
+Xvoid backwarddeleteword DCLPROTO((void));
+Xvoid vibackwardkillword DCLPROTO((void));
+Xvoid backwardkillword DCLPROTO((void));
+Xvoid upcaseword DCLPROTO((void));
+Xvoid downcaseword DCLPROTO((void));
+Xvoid capitalizeword DCLPROTO((void));
+Xvoid deleteword DCLPROTO((void));
+Xvoid killword DCLPROTO((void));
+Xvoid transposewords DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_word.pro ||
+echo 'restore of zsh2.1/src/zle_word.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_word.pro'`"
+test 658 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_word.pro: original size 658, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/doc/intro.ps ==============
+if test ! -d 'zsh2.1/doc'; then
+    echo 'x - creating directory zsh2.1/doc'
+    mkdir 'zsh2.1/doc'
+fi
+if test -f 'zsh2.1/doc/intro.ps' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/doc/intro.ps (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/doc/intro.ps (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/doc/intro.ps' &&
+X%!PS-Adobe-1.0
+X%%Creator: phoenix:pfalstad (Paul J. Falstad,305 Dod,9483,)
+X%%Title: stdin (ditroff)
+X%%CreationDate: Thu Oct 17 22:20:30 1991
+X%%EndComments
+X% Start of psdit.pro -- prolog for ditroff translator
+X% Copyright (c) 1985,1987 Adobe Systems Incorporated. All Rights Reserved. 
+X% GOVERNMENT END USERS: See Notice file in TranScript library directory
+X% -- probably /usr/lib/ps/Notice
+X% RCS: $Header: psdit.pro,v 2.2.1.2 88/03/30 15:28:39 root Locked $
+X/$DITroff 140 dict def $DITroff begin
+X%% start PRINCETON changes for psfig
+X/DocumentInitState [ matrix currentmatrix currentlinewidth currentlinecap
+Xcurrentlinejoin currentdash currentgray currentmiterlimit ] cvx def
+X
+X/startFig {
+X	/SavedState save def
+X	userdict maxlength dict begin
+X	currentpoint transform
+X
+X	DocumentInitState setmiterlimit setgray setdash setlinejoin setlinecap
+X		setlinewidth setmatrix
+X
+X	itransform moveto
+X
+X	/ury exch def
+X	/urx exch def
+X	/lly exch def
+X	/llx exch def
+X	/y exch 72 mul resolution div def
+X	/x exch 72 mul resolution div def
+X	
+X	currentpoint /cy exch def /cx exch def
+X
+X	/sx x urx llx sub div def 	% scaling for x
+X	/sy y ury lly sub div def	% scaling for y
+X
+X	sx sy scale			% scale by (sx,sy)
+X
+X	cx sx div llx sub
+X	cy sy div ury sub translate
+X	
+X	/DefFigCTM matrix currentmatrix def
+X
+X	/initmatrix {
+X		DefFigCTM setmatrix
+X	} def
+X	/defaultmatrix {
+X		DefFigCTM exch copy
+X	} def
+X
+X	/initgraphics {
+X		DocumentInitState setmiterlimit setgray setdash 
+X			setlinejoin setlinecap setlinewidth setmatrix
+X		DefFigCTM setmatrix
+X	} def
+X
+X	/showpage {
+X		initgraphics
+X	} def
+X
+X} def
+X% Args are llx lly urx ury (in figure coordinates)
+X/clipFig {
+X	currentpoint 6 2 roll
+X	newpath 4 copy
+X	4 2 roll moveto
+X	6 -1 roll exch lineto
+X	exch lineto
+X	exch lineto
+X	closepath clip
+X	newpath
+X	moveto
+X} def
+X% doclip, if called, will always be just after a `startfig'
+X/doclip { llx lly urx ury clipFig } def
+X/endFig {
+X	end SavedState restore
+X} def
+X/globalstart {
+X	% Push details about the enviornment on the stack.
+X	fontnum fontsize fontslant fontheight firstpage 
+X	mh my resolution slotno currentpoint 
+X	pagesave restore gsave 
+X} def
+X/globalend {
+X	grestore moveto
+X	/slotno exch def /resolution exch def /my exch def
+X	/mh exch def /firstpage exch def /fontheight exch def
+X	/fontslant exch def /fontsize exch def /fontnum exch def
+X	F
+X	/pagesave save def
+X} def
+X
+X%% end PRINCETON changes for psfig
+X/fontnum 1 def /fontsize 10 def /fontheight 10 def /fontslant 0 def
+X/xi {0 72 11 mul translate 72 resolution div dup neg scale 0 0 moveto
+X  /fontnum 1 def /fontsize 10 def /fontheight 10 def /fontslant 0 def F
+X  /pagesave save def}def
+X/xl {90 rotate 72 resolution div dup neg scale 0 0 moveto
+X  /fontnum 1 def /fontsize 10 def /fontheight 10 def /fontslant 0 def F
+X  /pagesave save def}def
+X/PB{save /psv exch def currentpoint translate
+X  resolution 72 div dup neg scale 0 0 moveto}def
+X/PE{psv restore}def
+X/m1 matrix def /m2 matrix def /m3 matrix def /oldmat matrix def
+X/tan{dup sin exch cos div}bind def
+X/point{resolution 72 div mul}bind def
+X/dround	{transform round exch round exch itransform}bind def
+X/xT{/devname exch def}def
+X/xr{/mh exch def /my exch def /resolution exch def}def
+X/xp{}def
+X/xs{docsave restore end}def
+X/xt{}def
+X/xf{/fontname exch def /slotno exch def fontnames slotno get fontname eq not
+X {fonts slotno fontname findfont put fontnames slotno fontname put}if}def
+X/xH{/fontheight exch def F}bind def
+X/xS{/fontslant exch def F}bind def
+X/s{/fontsize exch def /fontheight fontsize def F}bind def
+X/f{/fontnum exch def F}bind def
+X/F{fontheight 0 le {/fontheight fontsize def}if
+X   fonts fontnum get fontsize point 0 0 fontheight point neg 0 0 m1 astore
+X   fontslant 0 ne{1 0 fontslant tan 1 0 0 m2 astore m3 concatmatrix}if
+X   makefont setfont .04 fontsize point mul 0 dround pop setlinewidth}bind def
+X/X{exch currentpoint exch pop moveto show}bind def
+X/N{3 1 roll moveto show}bind def
+X/Y{exch currentpoint pop exch moveto show}bind def
+X/S /show load def
+X/ditpush{}def/ditpop{}def
+X/AX{3 -1 roll currentpoint exch pop moveto 0 exch ashow}bind def
+X/AN{4 2 roll moveto 0 exch ashow}bind def
+X/AY{3 -1 roll currentpoint pop exch moveto 0 exch ashow}bind def
+X/AS{0 exch ashow}bind def
+X/MX{currentpoint exch pop moveto}bind def
+X/MY{currentpoint pop exch moveto}bind def
+X/MXY /moveto load def
+X/cb{pop}def	% action on unknown char -- nothing for now
+X/n{}def/w{}def
+X/p{pop showpage pagesave restore /pagesave save def}def
+X/abspoint{currentpoint exch pop add exch currentpoint pop add exch}def
+X/dstroke{currentpoint stroke moveto}bind def
+X/Dl{2 copy gsave rlineto stroke grestore rmoveto}bind def
+X/arcellipse{oldmat currentmatrix pop
+X currentpoint translate 1 diamv diamh div scale /rad diamh 2 div def
+X rad 0 rad -180 180 arc oldmat setmatrix}def
+X/Dc{gsave dup /diamv exch def /diamh exch def arcellipse dstroke 
+X    grestore diamh 0 rmoveto}def
+X/De{gsave /diamv exch def /diamh exch def arcellipse dstroke
+X    grestore diamh 0 rmoveto}def
+X/Da{currentpoint /by exch def /bx exch def /fy exch def /fx exch def
+X   /cy exch def /cx exch def /rad cx cx mul cy cy mul add sqrt def
+X   /ang1 cy neg cx neg atan def /ang2 fy fx atan def cx bx add cy by add
+X   2 copy rad ang1 ang2 arcn stroke exch fx add exch fy add moveto}def
+X/Barray 200 array def % 200 values in a wiggle
+X/D~{mark}def
+X/D~~{counttomark Barray exch 0 exch getinterval astore /Bcontrol exch def pop
+X /Blen Bcontrol length def Blen 4 ge Blen 2 mod 0 eq and
+X {Bcontrol 0 get Bcontrol 1 get abspoint /Ycont exch def /Xcont exch def
+X  Bcontrol 0 2 copy get 2 mul put Bcontrol 1 2 copy get 2 mul put
+X  Bcontrol Blen 2 sub 2 copy get 2 mul put
+X  Bcontrol Blen 1 sub 2 copy get 2 mul put
+X  /Ybi /Xbi currentpoint 3 1 roll def def 0 2 Blen 4 sub
+X  {/i exch def
+X   Bcontrol i get 3 div Bcontrol i 1 add get 3 div
+X   Bcontrol i get 3 mul Bcontrol i 2 add get add 6 div
+X   Bcontrol i 1 add get 3 mul Bcontrol i 3 add get add 6 div
+X   /Xbi Xcont Bcontrol i 2 add get 2 div add def
+X   /Ybi Ycont Bcontrol i 3 add get 2 div add def
+X   /Xcont Xcont Bcontrol i 2 add get add def
+X   /Ycont Ycont Bcontrol i 3 add get add def
+X   Xbi currentpoint pop sub Ybi currentpoint exch pop sub rcurveto
+X  }for dstroke}if}def
+Xend
+X/ditstart{$DITroff begin
+X /nfonts 60 def			% NFONTS makedev/ditroff dependent!
+X /fonts[nfonts{0}repeat]def
+X /fontnames[nfonts{()}repeat]def
+X/docsave save def
+X}def
+X
+X% character outcalls
+X/oc {/pswid exch def /cc exch def /name exch def
+X   /ditwid pswid fontsize mul resolution mul 72000 div def
+X   /ditsiz fontsize resolution mul 72 div def
+X   ocprocs name known{ocprocs name get exec}{name cb}
+X   ifelse}def
+X/fractm [.65 0 0 .6 0 0] def
+X/fraction
+X {/fden exch def /fnum exch def gsave /cf currentfont def
+X  cf fractm makefont setfont 0 .3 dm 2 copy neg rmoveto
+X  fnum show rmoveto currentfont cf setfont(\244)show setfont fden show 
+X  grestore ditwid 0 rmoveto} def
+X/oce {grestore ditwid 0 rmoveto}def
+X/dm {ditsiz mul}def
+X/ocprocs 50 dict def ocprocs begin
+X(14){(1)(4)fraction}def
+X(12){(1)(2)fraction}def
+X(34){(3)(4)fraction}def
+X(13){(1)(3)fraction}def
+X(23){(2)(3)fraction}def
+X(18){(1)(8)fraction}def
+X(38){(3)(8)fraction}def
+X(58){(5)(8)fraction}def
+X(78){(7)(8)fraction}def
+X(sr){gsave .05 dm .16 dm rmoveto(\326)show oce}def
+X(is){gsave 0 .15 dm rmoveto(\362)show oce}def
+X(->){gsave 0 .02 dm rmoveto(\256)show oce}def
+X(<-){gsave 0 .02 dm rmoveto(\254)show oce}def
+X(==){gsave 0 .05 dm rmoveto(\272)show oce}def
+Xend
+X% DIThacks fonts for some special chars
+X50 dict dup begin
+X/FontType 3 def
+X/FontName /DIThacks def
+X/FontMatrix [.001 0.0 0.0 .001 0.0 0.0] def
+X/FontBBox [-220 -280 900 900] def% a lie but ...
+X/Encoding 256 array def
+X0 1 255{Encoding exch /.notdef put}for
+XEncoding
+X dup 8#040/space put %space
+X dup 8#110/rc put %right ceil
+X dup 8#111/lt put %left  top curl
+X dup 8#112/bv put %bold vert
+X dup 8#113/lk put %left  mid curl
+X dup 8#114/lb put %left  bot curl
+X dup 8#115/rt put %right top curl
+X dup 8#116/rk put %right mid curl
+X dup 8#117/rb put %right bot curl
+X dup 8#120/rf put %right floor
+X dup 8#121/lf put %left  floor
+X dup 8#122/lc put %left  ceil
+X dup 8#140/sq put %square
+X dup 8#141/bx put %box
+X dup 8#142/ci put %circle
+X dup 8#143/br put %box rule
+X dup 8#144/rn put %root extender
+X dup 8#145/vr put %vertical rule
+X dup 8#146/ob put %outline bullet
+X dup 8#147/bu put %bullet
+X dup 8#150/ru put %rule
+X dup 8#151/ul put %underline
+X pop
+X/DITfd 100 dict def
+X/BuildChar{0 begin
+X /cc exch def /fd exch def
+X /charname fd /Encoding get cc get def
+X /charwid fd /Metrics get charname get def
+X /charproc fd /CharProcs get charname get def
+X charwid 0 fd /FontBBox get aload pop setcachedevice
+X 40 setlinewidth
+X newpath 0 0 moveto gsave charproc grestore
+X end}def
+X/BuildChar load 0 DITfd put
+X%/UniqueID 5 def
+X/CharProcs 50 dict def
+XCharProcs begin
+X/space{}def
+X/.notdef{}def
+X/ru{500 0 rls}def
+X/rn{0 750 moveto 500 0 rls}def
+X/vr{20 800 moveto 0 -770 rls}def
+X/bv{20 800 moveto 0 -1000 rls}def
+X/br{20 770 moveto 0 -1040 rls}def
+X/ul{0 -250 moveto 500 0 rls}def
+X/ob{200 250 rmoveto currentpoint newpath 200 0 360 arc closepath stroke}def
+X/bu{200 250 rmoveto currentpoint newpath 200 0 360 arc closepath fill}def
+X/sq{80 0 rmoveto currentpoint dround newpath moveto
+X    640 0 rlineto 0 640 rlineto -640 0 rlineto closepath stroke}def
+X/bx{80 0 rmoveto currentpoint dround newpath moveto
+X    640 0 rlineto 0 640 rlineto -640 0 rlineto closepath fill}def
+X/ci{355 333 rmoveto currentpoint newpath 333 0 360 arc
+X    50 setlinewidth stroke}def
+X
+X/lt{20 -200 moveto 0 550 rlineto currx 800 2cx s4 add exch s4 a4p stroke}def
+X/lb{20 800 moveto 0 -550 rlineto currx -200 2cx s4 add exch s4 a4p stroke}def
+X/rt{20 -200 moveto 0 550 rlineto currx 800 2cx s4 sub exch s4 a4p stroke}def
+X/rb{20 800 moveto 0 -500 rlineto currx -200 2cx s4 sub exch s4 a4p stroke}def
+X/lk{20 800 moveto 20 300 -280 300 s4 arcto pop pop 1000 sub
+X    currentpoint stroke moveto
+X    20 300 4 2 roll s4 a4p 20 -200 lineto stroke}def
+X/rk{20 800 moveto 20 300 320 300 s4 arcto pop pop 1000 sub
+X    currentpoint stroke moveto
+X    20 300 4 2 roll s4 a4p 20 -200 lineto stroke}def
+X/lf{20 800 moveto 0 -1000 rlineto s4 0 rls}def
+X/rf{20 800 moveto 0 -1000 rlineto s4 neg 0 rls}def
+X/lc{20 -200 moveto 0 1000 rlineto s4 0 rls}def
+X/rc{20 -200 moveto 0 1000 rlineto s4 neg 0 rls}def
+Xend
+X
+X/Metrics 50 dict def Metrics begin
+X/.notdef 0 def
+X/space 500 def
+X/ru 500 def
+X/br 0 def
+X/lt 250 def
+X/lb 250 def
+X/rt 250 def
+X/rb 250 def
+X/lk 250 def
+X/rk 250 def
+X/rc 250 def
+X/lc 250 def
+X/rf 250 def
+X/lf 250 def
+X/bv 250 def
+X/ob 350 def
+X/bu 350 def
+X/ci 750 def
+X/bx 750 def
+X/sq 750 def
+X/rn 500 def
+X/ul 500 def
+X/vr 0 def
+Xend
+X
+XDITfd begin
+X/s2 500 def /s4 250 def /s3 333 def
+X/a4p{arcto pop pop pop pop}def
+X/2cx{2 copy exch}def
+X/rls{rlineto stroke}def
+X/currx{currentpoint pop}def
+X/dround{transform round exch round exch itransform} def
+Xend
+Xend
+X/DIThacks exch definefont pop
+X
+Xditstart
+X(psc)xT
+X576 1 1 xr
+X1(Times-Roman)xf 1 f
+X2(Times-Italic)xf 2 f
+X3(Times-Bold)xf 3 f
+X4(Times-BoldItalic)xf 4 f
+X5(Helvetica)xf 5 f
+X6(Helvetica-Bold)xf 6 f
+X7(Helvetica-Oblique)xf 7 f
+X8(Helvetica-BoldOblique)xf 8 f
+X9(Courier)xf 9 f
+X10(Courier-Bold)xf 10 f
+X11(Courier-Oblique)xf 11 f
+X12(Courier-BoldOblique)xf 12 f
+X13(Palatino-Roman)xf 13 f
+X14(Palatino-Italic)xf 14 f
+X15(Palatino-Bold)xf 15 f
+X16(Palatino-BoldItalic)xf 16 f
+X17(ZapfChancery-MediumItalic)xf 17 f
+X18(ZapfDingbats)xf 18 f
+X19(AvantGarde-Book)xf 19 f
+X20(AvantGarde-BookOblique)xf 20 f
+X21(AvantGarde-Demi)xf 21 f
+X22(AvantGarde-DemiOblique)xf 22 f
+X23(Symbol)xf 23 f
+X24(DIThacks)xf 24 f
+X10 s
+X1 f
+Xxi
+X%%EndProlog
+X
+X%%Page: 1 1
+X10 s 10 xH 0 xS 1 f
+X8 s
+X3 f
+X12 s
+X1684 672(An)N
+X1830(Introduction)X
+X2376(to)X
+X2480(the)X
+X2632(Z)X
+X2720(Shell)X
+X2 f
+X10 s
+X2096 864(Paul)N
+X2267(Falstad)X
+X1780 960(pfalstad@phoenix.princeton.edu)N
+X1 f
+X1766 1104(Department)N
+X2165(of)X
+X2252(Computer)X
+X2592(Science)X
+X1971 1200(Princeton)N
+X2298(University)X
+X1976 1296(Princeton,)N
+X2323(NJ)X
+X2432(08544)X
+X3 f
+X576 1708(zsh)N
+X1 f
+X712(is)X
+X790(a)X
+X852(shell)X
+X1029(designed)X
+X1340(for)X
+X1460(interactive)X
+X1825(use,)X
+X1978(although)X
+X2284(it)X
+X2354(is)X
+X2433(also)X
+X2588(a)X
+X2650(powerful)X
+X2966(scripting)X
+X3272(language.)X
+X3628(Many)X
+X3841(of)X
+X3934(the)X
+X576 1804(useful)N
+X795(features)X
+X1073(of)X
+X1163(bash,)X
+X1353(ksh,)X
+X1507(and)X
+X1646(tcsh)X
+X1798(were)X
+X1978(incorporated)X
+X2407(into)X
+X2554(zsh;)X
+X2706(many)X
+X2907(original)X
+X3179(features)X
+X3457(were)X
+X3636(added.)X
+X3890(This)X
+X576 1900(document)N
+X919(details)X
+X1155(some)X
+X1351(of)X
+X1445(the)X
+X1570(unique)X
+X1815(features)X
+X2097(of)X
+X2191(zsh.)X
+X2365(It)X
+X2442(assumes)X
+X2737(basic)X
+X2930(knowledge)X
+X3310(of)X
+X3405(the)X
+X3531(standard)X
+X3831(UNIX)X
+X576 1996(shells;)N
+X809(the)X
+X936(intent)X
+X1146(is)X
+X1227(to)X
+X1317(show)X
+X1514(a)X
+X1578(reader)X
+X1808(already)X
+X2073(familiar)X
+X2355(with)X
+X2525(one)X
+X2669(of)X
+X2764(the)X
+X2890(other)X
+X3083(major)X
+X3298(shells)X
+X3508(what)X
+X3692(makes)X
+X3925(zsh)X
+X576 2092(more)N
+X770(useful)X
+X995(or)X
+X1091(more)X
+X1285(powerful.)X
+X1645(This)X
+X1817(document)X
+X2163(is)X
+X2246(not)X
+X2378(at)X
+X2466(all)X
+X2576(comprehensive;)X
+X3114(read)X
+X3283(the)X
+X3411(manual)X
+X3677(entry)X
+X3872(for)X
+X3996(a)X
+X576 2188(description)N
+X966(of)X
+X1067(the)X
+X1199(shell)X
+X1384(that)X
+X1538(is)X
+X1625(complete)X
+X1953(and)X
+X2103(concise,)X
+X2398(although)X
+X2711(somewhat)X
+X3069(overwhelming)X
+X3565(and)X
+X3714(devoid)X
+X3965(of)X
+X576 2284(examples.)N
+X3 f
+X576 2476(Filename)N
+X912(Generation)X
+X1 f
+X576 2600(Otherwise)N
+X940(known)X
+X1192(as)X
+X2 f
+X1293(globbing)X
+X1 f
+X1577(,)X
+X1631(\256lename)X
+X1941(generation)X
+X2314(is)X
+X2401(quite)X
+X2596(extensive)X
+X2934(in)X
+X3031(zsh.)X
+X3213(Of)X
+X3333(course,)X
+X3598(it)X
+X3677(has)X
+X3819(all)X
+X3934(the)X
+X576 2696(basics:)N
+X9 f
+X576 2840(%)N
+X672(ls)X
+X576 2936(Makefile)N
+X1104(file.pro)X
+X1632(foo.o)X
+X2160(main.o)X
+X2688(q.c)X
+X3216(run234)X
+X3744(stuff)X
+X576 3032(bar.o)N
+X1104(foo)X
+X1632(link)X
+X2160(morestuff)X
+X2688(run123)X
+X3216(run240)X
+X3744(sub)X
+X576 3128(file.h)N
+X1104(foo.c)X
+X1632(main.h)X
+X2160(pipe)X
+X2688(run2)X
+X3216(run303)X
+X576 3224(%)N
+X672(ls)X
+X816(*.c)X
+X576 3320(foo.c)N
+X912(q.c)X
+X576 3416(%)N
+X672(ls)X
+X816(*.[co])X
+X576 3512(bar.o)N
+X960(foo.c)X
+X1344(foo.o)X
+X1728(main.o)X
+X2112(q.c)X
+X576 3608(%)N
+X672(ls)X
+X816(foo.?)X
+X576 3704(foo.c)N
+X912(foo.o)X
+X576 3800(%)N
+X672(ls)X
+X816(*.[\303c])X
+X576 3896(bar.o)N
+X960(file.h)X
+X1344(foo.o)X
+X1728(main.h)X
+X2112(main.o)X
+X576 3992(%)N
+X672(ls)X
+X816(*.[\303oh])X
+X576 4088(foo.c)N
+X912(q.c)X
+X1 f
+X576 4328(Also,)N
+X769(if)X
+X840(the)X
+X2 f
+X960(EXTENDEDGLOB)X
+X1 f
+X1600(option)X
+X1826(is)X
+X1901(set,)X
+X2032(some)X
+X2223(new)X
+X2379(features)X
+X2656(are)X
+X2777(activated.)X
+X3129(For)X
+X3262(example,)X
+X3576(the)X
+X9 f
+X3724(\303)X
+X1 f
+X3794(charac-)X
+X576 4424(ter)N
+X681(negates)X
+X942(the)X
+X1060(pattern)X
+X1303(following)X
+X1634(it:)X
+X9 f
+X576 4568(%)N
+X672(setopt)X
+X1008(extendedglob)X
+X576 4664(%)N
+X672(ls)X
+X816(-d)X
+X960(\303*.c)X
+X576 4760(Makefile)N
+X1104(file.pro)X
+X1632(link)X
+X2160(morestuff)X
+X2688(run2)X
+X3216(run303)X
+X576 4856(bar.o)N
+X1104(foo)X
+X1632(main.h)X
+X2160(pipe)X
+X2688(run234)X
+X3216(stuff)X
+X576 4952(file.h)N
+X1104(foo.o)X
+X1632(main.o)X
+X2160(run123)X
+X2688(run240)X
+X3216(sub)X
+X576 5048(%)N
+X672(ls)X
+X816(-d)X
+X960(\303*.*)X
+X576 5144(Makefile)N
+X1104(link)X
+X1632(pipe)X
+X2160(run2)X
+X2688(run240)X
+X3216(stuff)X
+X576 5240(foo)N
+X1104(morestuff)X
+X1632(run123)X
+X2160(run234)X
+X2688(run303)X
+X3216(sub)X
+X576 5336(%)N
+X672(ls)X
+X816(-d)X
+X960(\303Makefile)X
+X576 5432(bar.o)N
+X1104(foo)X
+X1632(link)X
+X2160(morestuff)X
+X2688(run123)X
+X3216(run240)X
+X3744(sub)X
+X576 5528(file.h)N
+X1104(foo.c)X
+X1632(main.h)X
+X2160(pipe)X
+X2688(run2)X
+X3216(run303)X
+X576 5624(file.pro)N
+X1104(foo.o)X
+X1632(main.o)X
+X2160(q.c)X
+X2688(run234)X
+X3216(stuff)X
+X576 5720(%)N
+X672(ls)X
+X816(-d)X
+X960(*.\303c)X
+X1 f
+X576 5960(An)N
+X694(expression)X
+X1057(of)X
+X1144(the)X
+X1262(form)X
+X9 f
+X1466(<)X
+X2 f
+X(x)S
+X1 f
+X23 f
+X1550(-)X
+X2 f
+X1594(y)X
+X9 f
+X1630(>)X
+X1 f
+X1698(matches)X
+X1981(a)X
+X2037(range)X
+X2236(of)X
+X2323(integers:)X
+X
+X2 p
+X%%Page: 2 2
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2237 240(-)N
+X2284(2)X
+X2344(-)X
+X9 f
+X576 432(%)N
+X672(ls)X
+X816(run<200-300>)X
+X576 528(run234)N
+X960(run240)X
+X576 624(%)N
+X672(ls)X
+X816(run<300-400>)X
+X576 720(run303)N
+X576 816(%)N
+X672(ls)X
+X816(run<-200>)X
+X576 912(run123)N
+X960(run2)X
+X576 1008(%)N
+X672(ls)X
+X816(run<300->)X
+X576 1104(run303)N
+X576 1200(%)N
+X672(ls)X
+X816(run<>)X
+X576 1296(run123)N
+X960(run2)X
+X1344(run234)X
+X1728(run240)X
+X2112(run303)X
+X1 f
+X576 1536(Grouping)N
+X903(is)X
+X976(possible:)X
+X9 f
+X576 1680(%)N
+X672(ls)X
+X816(\(foo)X
+X23 f
+X(|)S
+X9 f
+X(bar\).*)S
+X576 1776(bar.o)N
+X912(foo.c)X
+X1248(foo.o)X
+X576 1872(%)N
+X672(ls)X
+X816(*.\(c)X
+X23 f
+X(|)S
+X9 f
+X(o)S
+X23 f
+X(|)S
+X9 f
+X(pro\))S
+X576 1968(bar.o)N
+X1056(file.pro)X
+X1536(foo.c)X
+X2016(foo.o)X
+X2496(main.o)X
+X2976(q.c)X
+X1 f
+X576 2208(Also,)N
+X767(the)X
+X885(string)X
+X9 f
+X1115(****/)X
+X1 f
+X1375(forces)X
+X1592(a)X
+X1648(recursive)X
+X1963(search)X
+X2189(of)X
+X2276(subdirectories:)X
+X9 f
+X576 2352(%)N
+X672(ls)X
+X816(-R)X
+X576 2448(Makefile)N
+X1104(file.pro)X
+X1632(foo.o)X
+X2160(main.o)X
+X2688(q.c)X
+X3216(run234)X
+X3744(stuff)X
+X576 2544(bar.o)N
+X1104(foo)X
+X1632(link)X
+X2160(morestuff)X
+X2688(run123)X
+X3216(run240)X
+X3744(sub)X
+X576 2640(file.h)N
+X1104(foo.c)X
+X1632(main.h)X
+X2160(pipe)X
+X2688(run2)X
+X3216(run303)X
+X576 2832(morestuff:)N
+X576 3024(stuff:)N
+X576 3120(file)N
+X864(xxx)X
+X1152(yyy)X
+X576 3312(stuff/xxx:)N
+X576 3408(foobar)N
+X576 3600(stuff/yyy:)N
+X576 3696(frobar)N
+X576 3792(%)N
+X672(ls)X
+X816(****/*bar)X
+X576 3888(stuff/xxx/foobar)N
+X1440(stuff/yyy/frobar)X
+X576 3984(%)N
+X672(ls)X
+X816(****/f*)X
+X576 4080(file.h)N
+X1440(foo)X
+X2304(foo.o)X
+X3168(stuff/xxx/foobar)X
+X576 4176(file.pro)N
+X1440(foo.c)X
+X2304(stuff/file)X
+X3168(stuff/yyy/frobar)X
+X576 4272(%)N
+X672(ls)X
+X816(*bar*)X
+X576 4368(bar.o)N
+X576 4464(%)N
+X672(ls)X
+X816(****/*bar*)X
+X576 4560(bar.o)N
+X1440(stuff/xxx/foobar)X
+X2304(stuff/yyy/frobar)X
+X576 4656(%)N
+X672(ls)X
+X816(stuff/****/*bar*)X
+X576 4752(stuff/xxx/foobar)N
+X1440(stuff/yyy/frobar)X
+X1 f
+X576 5020(One)N
+X737(can)X
+X876(add)X
+X1019(a)X
+X1082(number)X
+X1354(of)X
+X2 f
+X1448(quali\256ers)X
+X1 f
+X1777(to)X
+X1866(the)X
+X1991(end)X
+X2134(of)X
+X2228(any)X
+X2371(of)X
+X2466(these)X
+X2659(patterns,)X
+X2961(to)X
+X3051(restrict)X
+X3302(matches)X
+X3593(to)X
+X3683(certain)X
+X3930(\256le)X
+X576 5116(types.)N
+X805(A)X
+X883(quali\256ed)X
+X1183(pattern)X
+X1426(is)X
+X1499(of)X
+X1586(the)X
+X1704(form)X
+X2 f
+X864 5260(pattern)N
+X9 f
+X1095(\()X
+X1 f
+X(...)S
+X9 f
+X(\))S
+X1 f
+X576 5500(with)N
+X738(single-letter)X
+X1141(quali\256ers)X
+X1459(inside)X
+X1670(the)X
+X1788(parentheses.)X
+X
+X3 p
+X%%Page: 3 3
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2237 240(-)N
+X2284(3)X
+X2344(-)X
+X9 f
+X576 432(%)N
+X672(alias)X
+X960(l='ls)X
+X1248(-dF')X
+X576 528(%)N
+X672(l)X
+X768(*)X
+X576 624(Makefile)N
+X1152(foo*)X
+X1728(main.h)X
+X2304(q.c)X
+X2880(run240)X
+X576 720(bar.o)N
+X1152(foo.c)X
+X1728(main.o)X
+X2304(run123)X
+X2880(run303)X
+X576 816(file.h)N
+X1152(foo.o)X
+X1728(morestuff/)X
+X2304(run2)X
+X2880(stuff/)X
+X576 912(file.pro)N
+X1152(link@)X
+X1728(pipe)X
+X2304(run234)X
+X2880(sub)X
+X576 1008(%)N
+X672(l)X
+X768(*\(/\))X
+X576 1104(morestuff/)N
+X1152(stuff/)X
+X576 1200(%)N
+X672(l)X
+X768(*\(@\))X
+X576 1296(link@)N
+X576 1392(%)N
+X672(l)X
+X768(*\(*\))X
+X576 1488(foo*)N
+X1152(link@)X
+X1728(morestuff/)X
+X2304(stuff/)X
+X576 1584(%)N
+X672(l)X
+X768(*\(x\))X
+X576 1680(foo*)N
+X1152(link@)X
+X1728(morestuff/)X
+X2304(stuff/)X
+X576 1776(%)N
+X672(l)X
+X768(*\(X\))X
+X576 1872(foo*)N
+X1152(link@)X
+X1728(morestuff/)X
+X2304(stuff/)X
+X576 1968(%)N
+X672(l)X
+X768(*\(R\))X
+X576 2064(bar.o)N
+X1152(foo*)X
+X1728(link@)X
+X2304(morestuff/)X
+X2880(run123)X
+X3456(run240)X
+X576 2160(file.h)N
+X1152(foo.c)X
+X1728(main.h)X
+X2304(pipe)X
+X2880(run2)X
+X3456(run303)X
+X576 2256(file.pro)N
+X1152(foo.o)X
+X1728(main.o)X
+X2304(q.c)X
+X2880(run234)X
+X3456(stuff/)X
+X1 f
+X576 2496(Note)N
+X769(that)X
+X9 f
+X954(*\(x\))X
+X1 f
+X1183(and)X
+X9 f
+X1364(*\(*\))X
+X1 f
+X1593(both)X
+X1772(match)X
+X2005(executables.)X
+X9 f
+X2513(*\(X\))X
+X1 f
+X2742(matches)X
+X3042(\256les)X
+X3212(executable)X
+X3593(by)X
+X3711(others,)X
+X3965(as)X
+X576 2592(opposed)N
+X865(to)X
+X9 f
+X977(*\(x\))X
+X1 f
+X(,)S
+X1211(which)X
+X1429(matches)X
+X1714(\256les)X
+X1869(executable)X
+X2235(by)X
+X2337(the)X
+X2457(owner.)X
+X9 f
+X2775(*\(R\))X
+X1 f
+X2988(and)X
+X9 f
+X3153(*\(r\))X
+X1 f
+X3366(match)X
+X3583(readable)X
+X3877(\256les;)X
+X9 f
+X576 2688(*\(W\))N
+X1 f
+X800(and)X
+X9 f
+X976(*\(w\))X
+X1 f
+X(,)S
+X1220(which)X
+X1448(checks)X
+X1699(for)X
+X1825(writable)X
+X2120(\256les.)X
+X9 f
+X2382(*\(W\))X
+X1 f
+X2607(is)X
+X2693(especially)X
+X3047(important,)X
+X3411(since)X
+X3609(it)X
+X3686(checks)X
+X3938(for)X
+X576 2784(world-writable)N
+X1073(\256les:)X
+X9 f
+X576 2928(%)N
+X672(l)X
+X768(*\(w\))X
+X576 3024(bar.o)N
+X1152(foo*)X
+X1728(link@)X
+X2304(morestuff/)X
+X2880(run123)X
+X3456(run240)X
+X576 3120(file.h)N
+X1152(foo.c)X
+X1728(main.h)X
+X2304(pipe)X
+X2880(run2)X
+X3456(run303)X
+X576 3216(file.pro)N
+X1152(foo.o)X
+X1728(main.o)X
+X2304(q.c)X
+X2880(run234)X
+X3456(stuff/)X
+X576 3312(%)N
+X672(l)X
+X768(*\(W\))X
+X576 3408(link@)N
+X960(run240)X
+X576 3504(%)N
+X672(l)X
+X768(-l)X
+X912(link)X
+X1152(run240)X
+X576 3600(lrwxrwxrwx)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(10)X
+X2112(May)X
+X2304(23)X
+X2448(18:12)X
+X2736(link)X
+X2976(->)X
+X3120(/bin/false*)X
+X576 3696(-rw-rw-rw-)N
+X1152(1)X
+X1248(pfalstad)X
+X2016(0)X
+X2112(May)X
+X2304(23)X
+X2448(18:12)X
+X2736(run240)X
+X1 f
+X576 3936(You)N
+X734(can)X
+X866(\256lter)X
+X1037(out)X
+X1159(the)X
+X1277(symbolic)X
+X1590(links)X
+X1765(with)X
+X1927(the)X
+X9 f
+X2073(\303)X
+X1 f
+X2141(character:)X
+X9 f
+X576 4080(%)N
+X672(l)X
+X768(*\(W\303@\))X
+X576 4176(run240)N
+X576 4272(%)N
+X672(l)X
+X768(*\(x\))X
+X576 4368(foo*)N
+X1152(link@)X
+X1728(morestuff/)X
+X2304(stuff/)X
+X576 4464(%)N
+X672(l)X
+X768(*\(x\303@/\))X
+X576 4560(foo*)N
+X1 f
+X576 4800(To)N
+X685(\256nd)X
+X829(all)X
+X929(plain)X
+X1109(\256les,)X
+X1282(you)X
+X1422(can)X
+X1554(use)X
+X9 f
+X1709(.)X
+X1 f
+X(:)S
+X9 f
+X576 4944(%)N
+X672(l)X
+X768(*\(.\))X
+X576 5040(Makefile)N
+X1056(file.h)X
+X1536(foo*)X
+X2016(foo.o)X
+X2496(main.o)X
+X2976(run123)X
+X3456(run234)X
+X3936(run303)X
+X576 5136(bar.o)N
+X1056(file.pro)X
+X1536(foo.c)X
+X2016(main.h)X
+X2496(q.c)X
+X2976(run2)X
+X3456(run240)X
+X3936(sub)X
+X576 5232(%)N
+X672(l)X
+X768(*\(\303.\))X
+X576 5328(link@)N
+X1152(morestuff/)X
+X1728(pipe)X
+X2304(stuff/)X
+X576 5424(%)N
+X672(l)X
+X768(s*\(.\))X
+X576 5520(stuff/)N
+X1008(sub)X
+X576 5616(%)N
+X672(l)X
+X768(*\(p\))X
+X576 5712(pipe)N
+X576 5808(%)N
+X672(l)X
+X768(-l)X
+X912(*\(p\))X
+X576 5904(prw-r--r--)N
+X1152(1)X
+X1248(pfalstad)X
+X2016(0)X
+X2112(May)X
+X2304(23)X
+X2448(18:12)X
+X2736(pipe)X
+X
+X4 p
+X%%Page: 4 4
+X10 s 10 xH 0 xS 9 f
+X1 f
+X2237 240(-)N
+X2284(4)X
+X2344(-)X
+X9 f
+X576 384(*\(U\))N
+X1 f
+X788(matches)X
+X1071(all)X
+X1171(\256les)X
+X1324(owned)X
+X1558(by)X
+X1658(you.)X
+X1838(To)X
+X1947(search)X
+X2173(for)X
+X2287(all)X
+X2387(\256les)X
+X2540(not)X
+X2662(owned)X
+X2896(by)X
+X2996(you,)X
+X3156(use)X
+X9 f
+X3311(*\(\303U\))X
+X1 f
+X(:)S
+X9 f
+X576 528(%)N
+X672(l)X
+X768(-l)X
+X912(*\(\303U\))X
+X576 624(-rw-------)N
+X1152(1)X
+X1248(subbarao)X
+X1968(29)X
+X2112(May)X
+X2304(23)X
+X2448(18:13)X
+X2736(sub)X
+X1 f
+X576 864(This)N
+X738(searches)X
+X1031(for)X
+X1145(setuid)X
+X1356(\256les:)X
+X9 f
+X576 1008(%)N
+X672(l)X
+X768(-l)X
+X912(*\(s\))X
+X576 1104(-rwsr-xr-x)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(16)X
+X2112(May)X
+X2304(23)X
+X2448(18:12)X
+X2736(foo*)X
+X1 f
+X576 1344(This)N
+X738(checks)X
+X977(for)X
+X1091(a)X
+X1147(certain)X
+X1386(user's)X
+X1598(\256les:)X
+X9 f
+X576 1488(%)N
+X672(ypmatch)X
+X1056(subbarao)X
+X1488(passwd)X
+X576 1584(subbarao:*:3338:35:Kartik)N
+X1824(Subbarao:/u/subbarao:/usr/princeton/bin/zsh)X
+X576 1680(%)N
+X672(l)X
+X768(-l)X
+X912(*\(u3338\))X
+X576 1776(-rw-------)N
+X1152(1)X
+X1248(subbarao)X
+X1968(29)X
+X2112(May)X
+X2304(23)X
+X2448(18:13)X
+X2736(sub)X
+X3 f
+X576 2112(Startup)N
+X858(Files)X
+X1 f
+X576 2236(There)N
+X784(are)X
+X903(\256ve)X
+X1043(startup)X
+X1281(\256les)X
+X1434(that)X
+X1574(zsh)X
+X1701(will)X
+X1845(read)X
+X2004(commands)X
+X2371(from:)X
+X9 f
+X576 2380($ZDOTDIR/.zshenv)N
+X576 2476($ZDOTDIR/.zprofile)N
+X576 2572($ZDOTDIR/.zshrc)N
+X576 2668($ZDOTDIR/.zlogin)N
+X576 2764($ZDOTDIR/.zlogout)N
+X1 f
+X576 3004(If)N
+X3 f
+X650(ZDOTDIR)X
+X1 f
+X1043(is)X
+X1116(not)X
+X1238(set,)X
+X1367(then)X
+X1525(the)X
+X1643(value)X
+X1837(of)X
+X3 f
+X1924(HOME)X
+X1 f
+X2197(is)X
+X2270(used;)X
+X2459(this)X
+X2594(is)X
+X2667(the)X
+X2785(usual)X
+X2974(case.)X
+X9 f
+X576 3128(.zshenv)N
+X1 f
+X938(is)X
+X1017(sourced)X
+X1293(on)X
+X1399(all)X
+X1505(invocations)X
+X1901(of)X
+X1995(the)X
+X2120(shell,)X
+X2318(unless)X
+X2545(the)X
+X9 f
+X2698(-f)X
+X1 f
+X2821(option)X
+X3052(is)X
+X3132(set.)X
+X3288(It)X
+X3364(should)X
+X3604(contain)X
+X3867(com-)X
+X576 3224(mands)N
+X809(to)X
+X894(set)X
+X1006(the)X
+X1127(command)X
+X1466(search)X
+X1695(path,)X
+X1876(plus)X
+X2032(other)X
+X2220(important)X
+X2554(environment)X
+X2982(variables.)X
+X9 f
+X3335(.zshenv)X
+X1 f
+X3694(should)X
+X3930(not)X
+X576 3320(contain)N
+X832(commands)X
+X1199(that)X
+X1339(produce)X
+X1618(output)X
+X1842(or)X
+X1929(assume)X
+X2185(the)X
+X2303(shell)X
+X2474(is)X
+X2547(attached)X
+X2835(to)X
+X2917(a)X
+X2973(tty.)X
+X9 f
+X576 3444(.zshrc)N
+X1 f
+X887(is)X
+X964(sourced)X
+X1238(in)X
+X1324(interactive)X
+X1687(shells.)X
+X1933(It)X
+X2006(should)X
+X2243(contain)X
+X2503(commands)X
+X2874(to)X
+X2960(set)X
+X3073(up)X
+X3177(aliases,)X
+X3435(functions,)X
+X3777(options,)X
+X576 3540(key)N
+X726(bindings,)X
+X1055(etc.)X
+X1223(Putting)X
+X1487(commands)X
+X1868(like)X
+X9 f
+X2050(stty)X
+X1 f
+X2276(or)X
+X2376(``)X
+X9 f
+X2430(echo)X
+X2683(executing)X
+X3176(.zshrc....)X
+X1 f
+X('')S
+X3763(in)X
+X3858(one's)X
+X9 f
+X576 3636(.zshrc)N
+X1 f
+X884(is)X
+X957(considered)X
+X1325(bad)X
+X1461(style.)X
+X9 f
+X576 3760(.zlogin)N
+X1 f
+X940(is)X
+X1021(sourced)X
+X1299(in)X
+X1390(login)X
+X1583(shells.)X
+X1834(It)X
+X1912(should)X
+X2154(contain)X
+X2419(commands)X
+X2795(that)X
+X2944(should)X
+X3186(be)X
+X3291(executed)X
+X3606(only)X
+X3777(in)X
+X3868(login)X
+X576 3856(shells.)N
+X9 f
+X821(.zlogout)X
+X1 f
+X1228(is)X
+X1304(sourced)X
+X1577(when)X
+X1774(login)X
+X1961(shells)X
+X2166(exit.)X
+X9 f
+X2349(.zprofile)X
+X1 f
+X2804(is)X
+X2880(similar)X
+X3124(to)X
+X9 f
+X3236(.zlogin)X
+X1 f
+X(,)S
+X3614(except)X
+X3846(that)X
+X3988(it)X
+X576 3952(is)N
+X649(sourced)X
+X919(before)X
+X9 f
+X1145(.zshrc)X
+X1 f
+X(.)S
+X9 f
+X1493(.zprofile)X
+X1 f
+X1945(is)X
+X2019(meant)X
+X2236(as)X
+X2324(an)X
+X2421(alternative)X
+X2781(to)X
+X9 f
+X2892(.zlogin)X
+X1 f
+X3249(for)X
+X3364(ksh)X
+X3496(fans;)X
+X3673(the)X
+X3792(two)X
+X3933(are)X
+X576 4048(not)N
+X709(intended)X
+X1016(to)X
+X1109(be)X
+X1216(used)X
+X1393(together,)X
+X1706(although)X
+X2016(this)X
+X2161(could)X
+X2369(certainly)X
+X2680(be)X
+X2786(done)X
+X2972(if)X
+X3051(desired.)X
+X9 f
+X3353(.zlogin)X
+X1 f
+X3719(is)X
+X3802(not)X
+X3934(the)X
+X576 4144(place)N
+X781(for)X
+X910(alias)X
+X1092(de\256nitions,)X
+X1484(options,)X
+X1774(environment)X
+X2214(variable)X
+X2508(settings,)X
+X2807(etc.;)X
+X2978(as)X
+X3080(a)X
+X3151(general)X
+X3423(rule,)X
+X3603(it)X
+X3682(should)X
+X3930(not)X
+X576 4240(change)N
+X830(the)X
+X954(shell)X
+X1131(environment)X
+X1562(at)X
+X1646(all.)X
+X1792(Rather,)X
+X2052(it)X
+X2122(should)X
+X2361(be)X
+X2463(used)X
+X2636(to)X
+X2724(set)X
+X2839(the)X
+X2963(terminal)X
+X3256(type)X
+X3420(and)X
+X3562(run)X
+X3695(a)X
+X3757(series)X
+X3965(of)X
+X576 4336(external)N
+X855(commands)X
+X1222(\()X
+X9 f
+X1249(fortune)X
+X1 f
+X(,)S
+X9 f
+X1653(msgs)X
+X1 f
+X(,)S
+X1885(etc\).)X
+X3 f
+X576 4528(Shell)N
+X764(Functions)X
+X1 f
+X576 4652(zsh)N
+X703(also)X
+X852(allows)X
+X1081(you)X
+X1221(to)X
+X1303(create)X
+X1516(your)X
+X1683(own)X
+X1841(commands)X
+X2208(by)X
+X2308(de\256ning)X
+X2590(shell)X
+X2761(functions.)X
+X3119(For)X
+X3250(example:)X
+X9 f
+X576 4796(%)N
+X672(yp)X
+X816(\(\))X
+X960({)X
+X576 4892(>)N
+X960(ypmatch)X
+X1344($1)X
+X1488(passwd.byname)X
+X576 4988(>)N
+X672(})X
+X576 5084(%)N
+X672(yp)X
+X816(pfalstad)X
+X576 5180(pfalstad:*:3564:35:Paul)N
+X1728(John)X
+X1968(Falstad:/u/pfalstad:/usr/princeton/bin/zsh)X
+X1 f
+X576 5420(This)N
+X738(function)X
+X1025(looks)X
+X1218(up)X
+X1318(a)X
+X1374(user)X
+X1528(in)X
+X1610(the)X
+X1728(NIS)X
+X1877(password)X
+X2200(map.)X
+X2398(The)X
+X9 f
+X2571($1)X
+X1 f
+X2687(expands)X
+X2970(to)X
+X3052(the)X
+X3170(\256rst)X
+X3315(argument)X
+X3639(to)X
+X9 f
+X3750(yp)X
+X1 f
+X(.)S
+X3907(The)X
+X576 5516(function)N
+X863(could)X
+X1061(have)X
+X1233(been)X
+X1405(equivalently)X
+X1821(de\256ned)X
+X2077(in)X
+X2159(one)X
+X2295(of)X
+X2382(the)X
+X2500(following)X
+X2831(ways:)X
+X
+X5 p
+X%%Page: 5 5
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2237 240(-)N
+X2284(5)X
+X2344(-)X
+X9 f
+X576 432(%)N
+X672(function)X
+X1104(yp)X
+X1248({)X
+X576 528(>)N
+X960(ypmatch)X
+X1344($1)X
+X1488(passwd.byname)X
+X576 624(>)N
+X672(})X
+X576 720(%)N
+X672(function)X
+X1104(yp)X
+X1248(\(\))X
+X1392({)X
+X576 816(>)N
+X960(ypmatch)X
+X1344($1)X
+X1488(passwd.byname)X
+X576 912(>)N
+X672(})X
+X576 1008(%)N
+X672(function)X
+X1104(yp)X
+X1248(\(\))X
+X1392(ypmatch)X
+X1776($1)X
+X1920(passwd.byname)X
+X1 f
+X576 1248(Note)N
+X758(that)X
+X905(aliases)X
+X1146(are)X
+X1272(expanded)X
+X1607(when)X
+X1808(the)X
+X1933(function)X
+X2227(de\256nition)X
+X2560(is)X
+X2640(parsed,)X
+X2897(not)X
+X3026(when)X
+X3227(the)X
+X3352(function)X
+X3646(is)X
+X3726(executed.)X
+X576 1344(For)N
+X707(example:)X
+X9 f
+X576 1488(%)N
+X672(alias)X
+X960(ypmatch=echo)X
+X576 1584(%)N
+X672(yp)X
+X816(pfalstad)X
+X576 1680(pfalstad:*:3564:35:Paul)N
+X1728(John)X
+X1968(Falstad:/u/pfalstad:/usr/princeton/bin/zsh)X
+X1 f
+X576 1920(Since)N
+X786(the)X
+X916(alias)X
+X1095(was)X
+X1252(de\256ned)X
+X1520(after)X
+X1700(the)X
+X1830(function)X
+X2130(was)X
+X2288(parsed,)X
+X2551(it)X
+X2628(has)X
+X2768(no)X
+X2881(effect)X
+X3098(on)X
+X3211(the)X
+X3342(function's)X
+X3700(execution.)X
+X576 2016(However,)N
+X911(if)X
+X980(we)X
+X1094(de\256ne)X
+X1310(the)X
+X1428(function)X
+X1715(again)X
+X1909(with)X
+X2071(the)X
+X2189(alias)X
+X2356(in)X
+X2438(place:)X
+X9 f
+X576 2160(%)N
+X672(function)X
+X1104(yp)X
+X1248(\(\))X
+X1392({)X
+X1488(ypmatch)X
+X1872($1)X
+X2016(passwd.byname)X
+X2688(})X
+X576 2256(%)N
+X672(yp)X
+X816(pfalstad)X
+X576 2352(pfalstad)N
+X1008(passwd.byname)X
+X1 f
+X576 2592(it)N
+X650(is)X
+X733(parsed)X
+X973(with)X
+X1145(the)X
+X1273(new)X
+X1438(alias)X
+X1616(de\256nition)X
+X1953(in)X
+X2046(place.)X
+X2287(Therefore,)X
+X2656(in)X
+X2749(general)X
+X3017(you)X
+X3168(must)X
+X3354(de\256ne)X
+X3581(aliases)X
+X3826(before)X
+X576 2688(functions.)N
+X576 2812(We)N
+X708(can)X
+X840(make)X
+X1034(the)X
+X1152(function)X
+X1439(take)X
+X1593(multiple)X
+X1879(arguments:)X
+X9 f
+X576 2956(%)N
+X672(unalias)X
+X1056(ypmatch)X
+X576 3052(%)N
+X672(yp)X
+X816(\(\))X
+X960({)X
+X576 3148(>)N
+X960(for)X
+X1152(i)X
+X576 3244(>)N
+X960(do)X
+X1104(ypmatch)X
+X1488($i)X
+X1632(passwd.byname)X
+X576 3340(>)N
+X960(done)X
+X576 3436(>)N
+X672(})X
+X576 3532(%)N
+X672(yp)X
+X816(pfalstad)X
+X1248(subbarao)X
+X1680(sukthnkr)X
+X576 3628(pfalstad:*:3564:35:Paul)N
+X1728(John)X
+X1968(Falstad:/u/pfalstad:/usr/princeton/bin/zsh)X
+X576 3724(subbarao:*:3338:35:Kartik)N
+X1824(Subbarao:/u/subbarao:/usr/princeton/bin/zsh)X
+X576 3820(sukthnkr:*:1267:35:Rahul)N
+X1776(Sukthankar:/u/sukthnkr:/usr/princeton/bin/tcsh)X
+X1 f
+X576 4060(The)N
+X9 f
+X751(for)X
+X945(i)X
+X1 f
+X1015(loops)X
+X1210(through)X
+X1481(each)X
+X1651(of)X
+X1740(the)X
+X1860(function's)X
+X2207(arguments,)X
+X2583(setting)X
+X9 f
+X2846(i)X
+X1 f
+X2917(equal)X
+X3114(to)X
+X3199(each)X
+X3370(of)X
+X3460(them)X
+X3643(in)X
+X3728(turn.)X
+X3920(We)X
+X576 4156(can)N
+X708(also)X
+X857(make)X
+X1051(the)X
+X1169(function)X
+X1456(do)X
+X1556(something)X
+X1909(sensible)X
+X2187(if)X
+X2256(no)X
+X2356(arguments)X
+X2710(are)X
+X2829(given:)X
+X9 f
+X576 4300(%)N
+X672(yp)X
+X816(\(\))X
+X960({)X
+X576 4396(>)N
+X960(if)X
+X1104(\(\()X
+X1248($#)X
+X1392(==)X
+X1536(0)X
+X1632(\)\))X
+X576 4492(>)N
+X960(then)X
+X1200(echo)X
+X1440(usage:)X
+X1776(yp)X
+X1920(name)X
+X2160(...;)X
+X2400(fi)X
+X576 4588(>)N
+X960(for)X
+X1152(i;)X
+X1296(do)X
+X1440(ypmatch)X
+X1824($i)X
+X1968(passwd.byname;)X
+X2688(done)X
+X576 4684(>)N
+X672(})X
+X576 4780(%)N
+X672(yp)X
+X576 4876(usage:)N
+X912(yp)X
+X1056(name)X
+X1296(...)X
+X576 4972(%)N
+X672(yp)X
+X816(pfalstad)X
+X1248(sukthnkr)X
+X576 5068(pfalstad:*:3564:35:Paul)N
+X1728(John)X
+X1968(Falstad:/u/pfalstad:/usr/princeton/bin/zsh)X
+X576 5164(sukthnkr:*:1267:35:Rahul)N
+X1776(Sukthankar:/u/sukthnkr:/usr/princeton/bin/tcsh)X
+X576 5404($#)N
+X1 f
+X698(is)X
+X777(the)X
+X901(number)X
+X1172(of)X
+X1265(arguments)X
+X1625(supplied)X
+X1922(to)X
+X2010(the)X
+X2134(function.)X
+X2467(If)X
+X2547(it)X
+X2617(is)X
+X2696(equal)X
+X2896(to)X
+X2984(zero,)X
+X3169(we)X
+X3289(print)X
+X3466(a)X
+X3528(usage)X
+X3738(message;)X
+X576 5500(otherwise,)N
+X928(we)X
+X1042(loop)X
+X1204(through)X
+X1473(the)X
+X1591(arguments,)X
+X1965(and)X
+X9 f
+X2129(ypmatch)X
+X1 f
+X2485(all)X
+X2585(of)X
+X2672(them.)X
+X576 5624(Here's)N
+X811(a)X
+X867(function)X
+X1154(that)X
+X1294(selects)X
+X1528(a)X
+X1584(random)X
+X1849(line)X
+X1989(from)X
+X2165(a)X
+X2221(\256le:)X
+X
+X6 p
+X%%Page: 6 6
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2237 240(-)N
+X2284(6)X
+X2344(-)X
+X9 f
+X576 432(%)N
+X672(randline)X
+X1104(\(\))X
+X1248({)X
+X576 528(>)N
+X960(integer)X
+X1344(z=$\(wc)X
+X1680(-l)X
+X1824(<$1\))X
+X576 624(>)N
+X960(sed)X
+X1152(-n)X
+X1296($[RANDOM)X
+X1728(%)X
+X1824(z)X
+X1920(+)X
+X2016(1]p)X
+X2208($1)X
+X576 720(>)N
+X672(})X
+X576 816(%)N
+X672(randline)X
+X1104(/etc/motd)X
+X576 912(PHOENIX)N
+X960(WILL)X
+X1200(BE)X
+X1344(DOWN)X
+X1584(briefly)X
+X1968(Friday)X
+X2304(morning,)X
+X2736(5/24/91)X
+X3120(from)X
+X3360(8)X
+X3456(AM)X
+X3600(to)X
+X576 1008(%)N
+X672(randline)X
+X1104(/etc/motd)X
+X576 1104(SunOS)N
+X864(Release)X
+X1248(4.1.1)X
+X1536(\(PHOENIX\))X
+X2016(#19:)X
+X2256(Tue)X
+X2448(May)X
+X2640(14)X
+X2784(19:03:15)X
+X3216(EDT)X
+X3408(1991)X
+X576 1200(%)N
+X672(randline)X
+X1104(/etc/motd)X
+X576 1296(|)N
+X672(Please)X
+X1008(use)X
+X1200(the)X
+X1392("msgs")X
+X1728(command)X
+X2112(to)X
+X2256(read)X
+X2496(announcements.)X
+X3264(Refer)X
+X3552(to)X
+X3696(the)X
+X3984(|)X
+X576 1392(%)N
+X672(echo)X
+X912($z)X
+X576 1584(%)N
+X576 1824(randline)N
+X1 f
+X985(has)X
+X1117(a)X
+X1178(local)X
+X1359(variable,)X
+X9 f
+X1691(z)X
+X1 f
+X(,)S
+X1784(that)X
+X1929(holds)X
+X2127(the)X
+X2250(number)X
+X2520(of)X
+X2612(lines)X
+X2788(in)X
+X2875(the)X
+X2998(\256le.)X
+X9 f
+X3193($[RANDOM)X
+X3630(%)X
+X3732(z)X
+X3834(+)X
+X3936(1])X
+X1 f
+X576 1920(expands)N
+X860(to)X
+X943(a)X
+X1000(random)X
+X1266(number)X
+X1532(between)X
+X1821(1)X
+X1882(and)X
+X9 f
+X2046(z)X
+X1 f
+X(.)S
+X2154(An)X
+X2272(expression)X
+X2635(of)X
+X2722(the)X
+X2840(form)X
+X9 f
+X3044($[)X
+X1 f
+X(...)S
+X9 f
+X(])S
+X1 f
+X3288(expands)X
+X3571(to)X
+X3653(the)X
+X3771(value)X
+X3965(of)X
+X576 2016(the)N
+X699(arithmetic)X
+X1049(expression)X
+X1417(within)X
+X1646(the)X
+X1770(brackets,)X
+X2084(and)X
+X2226(the)X
+X3 f
+X2350(RANDOM)X
+X1 f
+X2746(variable)X
+X3031(returns)X
+X3280(a)X
+X3342(random)X
+X3613(number)X
+X3884(each)X
+X576 2112(time)N
+X739(it)X
+X803(is)X
+X876 0.3625(referenced.)AX
+X9 f
+X1305(%)X
+X1 f
+X1373(is)X
+X1446(the)X
+X1564(modulus)X
+X1859(operator,)X
+X2167(as)X
+X2254(in)X
+X2336(C.)X
+X2449(Therefore,)X
+X9 f
+X2835(sed)X
+X3027(-n)X
+X3171($[RANDOM%z+1]p)X
+X1 f
+X3863(picks)X
+X576 2208(a)N
+X632(random)X
+X897(line)X
+X1037(from)X
+X1213(its)X
+X1308(input,)X
+X1512(from)X
+X1688(1)X
+X1748(to)X
+X9 f
+X1858(z)X
+X1 f
+X(.)S
+X576 2332(Function)N
+X880(de\256nitions)X
+X1237(can)X
+X1369(be)X
+X1465(viewed)X
+X1717(with)X
+X1879(the)X
+X9 f
+X2025(functions)X
+X1 f
+X2477(builtin:)X
+X9 f
+X576 2476(%)N
+X672(functions)X
+X1152(randline)X
+X576 2572(randline)N
+X1008(\(\))X
+X1152({)X
+X960 2668(integer)N
+X1344(z=$\(wc)X
+X1680(-l)X
+X1824(<$1\))X
+X960 2764(sed)N
+X1152(-n)X
+X1296($[RANDOM)X
+X1728(%)X
+X1824(z)X
+X1920(+)X
+X2016(1]p)X
+X2208($1)X
+X576 2956(})N
+X576 3052(%)N
+X672(functions)X
+X576 3148(yp)N
+X720(\(\))X
+X864({)X
+X960 3244(if)N
+X1104(let)X
+X1296($#)X
+X1440(==)X
+X1584(0)X
+X960 3436(then)N
+X1344 3532(echo)N
+X1584(usage:)X
+X1920(yp)X
+X2064(name)X
+X2304(...)X
+X960 3724(fi)N
+X960 3820(for)N
+X1152(i)X
+X960 3916(do)N
+X1344 4012(ypmatch)N
+X1728($i)X
+X1872(passwd.byname)X
+X1344 4204(done)N
+X576 4396(})N
+X576 4492(randline)N
+X1008(\(\))X
+X1152({)X
+X960 4588(integer)N
+X1344(z=$\(wc)X
+X1680(-l)X
+X1824(<$1\))X
+X960 4684(sed)N
+X1152(-n)X
+X1296($[RANDOM)X
+X1728(%)X
+X1824(z)X
+X1920(+)X
+X2016(1]p)X
+X2208($1)X
+X576 4876(})N
+X1 f
+X576 5116(Here's)N
+X811(another)X
+X1072(one:)X
+X9 f
+X576 5260(%)N
+X672(cx)X
+X816(\(\))X
+X960({)X
+X1056(chmod)X
+X1344(+x)X
+X1488($*)X
+X1632(})X
+X576 5356(%)N
+X672(ls)X
+X816(-l)X
+X960(foo)X
+X1152(bar)X
+X576 5452(-rw-r--r--)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(29)X
+X2112(May)X
+X2304(24)X
+X2448(04:38)X
+X2736(bar)X
+X576 5548(-rw-r--r--)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(29)X
+X2112(May)X
+X2304(24)X
+X2448(04:38)X
+X2736(foo)X
+X576 5644(%)N
+X672(cx)X
+X816(foo)X
+X1008(bar)X
+X576 5740(%)N
+X672(ls)X
+X816(-l)X
+X960(foo)X
+X1152(bar)X
+X576 5836(-rwxr-xr-x)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(29)X
+X2112(May)X
+X2304(24)X
+X2448(04:38)X
+X2736(bar)X
+X576 5932(-rwxr-xr-x)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(29)X
+X2112(May)X
+X2304(24)X
+X2448(04:38)X
+X2736(foo)X
+X
+X7 p
+X%%Page: 7 7
+X10 s 10 xH 0 xS 9 f
+X1 f
+X2237 240(-)N
+X2284(7)X
+X2344(-)X
+X576 384(Note)N
+X752(that)X
+X892(this)X
+X1027(could)X
+X1225(also)X
+X1374(have)X
+X1546(been)X
+X1718(implemented)X
+X2156(as)X
+X2243(an)X
+X2339(alias:)X
+X9 f
+X576 528(%)N
+X672(chmod)X
+X960(644)X
+X1152(foo)X
+X1344(bar)X
+X576 624(%)N
+X672(alias)X
+X960(cx='chmod)X
+X1440(+x')X
+X576 720(%)N
+X672(cx)X
+X816(foo)X
+X1008(bar)X
+X576 816(%)N
+X672(ls)X
+X816(-l)X
+X960(foo)X
+X1152(bar)X
+X576 912(-rwxr-xr-x)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(29)X
+X2112(May)X
+X2304(24)X
+X2448(04:38)X
+X2736(bar)X
+X576 1008(-rwxr-xr-x)N
+X1152(1)X
+X1248(pfalstad)X
+X1968(29)X
+X2112(May)X
+X2304(24)X
+X2448(04:38)X
+X2736(foo)X
+X1 f
+X576 1276(Instead)N
+X833(of)X
+X925(de\256ning)X
+X1212(a)X
+X1273(lot)X
+X1382(of)X
+X1474(functions)X
+X1797(in)X
+X1884(your)X
+X9 f
+X2084(.zshrc)X
+X1 f
+X(,)S
+X2417(all)X
+X2522(of)X
+X2614(which)X
+X2835(you)X
+X2980(may)X
+X3143(not)X
+X3270(use,)X
+X3422(it)X
+X3491(is)X
+X3570(often)X
+X3761(better)X
+X3970(to)X
+X576 1372(use)N
+X717(the)X
+X9 f
+X877(autoload)X
+X1 f
+X1295(builtin.)X
+X1577(The)X
+X1736(idea)X
+X1904(is,)X
+X2011(you)X
+X2165(create)X
+X2392(a)X
+X2461(directory)X
+X2784(where)X
+SHAR_EOF
+true || echo 'restore of zsh2.1/doc/intro.ps failed'
+fi
+echo 'End of zsh2.1.0 part 16'
+echo 'File zsh2.1/doc/intro.ps is continued in part 17'
+echo 17 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

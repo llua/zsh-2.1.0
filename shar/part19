@@ -1,0 +1,1112 @@
+Path: funic!fuug!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i019:  zsh2.1 - The Z shell, Part19/19
+Message-ID: <1991Oct26.020843.20674@sparky.imd.sterling.com>
+Date: 26 Oct 91 02:08:43 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 1098
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 507fa3041a27fd3ed499ada229d3ff9a
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 19
+Archive-name: zsh2.1/part19
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.19 (part 19 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/doc/intro.ps continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 19; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/doc/intro.ps'
+else
+echo 'x - continuing file zsh2.1/doc/intro.ps'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/doc/intro.ps' &&
+X1824(eps)X
+X2016(djthongs)X
+X2448(jcorr)X
+X2736(bdavis)X
+X3072(\))X
+X576 528(%)N
+X672(log)X
+X576 624(jcorr)N
+X864(has)X
+X1056(logged)X
+X1392(on)X
+X1536(tf)X
+X1680(from)X
+X1920(128.112.176.3:0.)X
+X576 720(jcorr)N
+X864(has)X
+X1056(logged)X
+X1392(on)X
+X1536(r0)X
+X1680(from)X
+X1920(128.112.176.3:0.)X
+X576 816(gettes)N
+X912(has)X
+X1104(logged)X
+X1440(on)X
+X1584(p4)X
+X1728(from)X
+X1968(yo:0.0.)X
+X576 912(djthongs)N
+X1008(has)X
+X1200(logged)X
+X1536(on)X
+X1680(pe)X
+X1824(from)X
+X2064(grumpy:0.0.)X
+X576 1008(djthongs)N
+X1008(has)X
+X1200(logged)X
+X1536(on)X
+X1680(q2)X
+X1824(from)X
+X2064(phoenix.)X
+X576 1104(bdavis)N
+X912(has)X
+X1104(logged)X
+X1440(on)X
+X1584(qd)X
+X1728(from)X
+X1968(BRUNO.)X
+X576 1200(eps)N
+X768(has)X
+X960(logged)X
+X1296(on)X
+X1440(p3)X
+X1584(from)X
+X1824(csx30:0.0.)X
+X576 1296(pfalstad)N
+X1008(has)X
+X1200(logged)X
+X1536(on)X
+X1680(p0)X
+X1824(from)X
+X2064(mickey.)X
+X576 1392(pfalstad)N
+X1008(has)X
+X1200(logged)X
+X1536(on)X
+X1680(p5)X
+X1824(from)X
+X2064(mickey.)X
+X576 1488(%)N
+X672(WATCHFMT='%n)X
+X1296(on)X
+X1440(tty%l)X
+X1728(from)X
+X1968(%M')X
+X576 1584(%)N
+X672(log)X
+X576 1680(jcorr)N
+X864(on)X
+X1008(ttytf)X
+X1296(from)X
+X1536(128.112.176.3:0.)X
+X576 1776(jcorr)N
+X864(on)X
+X1008(ttyr0)X
+X1296(from)X
+X1536(128.112.176.3:0.)X
+X576 1872(gettes)N
+X912(on)X
+X1056(ttyp4)X
+X1344(from)X
+X1584(yo:0.0)X
+X576 1968(djthongs)N
+X1008(on)X
+X1152(ttype)X
+X1440(from)X
+X1680(grumpy:0.0)X
+X576 2064(djthongs)N
+X1008(on)X
+X1152(ttyq2)X
+X1440(from)X
+X1680(phoenix.Princeto)X
+X576 2160(bdavis)N
+X912(on)X
+X1056(ttyqd)X
+X1344(from)X
+X1584(BRUNO.pppl.gov)X
+X576 2256(eps)N
+X768(on)X
+X912(ttyp3)X
+X1200(from)X
+X1440(csx30:0.0)X
+X576 2352(pfalstad)N
+X1008(on)X
+X1152(ttyp0)X
+X1440(from)X
+X1680(mickey.Princeton)X
+X576 2448(pfalstad)N
+X1008(on)X
+X1152(ttyp5)X
+X1440(from)X
+X1680(mickey.Princeton)X
+X576 2544(%)N
+X672(WATCHFMT='%n)X
+X1296(fm)X
+X1440(%m')X
+X576 2640(%)N
+X672(log)X
+X576 2736(jcorr)N
+X864(fm)X
+X1008(128.112.176.3:0)X
+X576 2832(jcorr)N
+X864(fm)X
+X1008(128.112.176.3:0)X
+X576 2928(gettes)N
+X912(fm)X
+X1056(yo:0.0)X
+X576 3024(djthongs)N
+X1008(fm)X
+X1152(grumpy:0.0)X
+X576 3120(djthongs)N
+X1008(fm)X
+X1152(phoenix)X
+X576 3216(bdavis)N
+X912(fm)X
+X1056(BRUNO)X
+X576 3312(eps)N
+X768(fm)X
+X912(csx30:0.0)X
+X576 3408(pfalstad)N
+X1008(fm)X
+X1152(mickey)X
+X576 3504(pfalstad)N
+X1008(fm)X
+X1152(mickey)X
+X576 3600(%)N
+X672(WATCHFMT='%n)X
+X1296(%a)X
+X1440(at)X
+X1584(%t)X
+X1728(%w.')X
+X576 3696(%)N
+X672(log)X
+X576 3792(jcorr)N
+X864(logged)X
+X1200(on)X
+X1344(at)X
+X1488(3:15pm)X
+X1824(Mon)X
+X2016(20.)X
+X576 3888(jcorr)N
+X864(logged)X
+X1200(on)X
+X1344(at)X
+X1488(3:16pm)X
+X1824(Wed)X
+X2016(22.)X
+X576 3984(gettes)N
+X912(logged)X
+X1248(on)X
+X1392(at)X
+X1536(6:54pm)X
+X1872(Wed)X
+X2064(22.)X
+X576 4080(djthongs)N
+X1008(logged)X
+X1344(on)X
+X1488(at)X
+X1632(7:19am)X
+X1968(Thu)X
+X2160(23.)X
+X576 4176(djthongs)N
+X1008(logged)X
+X1344(on)X
+X1488(at)X
+X1632(7:20am)X
+X1968(Thu)X
+X2160(23.)X
+X576 4272(bdavis)N
+X912(logged)X
+X1248(on)X
+X1392(at)X
+X1536(12:40pm)X
+X1920(Thu)X
+X2112(23.)X
+X576 4368(eps)N
+X768(logged)X
+X1104(on)X
+X1248(at)X
+X1392(4:19pm)X
+X1728(Thu)X
+X1920(23.)X
+X576 4464(pfalstad)N
+X1008(logged)X
+X1344(on)X
+X1488(at)X
+X1632(3:39am)X
+X1968(Fri)X
+X2160(24.)X
+X576 4560(pfalstad)N
+X1008(logged)X
+X1344(on)X
+X1488(at)X
+X1632(3:42am)X
+X1968(Fri)X
+X2160(24.)X
+X1 f
+X576 4800(If)N
+X656(you)X
+X802(have)X
+X980(a)X
+X9 f
+X1070(.friends)X
+X1 f
+X1480(\256le)X
+X1608(in)X
+X1696(your)X
+X1869(home)X
+X2074(directory,)X
+X2411(a)X
+X2474(convenient)X
+X2853(way)X
+X3014(to)X
+X3103(make)X
+X3304(zsh)X
+X3438(watch)X
+X3657(for)X
+X3778(all)X
+X3885(your)X
+X576 4896(friends)N
+X819(is)X
+X892(to)X
+X974(do)X
+X1074(this:)X
+X9 f
+X576 5040(%)N
+X672(watch=\()X
+X1056($\(<)X
+X1248(\304/.friends\))X
+X1824(\))X
+X576 5136(%)N
+X672(echo)X
+X912($watch)X
+X576 5232(subbarao)N
+X1008(maruchck)X
+X1440(root)X
+X1680(sukthnkr)X
+X1 f
+X2112(...)X
+X576 5472(If)N
+X650(watch)X
+X862(is)X
+X935(set)X
+X1044(to)X
+X9 f
+X1154(all)X
+X1 f
+X(,)S
+X1338(then)X
+X1496(all)X
+X1596(users)X
+X1781(logging)X
+X2045(in)X
+X2127(or)X
+X2214(out)X
+X2336(will)X
+X2480(be)X
+X2576(reported.)X
+X3 f
+X576 5664(Options)N
+X1 f
+X576 5788(Some)N
+X778(options)X
+X1033(have)X
+X1205(already)X
+X1462(been)X
+X1634(mentioned;)X
+X2014(here)X
+X2173(are)X
+X2292(a)X
+X2348(few)X
+X2489(more:)X
+X
+X32 p
+X%%Page: 32 32
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2217 240(-)N
+X2264(32)X
+X2364(-)X
+X9 f
+X576 432(%)N
+X672(cd)X
+X816(/)X
+X576 528(%)N
+X672(setopt)X
+X1008(autocd)X
+X576 624(%)N
+X672(bin)X
+X576 720(%)N
+X672(pwd)X
+X576 816(/bin)N
+X576 912(%)N
+X672(../etc)X
+X576 1008(%)N
+X672(pwd)X
+X576 1104(/etc)N
+X1 f
+X576 1344(Using)N
+X794(the)X
+X2 f
+X919(AUTOCD)X
+X1 f
+X1266(option,)X
+X1517(you)X
+X1664(can)X
+X1803(simply)X
+X2047(type)X
+X2212(the)X
+X2337(name)X
+X2538(of)X
+X2632(a)X
+X2695(directory,)X
+X3032(and)X
+X3176(it)X
+X3248(will)X
+X3400(become)X
+X3678(the)X
+X3804(current)X
+X576 1440(directory.)N
+X9 f
+X576 1584(%)N
+X672(setopt)X
+X1008(cdablevars)X
+X576 1680(%)N
+X672(foo=/tmp)X
+X576 1776(%)N
+X672(cd)X
+X816(foo)X
+X576 1872(/tmp)N
+X1 f
+X576 2112(With)N
+X2 f
+X758(CDABLEVARS)X
+X1 f
+X1247(,)X
+X1289(if)X
+X1360(the)X
+X1480(argument)X
+X1805(to)X
+X9 f
+X1917(cd)X
+X1 f
+X2035(is)X
+X2110(the)X
+X2230(name)X
+X2426(of)X
+X2515(a)X
+X2573(parameter)X
+X2917(whose)X
+X3144(value)X
+X3340(is)X
+X3415(a)X
+X3473(valid)X
+X3655(directory,)X
+X3988(it)X
+X576 2208(will)N
+X720(become)X
+X990(the)X
+X1108(current)X
+X1356(directory.)X
+X2 f
+X576 2332(CORRECT)N
+X1 f
+X963(turns)X
+X1155(on)X
+X1267(spelling)X
+X1552(correction)X
+X1910(for)X
+X2036(commands,)X
+X2435(and)X
+X2583(the)X
+X2 f
+X2713(CORRECTALL)X
+X1 f
+X3237(option)X
+X3473(turns)X
+X3666(on)X
+X3779(spelling)X
+X576 2428(correction)N
+X922(for)X
+X1036(all)X
+X1136(arguments.)X
+X9 f
+X576 2572(%)N
+X672(setopt)X
+X1008(correct)X
+X576 2668(%)N
+X672(sl)X
+X576 2764(zsh:)N
+X816(correct)X
+X1200(`sl')X
+X1440(to)X
+X1584(`ls')X
+X1824([nyae]?)X
+X2208(y)X
+X576 2860(%)N
+X672(setopt)X
+X1008(correctall)X
+X576 2956(%)N
+X672(ls)X
+X816(x.v11r4)X
+X576 3052(zsh:)N
+X816(correct)X
+X1200(`x.v11r4')X
+X1680(to)X
+X1824(`X.V11R4')X
+X2304([nyae]?)X
+X2688(n)X
+X576 3148(/usr/princton/src/x.v11r4)N
+X1824(not)X
+X2016(found)X
+X576 3244(%)N
+X672(ls)X
+X816(/etc/paswd)X
+X576 3340(zsh:)N
+X816(correct)X
+X1200(to)X
+X1344(`/etc/paswd')X
+X1968(to)X
+X2112(`/etc/passwd')X
+X2784([nyae]?)X
+X3168(y)X
+X576 3436(/etc/passwd)N
+X1 f
+X576 3676(If)N
+X652(you)X
+X794(press)X
+X9 f
+X1009(y)X
+X1 f
+X1079(when)X
+X1275(the)X
+X1395(shell)X
+X1568(asks)X
+X1728(you)X
+X1870(if)X
+X1941(you)X
+X2083(want)X
+X2261(to)X
+X2345(correct)X
+X2591(a)X
+X2649(word,)X
+X2856(it)X
+X2922(will)X
+X3068(be)X
+X3166(corrected.)X
+X3528(If)X
+X3605(you)X
+X3748(press)X
+X9 f
+X3964(n)X
+X1 f
+X(,)S
+X576 3772(it)N
+X644(will)X
+X792(be)X
+X892(left)X
+X1023(alone.)X
+X1261(Pressing)X
+X9 f
+X1584(a)X
+X1 f
+X1656(aborts)X
+X1876(the)X
+X1998(command,)X
+X2358(and)X
+X2497(pressing)X
+X9 f
+X2815(e)X
+X1 f
+X2886(brings)X
+X3109(the)X
+X3230(line)X
+X3373(up)X
+X3476(for)X
+X3593(editing)X
+X3838(again,)X
+X576 3868(in)N
+X658(case)X
+X817(you)X
+X957(agree)X
+X1152(the)X
+X1270(word)X
+X1455(is)X
+X1528(spelled)X
+X1775(wrong)X
+X2000(but)X
+X2122(you)X
+X2262(don't)X
+X2451(like)X
+X2591(the)X
+X2709(correction.)X
+X576 3992(Normally,)N
+X923(a)X
+X979(quoted)X
+X1217(expression)X
+X1580(may)X
+X1738(contain)X
+X1994(a)X
+X2050(newline:)X
+X9 f
+X576 4136(%)N
+X672(echo)X
+X912(')X
+X576 4232(>)N
+X672(foo)X
+X576 4328(>)N
+X672(')X
+X576 4520(foo)N
+X576 4712(%)N
+X1 f
+X576 4952(With)N
+X2 f
+X756(CSHJUNKIEQUOTES)X
+X1 f
+X1510(set,)X
+X1639(this)X
+X1774(is)X
+X1847(illegal,)X
+X2087(as)X
+X2174(it)X
+X2238(is)X
+X2311(in)X
+X2393(csh.)X
+X9 f
+X576 5096(%)N
+X672(setopt)X
+X1008(cshjunkiequotes)X
+X576 5192(%)N
+X672(ls)X
+X816('foo)X
+X576 5288(zsh:)N
+X816(unmatched)X
+X1296(')X
+X2 f
+X576 5528(GLOBDOTS)N
+X1 f
+X1005(lets)X
+X1136(\256les)X
+X1289(beginning)X
+X1629(with)X
+X1791(a)X
+X9 f
+X1875(.)X
+X1 f
+X1943(be)X
+X2039(matched)X
+X2331(without)X
+X2595(explicitly)X
+X2917(specifying)X
+X3271(the)X
+X3389(dot.)X
+X
+X33 p
+X%%Page: 33 33
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2217 240(-)N
+X2264(33)X
+X2364(-)X
+X9 f
+X576 432(%)N
+X672(ls)X
+X816(-d)X
+X960(*x*)X
+X576 528(Mailboxes)N
+X576 624(%)N
+X672(setopt)X
+X1008(globdots)X
+X576 720(%)N
+X672(ls)X
+X816(-d)X
+X960(*x*)X
+X576 816(.exrc)N
+X1248(.pnewsexpert)X
+X1920(.xserverrc)X
+X576 912(.mushexpert)N
+X1248(.xinitrc)X
+X1920(Mailboxes)X
+X2 f
+X576 1152(HISTIGNOREDUPS)N
+X1 f
+X1266(prevents)X
+X1560(the)X
+X1680(current)X
+X1930(line)X
+X2072(from)X
+X2250(being)X
+X2450(saved)X
+X2655(in)X
+X2739(the)X
+X2860(history)X
+X3105(if)X
+X3177(it)X
+X3244(is)X
+X3320(the)X
+X3441(same)X
+X3629(as)X
+X3719(the)X
+X3840(previ-)X
+X576 1248(ous)N
+X707(one;)X
+X2 f
+X865(HISTIGNORESPACE)X
+X1 f
+X1588(prevents)X
+X1880(the)X
+X1998(current)X
+X2246(line)X
+X2386(from)X
+X2562(being)X
+X2760(saved)X
+X2963(if)X
+X3032(it)X
+X3096(begins)X
+X3325(with)X
+X3487(a)X
+X3543(space.)X
+X9 f
+X576 1392(%)N
+X672(PROMPT='%h>)X
+X1248(')X
+X576 1488(39>)N
+X768(setopt)X
+X1104(histignoredups)X
+X576 1584(40>)N
+X768(echo)X
+X1008(foo)X
+X576 1680(foo)N
+X576 1776(41>)N
+X768(echo)X
+X1008(foo)X
+X576 1872(foo)N
+X576 1968(41>)N
+X768(echo)X
+X1008(foo)X
+X576 2064(foo)N
+X576 2160(41>)N
+X768(echo)X
+X1008(bar)X
+X576 2256(bar)N
+X576 2352(42>)N
+X768(setopt)X
+X1104(histignorespace)X
+X576 2448(43>)N
+X816(echo)X
+X1056(foo)X
+X576 2544(foo)N
+X576 2640(43>)N
+X816(echo)X
+X1056(fubar)X
+X576 2736(fubar)N
+X576 2832(43>)N
+X816(echo)X
+X1056(fubar)X
+X576 2928(fubar)N
+X2 f
+X576 3168(IGNOREBRACES)N
+X1 f
+X1179(turns)X
+X1359(off)X
+X1473(csh-style)X
+X1778(brace)X
+X1973(expansion.)X
+X9 f
+X576 3312(%)N
+X672(echo)X
+X912(x{y{z,a},{b,c}d}e)X
+X576 3408(xyze)N
+X816(xyae)X
+X1056(xbde)X
+X1296(xcde)X
+X576 3504(%)N
+X672(setopt)X
+X1008(ignorebraces)X
+X576 3600(%)N
+X672(echo)X
+X912(x{y{z,a},{b,c}d}e)X
+X576 3696(x{y{z,a},{b,c}d}e)N
+X2 f
+X576 3936(IGNOREEOF)N
+X1 f
+X1046(forces)X
+X1263(the)X
+X1381(user)X
+X1535(to)X
+X1617(type)X
+X9 f
+X1803(exit)X
+X1 f
+X2015(or)X
+X9 f
+X2130(logout)X
+X1 f
+X(,)S
+X2458(instead)X
+X2705(of)X
+X2792(just)X
+X2927(pressing)X
+X2 f
+X3214(\303D)X
+X1 f
+X3299(.)X
+X9 f
+X576 4080(%)N
+X672(setopt)X
+X1008(ignoreeof)X
+X576 4176(%)N
+X672(\303D)X
+X576 4272(zsh:)N
+X816(use)X
+X1008('exit')X
+X1344(to)X
+X1488(exit.)X
+X2 f
+X576 4512(INTERACTIVECOMMENTS)N
+X1 f
+X1520(turns)X
+X1700(on)X
+X1800(interactive)X
+X2159(comments;)X
+X2530(comments)X
+X2879(begin)X
+X3077(with)X
+X3239(a)X
+X9 f
+X3323(#)X
+X1 f
+X(.)S
+X9 f
+X576 4656(%)N
+X672(setopt)X
+X1008(interactivecomments)X
+X576 4752(%)N
+X672(date)X
+X912(#)X
+X1008(this)X
+X1248(is)X
+X1392(a)X
+X1488(comment)X
+X576 4848(Fri)N
+X768(May)X
+X960(24)X
+X1104(06:54:14)X
+X1536(EDT)X
+X1728(1991)X
+X2 f
+X576 5088(NOCLOBBER)N
+X1 f
+X1058(prevents)X
+X1350(you)X
+X1490(from)X
+X1666(accidentally)X
+X2074(overwriting)X
+X2468(an)X
+X2564(existing)X
+X2837(\256le.)X
+X9 f
+X576 5232(%)N
+X672(setopt)X
+X1008(noclobber)X
+X576 5328(%)N
+X672(cat)X
+X864(/dev/null)X
+X1344(>\304/.zshrc)X
+X576 5424(zsh:)N
+X816(file)X
+X1056(exists:)X
+X1440(/u/pfalstad/.zshrc)X
+X1 f
+X576 5664(If)N
+X650(you)X
+X790(really)X
+X993(do)X
+X1093(want)X
+X1269(to)X
+X1351(clobber)X
+X1612(a)X
+X1668(\256le,)X
+X1810(you)X
+X1951(can)X
+X2084(use)X
+X2212(the)X
+X9 f
+X2359(>!)X
+X1 f
+X2476(operator.)X
+X2805(To)X
+X2915(make)X
+X3110(things)X
+X3326(easier)X
+X3535(in)X
+X3618(this)X
+X3754(case,)X
+X3934(the)X
+X9 f
+X576 5760(>)N
+X1 f
+X644(is)X
+X717(stored)X
+X933(in)X
+X1015(the)X
+X1133(history)X
+X1375(list)X
+X1492(as)X
+X1579(a)X
+X9 f
+X1663(>!)X
+X1 f
+X(:)S
+X
+X34 p
+X%%Page: 34 34
+X10 s 10 xH 0 xS 1 f
+X9 f
+X1 f
+X2217 240(-)N
+X2264(34)X
+X2364(-)X
+X9 f
+X576 432(%)N
+X672(cat)X
+X864(/dev/null)X
+X1344(>!)X
+X1488(\304/.zshrc)X
+X576 528(%)N
+X672(cat)X
+X864(/etc/motd)X
+X1344(>)X
+X1440(\304/.zshrc)X
+X576 624(zsh:)N
+X816(file)X
+X1056(exists:)X
+X1440(/u/pfalstad/.zshrc)X
+X576 720(%)N
+X672(!!)X
+X576 816(cat)N
+X768(/etc/motd)X
+X1248(>!)X
+X1392(\304/.zshrc)X
+X576 912(%)N
+X1 f
+X672(...)X
+X2 f
+X576 1152(RCQUOTES)N
+X1 f
+X1005(lets)X
+X1136(you)X
+X1276(use)X
+X1403(a)X
+X1459(more)X
+X1644(elegant)X
+X1896(method)X
+X2156(for)X
+X2270(including)X
+X2592(single)X
+X2803(quotes)X
+X3032(in)X
+X3114(a)X
+X3170(singly)X
+X3385(quoted)X
+X3623(string:)X
+X9 f
+X576 1296(%)N
+X672(echo)X
+X912('"don'\\''t)X
+X1440(do)X
+X1584(that."')X
+X576 1392("don't)N
+X912(do)X
+X1056(that.")X
+X576 1488(%)N
+X672(echo)X
+X912('"don''t)X
+X1344(do)X
+X1488(that."')X
+X576 1584("dont)N
+X864(do)X
+X1008(that.")X
+X576 1680(%)N
+X672(setopt)X
+X1008(rcquotes)X
+X576 1776(%)N
+X672(echo)X
+X912('"don''t)X
+X1344(do)X
+X1488(that."')X
+X576 1872("don't)N
+X912(do)X
+X1056(that.")X
+X1 f
+X576 2112(Finally,)N
+X2 f
+X846(SUNKEYBOARDHACK)X
+X1 f
+X1643(wins)X
+X1819(the)X
+X1942(award)X
+X2164(for)X
+X2283(the)X
+X2406(strangest)X
+X2716(option.)X
+X2985(If)X
+X3064(a)X
+X3125(line)X
+X3270(ends)X
+X3442(with)X
+X9 f
+X3637(`)X
+X1 f
+X(,)S
+X3730(and)X
+X3871(there)X
+X576 2208(are)N
+X698(an)X
+X797(odd)X
+X940(number)X
+X1208(of)X
+X1297(them)X
+X1479(on)X
+X1581(the)X
+X1701(line,)X
+X1863(the)X
+X1983(shell)X
+X2156(will)X
+X2302(ignore)X
+X2529(the)X
+X2649(trailing)X
+X9 f
+X2930(`)X
+X1 f
+X(.)S
+X3040(This)X
+X3204(is)X
+X3279(provided)X
+X3586(for)X
+X3702(keyboards)X
+X576 2304(whose)N
+X801(RETURN)X
+X1141(key)X
+X1277(is)X
+X1350(too)X
+X1472(small,)X
+X1685(and)X
+X1821(too)X
+X1943(close)X
+X2128(to)X
+X2210(the)X
+X9 f
+X2356(`)X
+X1 f
+X2424(key.)X
+X9 f
+X576 2448(%)N
+X672(setopt)X
+X1008(sunkeyboardhack)X
+X576 2544(%)N
+X672(date`)X
+X576 2640(Fri)N
+X768(May)X
+X960(24)X
+X1104(06:55:38)X
+X1536(EDT)X
+X1728(1991)X
+X3 f
+X576 2976(Closing)N
+X853(Comments)X
+X1 f
+X576 3100(I)N
+X627(would)X
+X851(be)X
+X951(happy)X
+X1171(to)X
+X1257(receive)X
+X1514(mail)X
+X1680(if)X
+X1753(anyone)X
+X2009(has)X
+X2140(any)X
+X2280(tricks)X
+X2483(or)X
+X2575(ideas)X
+X2765(to)X
+X2852(add)X
+X2993(to)X
+X3080(this)X
+X3220(document,)X
+X3581(or)X
+X3673(if)X
+X3747(there)X
+X3933(are)X
+X576 3196(some)N
+X768(points)X
+X986(that)X
+X1129(could)X
+X1330(be)X
+X1429(made)X
+X1626(clearer)X
+X1869(or)X
+X1959(covered)X
+X2236(more)X
+X2423(thoroughly.)X
+X2836(Please)X
+X3063(notify)X
+X3276(me)X
+X3396(of)X
+X3485(any)X
+X3623(errors)X
+X3833(in)X
+X3917(this)X
+X576 3292(document.)N
+X
+X34 p
+X%%Trailer
+Xxt
+X
+Xxs
+SHAR_EOF
+echo 'File zsh2.1/doc/intro.ps is complete' &&
+chmod 0644 zsh2.1/doc/intro.ps ||
+echo 'restore of zsh2.1/doc/intro.ps failed'
+Wc_c="`wc -c < 'zsh2.1/doc/intro.ps'`"
+test 137468 -eq "$Wc_c" ||
+	echo 'zsh2.1/doc/intro.ps: original size 137468, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+rm -f _shar_seq_.tmp
+echo You have unpacked the last part
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

@@ -1,0 +1,2324 @@
+Path: funic!fuug!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i013:  zsh2.1 - The Z shell, Part13/19
+Message-ID: <1991Oct26.015004.19579@sparky.imd.sterling.com>
+Date: 26 Oct 91 01:50:04 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 2310
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 71a3711c5794b8728f05e980e2c4eec8
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 13
+Archive-name: zsh2.1/part13
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.13 (part 13 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/zsh.h continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 13; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/zsh.h'
+else
+echo 'x - continuing file zsh2.1/src/zsh.h'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/zsh.h' &&
+X#define MENUCOMPLETE 'Y'
+X#define USEZLE 'Z'
+X#define ALLEXPORT 'a'
+X#define ERREXIT 'e'
+X#define NORCS 'f'
+X#define HISTIGNORESPACE 'g'
+X#define HISTIGNOREDUPS 'h'
+X#define INTERACTIVE 'i'
+X#define HISTLIT 'j'
+X#define INTERACTIVECOMMENTS 'k'
+X#define LOGINSHELL 'l'
+X#define MONITOR 'm'
+X#define NOEXEC 'n'
+X#define SHINSTDIN 's'
+X#define NOUNSET 'u'
+X#define VERBOSE 'v'
+X#define CHASELINKS 'w'
+X#define XTRACE 'x'
+X#define SHWORDSPLIT 'y'
+X#define MENUCOMPLETEBEEP '\2'
+X#define HISTNOSTORE '\3'
+X#define EXTENDEDGLOB '\5'
+X#define GLOBCOMPLETE '\6'
+X#define CSHJUNKIEQUOTES '\7'
+X#define PUSHDMINUS '\10'
+X#define CSHJUNKIELOOPS '\11'
+X#define RCQUOTES '\12'
+X#define KSHOPTIONPRINT '\13'
+X#define NOSHORTLOOPS '\14'
+X#define LASTMENU '\15'
+X#define AUTOMENU '\16'
+X#define HISTVERIFY '\17'
+X#define NOLISTBEEP '\20'
+X#define NOHUP '\21'
+X#define NOEQUALS '\22'
+X#define CSHNULLGLOB '\23'
+X
+X#ifndef GLOBALS
+Xextern struct option optns[];
+X#else
+Xstruct option optns[] = {
+X	"correct",CORRECT,
+X	"noclobber",NOCLOBBER,
+X	"nobadpattern",NOBADPATTERN,
+X	"nonomatch",NONOMATCH,
+X	"globdots",GLOBDOTS,
+X	"notify",NOTIFY,
+X	"bgnice",BGNICE,
+X	"ignoreeof",IGNOREEOF,
+X	"markdirs",MARKDIRS,
+X	"autolist",AUTOLIST,
+X	"nobeep",NOBEEP,
+X	"printexitvalue",PRINTEXITVALUE,
+X	"pushdtohome",PUSHDTOHOME,
+X	"pushdsilent",PUSHDSILENT,
+X	"noglob",NOGLOBOPT,
+X	"nullglob",NULLGLOB,
+X	"rmstarsilent",RMSTARSILENT,
+X	"ignorebraces",IGNOREBRACES,
+X	"autocd",AUTOCD,
+X	"nobanghist",NOBANGHIST,
+X	"sunkeyboardhack",SUNKEYBOARDHACK,
+X	"singlelinezle",SINGLELINEZLE,
+X	"autopushd",AUTOPUSHD,
+X	"correctall",CORRECTALL,
+X	"rcexpandparam",RCEXPANDPARAM,
+X	"pathdirs",PATHDIRS,
+X	"longlistjobs",LONGLISTJOBS,
+X	"recexact",RECEXACT,
+X	"cdablevars",CDABLEVARS,
+X	"mailwarning",MAILWARNING,
+X	"nopromptclobber",NOPROMPTCLOBBER,
+X	"autoresume",AUTORESUME,
+X	"listtypes",LISTTYPES,
+X	"menucomplete",MENUCOMPLETE,
+X	"zle",USEZLE,
+X	"allexport",ALLEXPORT,
+X	"errexit",ERREXIT,
+X	"norcs",NORCS,
+X	"histignorespace",HISTIGNORESPACE,
+X	"histignoredups",HISTIGNOREDUPS,
+X	"interactive",INTERACTIVE,
+X	"histlit",HISTLIT,
+X	"interactivecomments",INTERACTIVECOMMENTS,
+X	"login",LOGINSHELL,
+X	"monitor",MONITOR,
+X	"noexec",NOEXEC,
+X	"shinstdin",SHINSTDIN,
+X	"nounset",NOUNSET,
+X	"verbose",VERBOSE,
+X	"chaselinks",CHASELINKS,
+X	"xtrace",XTRACE,
+X	"shwordsplit",SHWORDSPLIT,
+X	"menucompletebeep",MENUCOMPLETEBEEP,
+X	"histnostore",HISTNOSTORE,
+X	"extendedglob",EXTENDEDGLOB,
+X	"globcomplete",GLOBCOMPLETE,
+X	"cshjunkiequotes",CSHJUNKIEQUOTES,
+X	"pushdminus",PUSHDMINUS,
+X	"cshjunkieloops",CSHJUNKIELOOPS,
+X	"rcquotes",RCQUOTES,
+X	"noshortloops",NOSHORTLOOPS,
+X	"lastmenu",LASTMENU,
+X	"automenu",AUTOMENU,
+X	"histverify",HISTVERIFY,
+X	"nolistbeep",NOLISTBEEP,
+X	"nohup",NOHUP,
+X	"noequals",NOEQUALS,
+X	"kshoptionprint",KSHOPTIONPRINT,
+X	"cshnullglob",CSHNULLGLOB,
+X	NULL,0
+X};
+X#endif
+X
+X#define ALSTAT_MORE 1	/* last alias ended with ' ' */
+X#define ALSTAT_JUNK 2	/* don't put word in history List */
+X
+X#undef isset
+X#define isset(X) (opts[X])
+X#define unset(X) (!opts[X])
+X#define interact (isset(INTERACTIVE))
+X#define jobbing (isset(MONITOR))
+X#define nointr() signal(SIGINT,SIG_IGN)
+X#define islogin (isset(LOGINSHELL))
+X
+X#undef WIFSTOPPED
+X#undef WIFSIGNALED
+X#undef WIFEXITED
+X#undef WEXITSTATUS
+X#undef WTERMSIG
+X#undef WSTOPSIG
+X#undef WCOREDUMPED
+X
+X#define SP(X) (X)
+X#define WIFSTOPPED(X) (((X)&0377)==0177)
+X#define WIFSIGNALED(X) (((X)&0377)!=0&&((X)&0377)!=0177)
+X#define WIFEXITED(X) (((X)&0377)==0)
+X#define WEXITSTATUS(X) (((X)>>8)&0377)
+X#define WTERMSIG(X) ((X)&0177)
+X#define WSTOPSIG(X) (((X)>>8)&0377)
+X#define WCOREDUMPED(X) ((X)&0200)
+X
+X#ifndef S_ISBLK
+X#define	_IFMT		0170000
+X#define	_IFDIR	0040000
+X#define	_IFCHR	0020000
+X#define	_IFBLK	0060000
+X#define	_IFREG	0100000
+X#define	_IFIFO	0010000
+X#define	S_ISBLK(m)	(((m)&_IFMT) == _IFBLK)
+X#define	S_ISCHR(m)	(((m)&_IFMT) == _IFCHR)
+X#define	S_ISDIR(m)	(((m)&_IFMT) == _IFDIR)
+X#define	S_ISFIFO(m)	(((m)&_IFMT) == _IFIFO)
+X#define	S_ISREG(m)	(((m)&_IFMT) == _IFREG)
+X#endif
+X
+X#ifndef S_ISSOCK
+X#ifndef _IFMT
+X#define _IFMT 0170000
+X#endif
+X#define	_IFLNK	0120000
+X#define	_IFSOCK	0140000
+X#define	S_ISLNK(m)	(((m)&_IFMT) == _IFLNK)
+X#define	S_ISSOCK(m)	(((m)&_IFMT) == _IFSOCK)
+X#endif
+X
+X#if S_IFIFO == S_IFSOCK
+X#undef S_IFIFO
+X#endif
+X
+X/* buffered shell input for non-interactive shells */
+X
+XEXTERN FILE *bshin;
+X
+X/* NULL-terminated arrays containing path, cdpath, etc. */
+X
+XEXTERN char **path,**cdpath,**fpath,**watch,**mailpath,**tildedirs,**fignore;
+XEXTERN char **hosts,**hostcmds,**optcmds,**bindcmds,**varcmds;
+X
+X/* named directories */
+X
+XEXTERN char **userdirs,**usernames;
+X
+X/* size of userdirs[], # of userdirs */
+X
+XEXTERN int userdirsz,userdirct;
+X
+XEXTERN char *mailfile;
+X
+XEXTERN char *yytext;
+X
+X/* error/break flag */
+X
+XEXTERN int errflag;
+X
+XEXTERN char *tokstr;
+XEXTERN int tok, tokfd;
+X
+X/* lexical analyzer error flag */
+X
+XEXTERN int lexstop;
+X
+X/* suppress error messages */
+X
+XEXTERN int noerrs;
+X
+X/* current history event number */
+X
+XEXTERN int curhist;
+X
+X/* if != 0, this is the first line of the command */
+X
+XEXTERN int isfirstln;
+X
+X/* if != 0, this is the first char of the command (not including
+X	white space */
+X
+XEXTERN int isfirstch;
+X
+X/* first event number in the history lists */
+X
+XEXTERN int firsthist,firstlithist;
+X
+X/* capacity of history lists */
+X
+XEXTERN int histsiz,lithistsiz;
+X
+X/* if = 1, we have performed history substitution on the current line
+X 	if = 2, we have used the 'p' modifier */
+X
+XEXTERN int histdone;
+X
+X/* default event (usually curhist-1, that is, "!!") */
+X
+XEXTERN int defev;
+X
+X/* != 0 if we are about to read a command word */
+X
+XEXTERN int incmdpos;
+X
+X/* != 0 if we are in the middle of a [[ ... ]] */
+X
+XEXTERN int incond;
+X
+X/* != 0 if we are about to read a case pattern */
+X
+XEXTERN int incasepat;
+X
+X/* != 0 if we just read FUNCTION */
+X
+XEXTERN int infunc;
+X
+X/* != 0 if we just read a newline */
+X
+XEXTERN int isnewlin;
+X
+X/* the lists of history events */
+X
+XEXTERN Lklist histlist,lithistlist;
+X
+X/* the directory stack */
+X
+XEXTERN Lklist dirstack;
+X
+X/* the zle buffer stack */
+X
+XEXTERN Lklist bufstack;
+X
+X/* the input queue (stack?)
+X
+X	inbuf    = start of buffer
+X	inbufptr = location in buffer (= inbuf for a FULL buffer)
+X											(= inbuf+inbufsz for an EMPTY buffer)
+X	inbufct  = # of chars in buffer (inbufptr+inbufct == inbuf+inbufsz)
+X	inbufsz  = max size of buffer
+X*/
+X
+XEXTERN char *inbuf,*inbufptr;
+XEXTERN int inbufct,inbufsz;
+X
+XEXTERN char *ifs;		/* $IFS */
+X
+XEXTERN char *oldpwd;	/* $OLDPWD */
+X
+XEXTERN char *underscore; /* $_ */
+X
+X/* != 0 if this is a subshell */
+X
+XEXTERN int subsh;
+X
+X/* # of break levels */
+X
+XEXTERN int breaks;
+X
+X/* != 0 if we have a return pending */
+X
+XEXTERN int retflag;
+X
+X/* != 0 means don't hash the PATH */
+X
+XEXTERN int pathsuppress;
+X
+X/* # of nested loops we are in */
+X
+XEXTERN int loops;
+X
+X/* # of continue levels */
+X
+XEXTERN int contflag;
+X
+X/* the job we are working on */
+X
+XEXTERN int thisjob;
+X
+X/* the current job (+) */
+X
+XEXTERN int curjob;
+X
+X/* the previous job (-) */
+X
+XEXTERN int prevjob;
+X
+X/* hash table containing the aliases and reserved words */
+X
+XEXTERN Hashtab aliastab;
+X
+X/* hash table containing the parameters */
+X
+XEXTERN Hashtab paramtab;
+X
+X/* hash table containing the builtins/shfuncs/hashed commands */
+X
+XEXTERN Hashtab cmdnamtab;
+X
+X/* hash table containing the zle multi-character bindings */
+X
+XEXTERN Hashtab xbindtab;
+X
+X/* the job table */
+X
+XEXTERN struct job jobtab[MAXJOB];
+X
+X/* the list of sched jobs pending */
+X
+XEXTERN struct schedcmd *schedcmds;
+X
+X/* the last l for s/l/r/ history substitution */
+X
+XEXTERN char *hsubl;
+X
+X/* the last r for s/l/r/ history substitution */
+X
+XEXTERN char *hsubr;
+X
+XEXTERN char *username;	/* $USERNAME */
+XEXTERN long lastval;		/* $? */
+XEXTERN long baud;			/* $BAUD */
+XEXTERN long columns;		/* $COLUMNS */
+XEXTERN long lines;		/* $LINES */
+X
+X/* input fd from the coprocess */
+X
+XEXTERN int coprocin;
+X
+X/* output fd from the coprocess */
+X
+XEXTERN int coprocout;
+X
+XEXTERN long mailcheck;	/* $MAILCHECK */
+XEXTERN long logcheck;	/* $LOGCHECK */
+X
+X/* the last time we checked mail */
+X
+XEXTERN time_t lastmailcheck;
+X
+X/* the last time we checked the people in the WATCH variable */
+X
+XEXTERN time_t lastwatch;
+X
+X/* the last time we did the periodic() shell function */
+X
+XEXTERN time_t lastperiod;
+X
+X/* $SECONDS = time(NULL) - shtimer */
+X
+XEXTERN time_t shtimer;
+X
+XEXTERN long mypid;		/* $$ */
+XEXTERN long lastpid;		/* $! */
+XEXTERN long ppid;			/* $PPID */
+X
+X/* the process group of the shell */
+X
+XEXTERN long mypgrp;
+X
+XEXTERN char *cwd;			/* $PWD */
+XEXTERN char *optarg;		/* $OPTARG */
+XEXTERN long optind;		/* $OPTIND */
+XEXTERN char *prompt;		/* $PROMPT */
+XEXTERN char *rprompt;	/* $RPROMPT */
+XEXTERN char *prompt2;	/* etc. */
+XEXTERN char *prompt3;
+XEXTERN char *prompt4;
+XEXTERN char *sprompt;
+XEXTERN char *timefmt;
+XEXTERN char *watchfmt;
+XEXTERN char *wordchars;
+XEXTERN char *fceditparam;
+XEXTERN char *tmpprefix;
+X
+XEXTERN char *argzero;	/* $0 */
+X
+XEXTERN char *hackzero;
+X
+X/* the hostname */
+X
+XEXTERN char *hostnam;
+X
+XEXTERN char *home;		/* $HOME */
+XEXTERN char **pparams;	/* $argv */
+X
+X/* the default command for null commands */
+X
+XEXTERN char *nullcmd;
+X
+X/* the List of local variables we have to destroy */
+X
+XEXTERN Lklist locallist;
+X
+X/* the shell input fd */
+X
+XEXTERN int SHIN;
+X
+X/* the shell tty fd */
+X
+XEXTERN int SHTTY;
+X
+X/* the stack of aliases we are expanding */
+X
+XEXTERN struct alias *alstack[MAXAL];
+X
+X/* the alias stack pointer; also, the number of aliases currently
+X 	being expanded */
+X
+XEXTERN int alstackind;
+X
+X/* != 0 means we are reading input from a string */
+X
+XEXTERN int strin;
+X
+X/* period between periodic() commands, in seconds */
+X
+XEXTERN long period;
+X
+X/* != 0 means history substitution is turned off */
+X
+XEXTERN int stophist;
+X
+XEXTERN int lithist;
+X
+X/* this line began with a space, so junk it if HISTIGNORESPACE is on */
+X
+XEXTERN int spaceflag;
+X
+X/* don't do spelling correction */
+X
+XEXTERN int nocorrect;
+X
+X/* != 0 means we have removed the current event from the history List */
+X
+XEXTERN int histremmed;
+X
+X/* the options; e.g. if opts['a'] == OPT_SET, -a is turned on */
+X
+XEXTERN int opts[128];
+X
+XEXTERN long lineno;		/* LINENO */
+XEXTERN long listmax;		/* LISTMAX */
+XEXTERN long savehist;	/* SAVEHIST */
+XEXTERN long shlvl;		/* SHLVL */
+XEXTERN long tmout;		/* TMOUT */
+XEXTERN long dirstacksize;	/* DIRSTACKSIZE */
+X
+X/* != 0 means we have called execlist() and then intend to exit(),
+X 	so don't fork if not necessary */
+X
+XEXTERN int exiting;
+X
+XEXTERN int lastbase;		/* last input base we used */
+X
+X/* the limits for child processes */
+X
+X#ifdef RLIM_INFINITY
+XEXTERN struct rlimit limits[RLIM_NLIMITS];
+X#endif
+X
+X/* the current word in the history List */
+X
+XEXTERN char *hlastw;
+X
+X/* pointer into the history line */
+X
+XEXTERN char *hptr;
+X
+X/* the current history line */
+X
+XEXTERN char *hline;
+X
+X/* the termcap buffer */
+X
+XEXTERN char termbuf[1024];
+X
+X/* $TERM */
+X
+XEXTERN char *term;
+X
+X/* != 0 if this $TERM setup is usable */
+X
+XEXTERN int termok;
+X
+X/* flag for CSHNULLGLOB */
+X
+XEXTERN int badcshglob;
+X
+X/* max size of hline */
+X
+XEXTERN int hlinesz;
+X
+X/* the alias expansion status - if == ALSTAT_MORE, we just finished
+X	expanding an alias ending with a space */
+X
+XEXTERN int alstat;
+X
+X/* we have printed a 'you have stopped (running) jobs.' message */
+X
+XEXTERN int stopmsg;
+X
+X/* the default tty state */
+X
+XEXTERN struct ttyinfo shttyinfo;
+X
+X/* $TTY */
+X
+XEXTERN char *ttystrname;
+X
+X/* list of memory heaps */
+X
+XEXTERN Lklist heaplist;
+X
+X/* != 0 if we are allocating in the heaplist */
+X
+XEXTERN int useheap;
+X
+X#include "signals.h"
+X
+X#ifdef GLOBALS
+X
+X/* signal names */
+Xchar **sigptr = sigs;
+X
+X/* tokens */
+Xchar *ztokens = "#$^*()$=|{}[]`<>?~`,";
+X
+X#else
+Xextern char *ztokens,**sigptr;
+X#endif
+X
+X#define SIGERR (SIGCOUNT+1)
+X#define SIGDEBUG (SIGCOUNT+2)
+X#define VSIGCOUNT (SIGCOUNT+3)
+X#define SIGEXIT 0
+X
+X/* signals that are trapped = 1, signals ignored =2 */
+X
+XEXTERN int sigtrapped[VSIGCOUNT];
+X
+X/* trap functions for each signal */
+X
+XEXTERN List sigfuncs[VSIGCOUNT];
+X
+X/* $HISTCHARS */
+X
+XEXTERN char bangchar,hatchar,hashchar;
+X
+XEXTERN int eofseen;
+X
+X/* we are parsing a line sent to use by the editor */
+X
+XEXTERN int zleparse;
+X
+XEXTERN int wordbeg;
+X
+XEXTERN int parbegin;
+X
+X/* interesting termcap strings */
+X
+X#define TCCLEARSCREEN 0
+X#define TCLEFT 1
+X#define TCMULTLEFT 2
+X#define TCRIGHT 3
+X#define TCMULTRIGHT 4
+X#define TCUP 5
+X#define TCMULTUP 6
+X#define TCDOWN 7
+X#define TCMULTDOWN 8
+X#define TCDEL 9
+X#define TCMULTDEL 10
+X#define TCINS 11
+X#define TCMULTINS 12
+X#define TCCLEAREOD 13
+X#define TCCLEAREOL 14
+X#define TCINSLINE 15
+X#define TCDELLINE 16
+X#define TC_COUNT 17
+X
+X/* lengths of each string */
+X
+XEXTERN int tclen[TC_COUNT];
+X
+XEXTERN char *tcstr[TC_COUNT];
+X
+X#ifdef GLOBALS
+X
+X/* names of the strings we want */
+X
+Xchar *tccapnams[TC_COUNT] = {
+X	"cl","le","LE","nd","RI","up","UP","do",
+X	"DO","dc","DC","ic","IC","cd","ce","al","dl"
+X	};
+X
+X#else
+Xextern char *tccapnams[TC_COUNT];
+X#endif
+X
+X#define tccan(X) (!!tclen[X])
+X
+X#define HISTFLAG_DONE   1
+X#define HISTFLAG_NOEXEC 2
+X
+X#include "ztype.h"
+X#include "funcs.h"
+X
+X#ifdef __hpux
+X#define setpgrp setpgid
+X#endif
+X
+X#define _INCLUDE_POSIX_SOURCE
+X#define _INCLUDE_XOPEN_SOURCE
+X#define _INCLUDE_HPUX_SOURCE
+X
+X#ifdef SV_BSDSIG
+X#define SV_INTERRUPT SV_BSDSIG
+X#endif
+X
+X#ifdef SYSV
+X#define blockchld() sighold(SIGCHLD)
+X#define unblockchld() sigrelse(SIGCHLD)
+X#define chldsuspend() sigpause(SIGCHLD)
+X#else
+X#define blockchld() sigblock(sigmask(SIGCHLD))
+X#define unblockchld() sigsetmask(0)
+X#define chldsuspend() sigpause(0)
+X#endif
+SHAR_EOF
+echo 'File zsh2.1/src/zsh.h is complete' &&
+chmod 0644 zsh2.1/src/zsh.h ||
+echo 'restore of zsh2.1/src/zsh.h failed'
+Wc_c="`wc -c < 'zsh2.1/src/zsh.h'`"
+test 30146 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zsh.h: original size 30146, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_vi.c ==============
+if test -f 'zsh2.1/src/zle_vi.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_vi.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_vi.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_vi.c' &&
+X/*
+X
+X	zle_vi.c - vi-specific functions
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#define ZLE
+X#include "zsh.h"
+X
+X
+Xstatic void startvichange(im)
+Xint im;
+X{
+X	insmode = im;
+X	if (vichgbuf) free(vichgbuf);
+X	vichgbuf = zalloc(vichgbufsz = 16);
+X	vichgbuf[0] = c;
+X	vichgbufptr = 1;
+X	vichgflag = 1;
+X	viinsbegin = cs;
+X}
+X
+Xstatic void startvitext(im)
+X{
+X	startvichange(im);
+X	bindtab = mainbindtab;
+X	undoing = 0;
+X}
+X
+Xint vigetkey() /**/
+X{
+Xint ch;
+X
+X	if ((ch = getkey(0)) == -1)
+X		return 0;
+X	if (ch == 22)
+X		{
+X		if ((ch = getkey(0)) == -1)
+X			return 0;
+X		return ch;
+X		}
+X	else if (ch == 27)
+X		return 0;
+X	return ch;
+X}
+X
+Xint getvirange() /**/
+X{
+Xint k2,t0,startline;
+X
+X	startline = findbol();
+X	for (;;) {
+X		k2 = getkeycmd();
+X		if (k2 == -1) {
+X			feep();
+X			return -1;
+X		}
+X		if (zlecmds[k2].flags & ZLE_ARG)
+X			zlecmds[k2].func();
+X		else
+X			break;
+X	}
+X	if (k2 == bindk) {
+X		findline(&cs,&t0);
+X		return (t0 == ll) ? t0 : t0+1;
+X	}
+X	if (!(zlecmds[k2].flags & ZLE_MOVEMENT)) {
+X		feep();
+X		return -1;
+X	}
+X	t0 = cs;
+X
+X	virangeflag = 1;
+X	zlecmds[k2].func();
+X	virangeflag = 0;
+X	if (cs == t0) {
+X		feep();
+X		return -1;
+X	}
+X	if (startline != findbol()) {
+X		if (cs < t0) {
+X			cs = startline;
+X			t0 = findeol()+1;
+X		} else {
+X			t0 = startline;
+X			cs = findeol()+1;
+X		}
+X	}
+X	if (cs > t0) {
+X		k2 = cs;
+X		cs = t0;
+X		t0 = k2;
+X	}
+X	return t0;
+X}
+X
+Xvoid viaddnext() /**/
+X{
+X	if (cs != ll)
+X		cs++;
+X	startvitext(1);
+X}
+X
+Xvoid viaddeol() /**/
+X{
+X	cs = findeol();
+X	startvitext(1);
+X}
+X
+Xvoid viinsert() /**/
+X{
+X	startvitext(1);
+X}
+X
+Xvoid viinsertbol() /**/
+X{
+X	cs = findbol();
+X	startvitext(1);
+X}
+X
+Xvoid videlete() /**/
+X{
+Xint c2;
+X
+X	startvichange(1);
+X	if ((c2 = getvirange()) == -1)
+X		{ vichgflag = 0; return; }
+X	forekill(c2-cs,0);
+X	vichgflag = 0;
+X}
+X
+Xvoid vichange() /**/
+X{
+Xint c2;
+X
+X	startvichange(1);
+X	if ((c2 = getvirange()) == -1)
+X		{ vichgflag = 0; return; }
+X	forekill(c2-cs,0);
+X	bindtab = mainbindtab;
+X	undoing = 0;
+X}
+X
+Xvoid visubstitute() /**/
+X{
+X	if (mult < 0) return;
+X	if (findeol()-cs < mult) mult = findeol()-cs;
+X	if (mult) {
+X		foredel(mult);
+X		startvitext(1);
+X	}
+X}
+X
+Xvoid vichangeeol() /**/
+X{
+X	killline();
+X	startvitext(1);
+X}
+X
+Xvoid vichangewholeline() /**/
+X{
+Xint cq;
+X
+X	findline(&cs,&cq);
+X	foredel(cq-cs);
+X	startvitext(1);
+X}
+X
+Xvoid viyank() /**/
+X{
+Xint c2;
+X
+X	if ((c2 = getvirange()) == -1)
+X		return;
+X	cut(cs,c2-cs,0);
+X}
+X
+Xvoid viyankeol() /**/
+X{
+Xint x = findeol();
+X
+X	if (x == cs)
+X		feep();
+X	else
+X		cut(cs,x-cs,0);
+X}
+X
+Xvoid vireplace() /**/
+X{
+X	startvitext(0);
+X}
+X
+Xvoid vireplacechars() /**/
+X{
+Xint ch;
+X
+X	if (mult < 0) return;
+X	if (mult+cs > ll) {
+X		feep();
+X		return;
+X	}
+X	startvichange(1);
+X	if (ch = vigetkey())
+X		while (mult--)
+X			line[cs++] = ch;
+X	vichgflag = 0;
+X}
+X
+Xvoid vicmdmode() /**/
+X{
+X	bindtab = altbindtab;
+X	if (cs) cs--;
+X	undoing = 1;
+X	if (vichgflag) vichgflag = 0;
+X}
+X
+Xvoid viopenlinebelow() /**/
+X{
+X	cs = findeol();
+X	spaceinline(1);
+X	line[cs++] = '\n';
+X	startvitext(1);
+X}
+X
+Xvoid viopenlineabove() /**/
+X{
+X	cs = findbol();
+X	spaceinline(1);
+X	line[cs] = '\n';
+X	startvitext(1);
+X}
+X
+Xvoid vioperswapcase() /**/
+X{
+Xint c2;
+X
+X	if ((c2 = getvirange()) == -1)
+X		return;
+X	while (cs < c2)
+X		{
+X		int ch = line[cs];
+X
+X		if (ch >= 'a' && ch <= 'z')
+X			ch = tuupper(ch);
+X		else if (ch >= 'A' && ch <= 'Z')
+X			ch = tulower(ch);
+X		line[cs++] = ch;
+X		}
+X}
+X
+Xvoid virepeatchange() /**/
+X{
+X	if (!vichgbuf || bindtab == mainbindtab || vichgflag) feep();
+X	else ungetkeys(vichgbuf,vichgbufptr);
+X}
+X
+Xvoid viindent() /**/
+X{
+Xint c2,endcs,t0,rmult;
+X
+X	if (mult < 0) { mult = -mult; viunindent(); return; }
+X	rmult = mult;
+X	if ((c2 = getvirange()) == -1)
+X		return;
+X	if (cs != findbol()) { feep(); return; }
+X	endcs = cs+rmult;
+X	while (cs < c2) {
+X		spaceinline(rmult);
+X		for (t0 = 0; t0 != rmult; t0++) line[cs++] = '\t';
+X		cs = findeol()+1;
+X	}
+X	cs = endcs;
+X}
+X
+Xvoid viunindent() /**/
+X{
+Xint c2,endcs,t0,rmult;
+X
+X	rmult = mult;
+X	if (mult < 0) { mult = -mult; viindent(); return; }
+X	if ((c2 = getvirange()) == -1)
+X		return;
+X	if (cs != findbol()) { feep(); return; }
+X	endcs = cs;
+X	while (cs < c2) {
+X		for (t0 = 0; t0 != rmult && line[cs] == '\t'; t0++) foredel(1);
+X		cs = findeol()+1;
+X	}
+X	cs = endcs;
+X}
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_vi.c ||
+echo 'restore of zsh2.1/src/zle_vi.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_vi.c'`"
+test 5031 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_vi.c: original size 5031, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/ztype.h ==============
+if test -f 'zsh2.1/src/ztype.h' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/ztype.h (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/ztype.h (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/ztype.h' &&
+X/*
+X
+X	ztype.h - character classification macros
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#define IDIGIT  1
+X#define IALNUM  2
+X#define IBLANK  4
+X#define INBLANK 8
+X#define ITOK    16
+X#define ISEP    32
+X#define IALPHA  64
+X#define IIDENT  128
+X#define IUSER   256
+X#define ICNTRL  512
+X#define IWORD	 1024
+X#define ISPECIAL 2048
+X#define _icom(X,Y) (typtab[(int) (unsigned char) (X)] & Y)
+X#define idigit(X) _icom(X,IDIGIT)
+X#define ialnum(X) _icom(X,IALNUM)
+X#define iblank(X) _icom(X,IBLANK)		/* blank, not including \n */
+X#define inblank(X) _icom(X,INBLANK)		/* blank or \n */
+X#define itok(X) _icom(X,ITOK)
+X#define isep(X) _icom(X,ISEP)
+X#define ialpha(X) _icom(X,IALPHA)
+X#define iident(X) _icom(X,IIDENT)
+X#define iuser(X) _icom(X,IUSER)			/* username char */
+X#define icntrl(X) _icom(X,ICNTRL)
+X#define iword(X) _icom(X,IWORD)
+X#define ispecial(X) _icom(X,ISPECIAL)
+X
+XEXTERN short int typtab[256];
+X
+SHAR_EOF
+chmod 0644 zsh2.1/src/ztype.h ||
+echo 'restore of zsh2.1/src/ztype.h failed'
+Wc_c="`wc -c < 'zsh2.1/src/ztype.h'`"
+test 1927 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/ztype.h: original size 1927, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/lex.pro ==============
+if test -f 'zsh2.1/src/lex.pro' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/lex.pro (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/lex.pro (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/lex.pro' &&
+Xvoid lexsave DCLPROTO((void));
+Xvoid lexrestore DCLPROTO((void));
+Xvoid yylex DCLPROTO((void));
+Xvoid ctxtlex DCLPROTO((void));
+Xvoid initlextabs DCLPROTO((void));
+Xvoid lexinit DCLPROTO((void));
+Xvoid add DCLPROTO((int c));
+Xint gettok DCLPROTO((void));
+Xint exalias DCLPROTO((void));
+Xint skipcomm DCLPROTO((void));
+SHAR_EOF
+chmod 0644 zsh2.1/src/lex.pro ||
+echo 'restore of zsh2.1/src/lex.pro failed'
+Wc_c="`wc -c < 'zsh2.1/src/lex.pro'`"
+test 309 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/lex.pro: original size 309, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_tricky.c ==============
+if test -f 'zsh2.1/src/zle_tricky.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_tricky.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_tricky.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_tricky.c' &&
+X/*
+X
+X	zle_tricky.c - expansion and completion
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#define ZLE
+X#include "zsh.h"
+X#ifdef __hpux
+X#include <ndir.h>
+X#else
+X#ifdef SYSV
+X#define direct dirent
+X#else
+X#include <sys/dir.h>
+X#endif
+X#endif
+X#include	<pwd.h>
+X
+Xstatic int we,wb,usemenu,useglob;
+X
+Xstatic int menub,menue,menuw;
+Xstatic Lklist menulist;
+Xstatic Lknode menunode;
+X
+X#define inststr(X) inststrlen((X),-1)
+X
+Xint usetab() /**/
+X{
+Xchar *s = line+cs-1;
+X
+X	for (; s >= line && *s != '\n'; s--)
+X		if (*s != '\t' && *s != ' ')
+X			return 0;
+X	return 1;
+X}
+X
+X#define COMP_COMPLETE 0
+X#define COMP_LIST_COMPLETE 1
+X#define COMP_SPELL 2
+X#define COMP_EXPAND 3
+X#define COMP_EXPAND_COMPLETE 4
+X#define COMP_LIST_EXPAND 5
+X#define COMP_ISEXPAND(X) ((X) >= COMP_EXPAND)
+X
+Xvoid completeword() /**/
+X{
+X	usemenu = isset(MENUCOMPLETE) || (useglob = isset(GLOBCOMPLETE));
+X	if (c == '\t' && usetab())
+X		selfinsert();
+X	else
+X		docomplete(COMP_COMPLETE);
+X}
+X
+Xvoid menucompleteword() /**/
+X{
+X	usemenu = 1; useglob = isset(GLOBCOMPLETE);
+X	if (c == '\t' && usetab())
+X		selfinsert();
+X	else
+X		docomplete(COMP_COMPLETE);
+X}
+X
+Xvoid listchoices() /**/
+X{
+X	usemenu = isset(MENUCOMPLETE) || (useglob = isset(GLOBCOMPLETE));
+X	docomplete(COMP_LIST_COMPLETE);
+X}
+X
+Xvoid spellword() /**/
+X{
+X	usemenu = useglob = 0;
+X	docomplete(COMP_SPELL);
+X}
+X
+Xvoid deletecharorlist() /**/
+X{
+X	usemenu = isset(MENUCOMPLETE) || (useglob = isset(GLOBCOMPLETE));
+X	if (cs != ll)
+X		deletechar();
+X	else
+X		docomplete(COMP_LIST_COMPLETE);
+X}
+X
+Xvoid expandword() /**/
+X{
+X	usemenu = useglob = 0;
+X	if (c == '\t' && usetab())
+X		selfinsert();
+X	else
+X		docomplete(COMP_EXPAND);
+X}
+X
+Xvoid expandorcomplete() /**/
+X{
+X	usemenu = isset(MENUCOMPLETE) || (useglob = isset(GLOBCOMPLETE));
+X	if (c == '\t' && usetab())
+X		selfinsert();
+X	else
+X		docomplete(COMP_EXPAND_COMPLETE);
+X}
+X
+Xvoid menuexpandorcomplete() /**/
+X{
+X	usemenu = 1; useglob = isset(GLOBCOMPLETE);
+X	if (c == '\t' && usetab())
+X		selfinsert();
+X	else
+X		docomplete(COMP_EXPAND_COMPLETE);
+X}
+X
+Xvoid listexpand() /**/
+X{
+X	usemenu = isset(MENUCOMPLETE); useglob = isset(GLOBCOMPLETE);
+X	docomplete(COMP_LIST_EXPAND);
+X}
+X
+Xvoid reversemenucomplete() /**/
+X{
+Xchar *s;
+X
+X	if (!menucmp)
+X		menucompleteword();	/* better than just feep'ing, pem */
+X	if (!menucmp) return;
+X	cs = menub;
+X	foredel(menue-menub);
+X	if (menunode == firstnode(menulist))
+X		menunode = lastnode(menulist);
+X	else
+X		menunode = prevnode(menunode);
+X	inststr(s = menunode->dat);
+X	menue = cs;
+X}
+X
+X/*
+X * Accepts the current completion and starts a new arg,
+X * with the next completions. This gives you a way to accept
+X * several selections from the list of matches.
+X */
+Xvoid acceptandmenucomplete() /**/
+X{
+Xint t0,t1;
+X
+X	if (!menucmp) {
+X		feep();
+X		return;
+X	}
+X	spaceinline(1);
+X	line[cs++] = ' ';
+X	spaceinline(menub-menuw);
+X	t1 = cs;
+X	for (t0 = menuw; t0 != menub; t0++)
+X		line[cs++] = line[t0];
+X	menue = menub = cs;
+X	menuw = t1;
+X	menucompleteword();
+X}
+X
+Xstatic char *lastmenu = NULL;
+Xstatic int lastmenupos = -1;
+Xstatic int lincmd,lastambig;
+Xstatic char *cmdstr;
+X
+Xvoid docomplete(lst) /**/
+Xint lst;
+X{
+Xchar *s;
+X
+X	if (isset(AUTOMENU) && !menucmp && c == '\t' &&
+X		(lastcmd & ZLE_MENUCMP) && lastambig) usemenu = 1;
+X	if (menucmp) { do_menucmp(lst); return; }
+X	if (doexpandhist()) return;
+X	s = get_comp_string();
+X	if (s) {
+X		if (lst == COMP_EXPAND_COMPLETE) {
+X			char *q = s;
+X
+X			if (*q == Tilde) q++;
+X			else if (*q == Equals) {
+X				for (q++; *q; q++)
+X					if (*q == '/')
+X						break;
+X				if (!*q)
+X					lst = COMP_EXPAND;
+X				q = s+1;
+X			} else {
+X				for (; *q && *q != String; q++);
+X				if (*q == String) {
+X					if (getsparam(q+1)) lst = COMP_EXPAND;
+X					else lst = COMP_COMPLETE;
+X				}
+X				q = s;
+X			}
+X			if (lst == COMP_EXPAND_COMPLETE) {
+X				for (; *q; q++)
+X					if (itok(*q))
+X						break;
+X				if (!*q)
+X					lst = COMP_COMPLETE;
+X			}
+X		}
+X		if (lst == COMP_SPELL) {
+X			char	**x = &s;
+X			untokenize(s);
+X			cs = wb;
+X			foredel(we-wb);
+X			/* call the real spell checker, ash@aaii.oz.zu */
+X			spckword(x, NULL, NULL, lincmd, 0);
+X			inststr(*x);
+X		} else if (COMP_ISEXPAND(lst))
+X			doexpansion(s,lst,lincmd);
+X		else {
+X			docompletion(s,lst,lincmd);
+X		}
+X		free(s);
+X	}
+X	popheap();
+X	lexrestore();
+X}
+X
+Xvoid do_menucmp(lst) /**/
+Xint lst;
+X{
+Xchar *s;
+X
+X	if (isset(LASTMENU) && lastmenu) {
+X		if (COMP_ISEXPAND(lst) || cs != lastmenupos ||
+X				strcmp(line, lastmenu) != 0) {
+X			free(lastmenu);
+X			lastmenu = NULL;
+X			lastmenupos = -1;
+X			freemenu();
+X		}
+X	}
+X	if (lst == COMP_LIST_COMPLETE) {
+X		listmatches(menulist, NULL);
+X		return;
+X	}
+X	cs = menub;
+X	foredel(menue-menub);
+X	incnode(menunode);
+X	if (!menunode)
+X		menunode = firstnode(menulist);
+X	s = menunode->dat;
+X	if (*s == '~' || *s == '=' || *s == '$') {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X	}
+X	inststr(s = menunode->dat);
+X	if (isset(LASTMENU)) {
+X		if (lastmenu) free(lastmenu);
+X		lastmenu = ztrdup(line);
+X		lastmenupos = cs;
+X	}
+X	menue = cs;
+X}
+X
+Xchar *get_comp_string() /**/
+X{
+Xint t0;
+Xchar *s,*linptr;
+X
+X	linptr = line;
+Xstart:
+X	lincmd = incmdpos;
+X	cmdstr = NULL;
+X	zleparse = 1;
+X	lexsave();
+X	hungets(" "); /* KLUDGE! */
+X	hungets(linptr);
+X	strinbeg();
+X	pushheap();
+X	do {
+X		lincmd = incmdpos;
+X		ctxtlex();
+X		if (tok == ENDINPUT) break;
+X		if (lincmd) cmdstr = strdup(tokstr);
+X	} while (tok != ENDINPUT && zleparse);
+X	t0 = tok;
+X	if (t0 == ENDINPUT) {
+X		s = ztrdup("");
+X		we = wb = cs;
+X		t0 = STRING;
+X	} else if (t0 == STRING) {
+X		s = ztrdup(tokstr);
+X	} else if (t0 == ENVSTRING) {
+X		for (s = tokstr; *s && *s != '='; s++, wb++);
+X		if (*s) { s++; wb++; t0 = STRING; s = ztrdup(s); }
+X		lincmd = 1;
+X	}
+X	hflush();
+X	strinend();
+X	errflag = zleparse = 0;
+X	if (we > ll) we = ll;
+X	if (t0 == LEXERR && parbegin != -1) {
+X		linptr += ll+1-parbegin;
+X		popheap();
+X		lexrestore();
+X		goto start;
+X	}
+X	if (t0 != STRING) { feep(); return NULL; }
+X	return s;
+X}
+X
+Xvoid doexpansion(s,lst,lincmd) /**/
+Xchar *s;int lst;int lincmd;
+X{
+XLklist vl = newlist();
+Xchar *ss;
+X
+X	pushheap();
+X	addnode(vl,s);
+X	prefork(vl);
+X	if (errflag)
+X		goto end;
+X	postfork(vl,1);
+X	if (errflag)
+X		goto end;
+X	if (!full(vl) || !*(char *) peekfirst(vl)) {
+X		feep();
+X		goto end;
+X	}
+X	if (lst == COMP_LIST_EXPAND) {
+X		listmatches(vl,NULL);
+X		goto end;
+X	} else if (peekfirst(vl) == s) {
+X		if (lst == COMP_EXPAND_COMPLETE) {
+X			docompletion(s,COMP_COMPLETE,lincmd);
+X		} else
+X			feep();
+X		goto end;
+X	}
+X	cs = wb;
+X	foredel(we-wb);
+X	while (ss = ugetnode(vl)) {
+X		untokenize(ss);
+X		inststr(ss);
+X		if (full(vl)) {
+X			spaceinline(1);
+X			line[cs++] = ' ';
+X		}
+X	}
+Xend:
+X	popheap();
+X	setterm();
+X}
+X
+Xvoid gotword(s) /**/
+Xchar *s;
+X{
+X	we = ll+1-inbufct;
+X	if (cs <= we)
+X		{
+X		wb = ll-wordbeg;
+X		zleparse = 0;
+X		/* major hack ahead */
+X		if (wb && line[wb] == '!' && line[wb-1] == '\\')
+X			wb--;
+X		}
+X}
+X
+Xvoid inststrlen(s,l) /**/
+Xchar *s;int l;
+X{
+Xchar *t,*u,*v;
+X
+X	t = halloc(strlen(s)*2+2);
+X	u = s;
+X	v = t;
+X	for (; *u; u++)
+X		{
+X		if (l != -1 && !l--)
+X			break;
+X		if (ispecial(*u))
+X			if (*u == '\n')
+X				{
+X				*v++ = '\'';
+X				*v++ = '\n';
+X				*v++ = '\'';
+X				continue;
+X				}
+X			else
+X				*v++ = '\\';
+X		*v++ = *u;
+X		}
+X	*v = '\0';
+X	spaceinline(strlen(t));
+X	strncpy(line+cs,t,strlen(t));
+X	cs += strlen(t);
+X}
+X
+Xstatic int ambig,haspath,exact;
+Xstatic Lklist matches;
+Xstatic char *pat;
+Xstatic int typechar;
+X
+Xvoid addmatch(s) /**/
+Xchar *s;
+X{
+X	if (full(matches))
+X		{
+X		int y = pfxlen(peekfirst(matches),s);
+X
+X		if (y < ambig)
+X			ambig = y;
+X		}
+X	else
+X		ambig = strlen(s);
+X	if (!strcmp(pat,s))
+X		exact = 1;
+X	addnodeinorder(matches,strdup(s));
+X}
+X
+X
+Xvoid addcmdmatch(s,t) /**/
+Xchar *s;char *t;
+X{
+X	if (strpfx(pat,s))
+X		addmatch(s);
+X}
+X
+Xvoid addcmdnodis(s,t) /**/
+Xchar *s;char *t;
+X{
+X	if (strpfx(pat,s) && ((Cmdnam) t)->type != DISABLED)
+X		addmatch(s);
+X}
+X
+Xvoid maketildelist(s) /**/
+Xchar	*s;
+X{
+X	struct passwd	*pwd;
+X	int		len;
+X
+X	s++;
+X	len = strlen(s);
+X	if (len < 1) {
+X		addmatch(s);
+X		*s = 0;
+X		return;
+X	}
+X	while ((pwd = getpwent()) != NULL && !errflag)
+X		if (strncmp(pwd->pw_name, s, len) == 0)
+X			addmatch(pwd->pw_name);
+X	endpwent();
+X	*s = 0;
+X}
+X
+X/*
+X * opendir that handles '~' and '=' and '$'.
+X * orig. by ash@aaii.oz.au, mod. by pf
+X */
+XDIR *OPENDIR(s)
+Xchar	*s;
+X{
+X	if (*s != '~' && *s != '=' && *s != '$')
+X		return(opendir(s));
+X	s = strdup(s);
+X	*s = (*s == '=') ? Equals : (*s == '~') ? Tilde : String;
+X	singsub(&s);
+X	return(opendir(s));
+X}
+Xchar *dirname(s)
+Xchar	*s;
+X{
+X	if (*s == '~' || *s == '=' || *s == '$') {
+X	  s = strdup(s);
+X	  *s = (*s == '=') ? Equals : (*s == '~') ? Tilde : String;
+X	  singsub(&s);
+X	}
+X	return(s);
+X}
+X
+Xint Isdir(s) /**/
+Xchar *s;
+X{
+Xstruct stat sbuf;
+X
+X   if (stat(s,&sbuf) == -1)
+X      return 0;
+X   return S_ISDIR(sbuf.st_mode);
+X}
+X
+X/* this will work whether s is tokenized or not */
+Xint isdir(t,s) /**/
+Xchar *t;char *s;
+X{
+Xchar buf[MAXPATHLEN];
+X
+X	if (typechar != '$')
+X		sprintf(buf,"%s/%s",(s) ? s : ".",t);
+X	else
+X		sprintf(buf,"$%s",t);
+X	s = buf;
+X	if (*s != '~' && *s != '=' && *s != Tilde && *s != Equals &&
+X		 *s != '$' && *s != String)
+X		return(Isdir(s));
+X	s = strdup(s);
+X	if (*s == '~' || *s == '=' || *s == '$')
+X		*s = (*s == '=') ? Equals : (*s == '~') ? Tilde : String;
+X	singsub(&s);
+X	return(Isdir(s));
+X}
+X
+X#define SLASH_YES   0
+X#define SLASH_NO    1
+X#define SLASH_MAYBE 2
+X
+Xint slashflag;
+Xint addedstar;
+Xchar *pathprefix;
+X
+Xvoid docompletion(s,lst,incmd) /**/
+Xchar *s;int lst;int incmd;
+X{
+Xchar *tokorigs;
+Xchar *origs;
+X
+X	slashflag = SLASH_MAYBE;
+X	addedstar = 0;
+X	lastambig = 0;
+X
+X	heapalloc();
+X	pushheap();
+X	if (useglob)
+X	    tokorigs = strdup(s);
+X	untokenize(s);
+X	origs = strdup(s);
+X	matches = newlist();
+X	if (cmdstr && inarray(cmdstr,hostcmds)) {
+X		char **x;
+X		haspath = exact = 0;
+X		slashflag = SLASH_NO;
+X		pat = s;
+X		for (x = hosts; *x; x++) addcmdmatch(*x,NULL);
+X	} else if (cmdstr && inarray(cmdstr,optcmds)) {
+X		struct option *o;
+X		haspath = exact = 0;
+X		slashflag = SLASH_NO;
+X		pat = s;
+X		for (o = optns; o->name; o++) addcmdmatch(o->name,NULL);
+X	} else if (cmdstr && inarray(cmdstr,varcmds)) {
+X		haspath = exact = 0;
+X		slashflag = SLASH_NO;
+X		pat = s;
+X		listhtable(paramtab,addcmdmatch);
+X	} else if (cmdstr && inarray(cmdstr,bindcmds)) {
+X		int t0;
+X		haspath = exact = 0;
+X		slashflag = SLASH_NO;
+X		pat = s;
+X		for (t0 = 0; t0 != ZLECMDCOUNT; t0++)
+X			if (*zlecmds[t0].name) addcmdmatch(zlecmds[t0].name,NULL);
+X	} else {
+X		gen_matches_reg(s,incmd);
+X		/* only do "globbed" completion if regular completion fails.
+X		   pem, 7Oct91 */
+X		if ((!full(matches) || errflag) && useglob) {
+X		    gen_matches_glob(tokorigs,incmd);
+X		    /*
+X		     * gen_matches_glob changes the insert line to be correct up
+X		     * to the match, so the prefix string must be "". ash, 7Oct91
+X		     */
+X		    *s = 0;
+X		}
+X	}
+X	if (lst != COMP_LIST_COMPLETE) do_fignore(origs);
+X	if (!full(matches) || errflag) {
+X		feep();
+X	} else if (lst == COMP_LIST_COMPLETE) {
+X		listmatches(matches,
+X			unset(LISTTYPES) ? NULL :
+X				(haspath) ? pathprefix : "./");
+X	} else if (nextnode(firstnode(matches))) {
+X		do_ambiguous(s);
+X	} else {
+X		do_single(s);
+X	}
+X	ll = strlen(line);
+X	setterm();
+X	popheap();
+X	permalloc();
+X}
+X
+Xvoid gen_matches_glob(s,incmd) /**/
+Xchar *s;int incmd;
+X{
+Xchar *pt,*u;
+Xint hasp = 0;
+XDIR *d;
+Xstruct direct *de;
+X
+X	/*
+X	 * Find the longest prefix string without any
+X	 * chars special to glob - ash.
+X	 */
+X	for (pt = s; *pt; pt++) {
+X		if (pt == s && (*pt == Tilde || *pt == Equals)) continue;
+X		if (ispecial(*pt) || itok(*pt)) break;
+X	}
+X	for (; pt > s && *pt != '/'; pt--) ;
+X	if (*pt == '/') {
+X		*pt = 0;
+X		u = pt + 1;
+X		wb += strlen(s);
+X		hasp = 1;
+X	} else u = s;
+X	if (!hasp && (*s == Tilde || *s == Equals)) {
+X		/* string contains only ~xx, so do tilde expansion */
+X		maketildelist(s);
+X		wb++;
+X		pathprefix = s;
+X		slashflag = SLASH_YES;
+X	} else if (incmd && !hasp) {
+X		slashflag = SLASH_NO;
+X		pat = s;
+X		listhtable(aliastab ,addcmdmatch);
+X		listhtable(cmdnamtab,addcmdnodis);
+X		if (d = opendir(".")) {
+X			char *q;
+X
+X			readdir(d); readdir(d);
+X			while ((de = readdir(d)) && !errflag)
+X				if (strpfx(pat,q = de->d_name) &&
+X							(*q != '.' || *u == '.' || isset(GLOBDOTS)))
+X					addmatch(q);
+X			closedir(d);
+X		}
+X	} else {
+X		 int 	commonprefix = 0;
+X		 char	*prefix;
+X		 Lknode	n;
+X		 int		nonomatch = isset(NONOMATCH);
+X
+X		 opts[NONOMATCH] = 1;
+X		 if (hasp) {
+X			/* Find the longest common prefix string
+X			 * after globbing the input. All expansions
+X			 * ~foo/bar/* will turn into something like
+X			 * /tmp_mnt/hosts/somehost/home/foo/...
+X			 * We will remove this common prefix from the matches.
+X			 * ash, 7 May '91
+X			 */
+X			pathprefix = s;
+X			addnode(matches,s);
+X			prefork(matches);
+X			if (!errflag) postfork(matches,1);
+X			if (!errflag) {
+X				prefix = peekfirst(matches);
+X				if (prefix) commonprefix = strlen(prefix) + 1;
+X				*pt = '/';
+X			}
+X		}
+X		if (s[strlen(s) - 1] == '/') {
+X			/* if strings ends in a '/' always add a '*' */
+X			s = dyncat(s,"x");
+X			s[strlen(s)-1] = Star;
+X			addedstar = 1;
+X		}
+X		matches = newlist();
+X		addnode(matches,s);
+X		prefork(matches);
+X		if (!errflag) postfork(matches,1);
+X		opts[NONOMATCH] = nonomatch;
+X		if (errflag || !full(matches) || !nextnode(firstnode(matches))) {
+X			/* if there were no matches (or only one)
+X				add a trailing * and try again */
+X			s = dyncat(s,"x");
+X			s[strlen(s)-1] = Star;
+X			addedstar = 1;
+X			matches = newlist();
+X			addnode(matches,s);
+X			prefork(matches);
+X			if (errflag) return;
+X			postfork(matches,1);
+X			if (errflag) return;
+X		}
+X		/* remove the common prefix from all the matches */
+X		if (commonprefix)
+X			for (n = firstnode(matches); n; incnode(n))
+X				n->dat = (char *) n->dat+commonprefix;
+X		s = pt;
+X		*s = 0;
+X	}
+X}
+X
+Xvoid gen_matches_reg(s,incmd) /**/
+Xchar *s;int incmd;
+X{
+Xchar *u;
+XDIR *d;
+Xstruct direct *de;
+X
+X	haspath = exact = 0;
+X	for (u = s+strlen(s); u >= s; u--)
+X		if (*u == '/' || *u == '@' || *u == '$') break;
+X	typechar = *u;
+X	if (u >= s) {
+X		*u++ = '\0';
+X		haspath = 1;
+X	} else u = s;
+X	pat = u;
+X	if (typechar == '$' && haspath) {
+X		/* slashflag = SLASH_NO; */
+X		listhtable(paramtab,addcmdmatch);
+X	} else if (typechar == '@' && haspath) {
+X		char **x;
+X		slashflag = SLASH_NO;
+X		for (x = hosts; *x; x++) addcmdmatch(*x,NULL);
+X	} else if (*s == '~' && !haspath) {
+X		maketildelist(s);
+X		pathprefix = s;
+X		slashflag = SLASH_YES;
+X	} else if (incmd && !haspath) {
+X		slashflag = SLASH_NO;
+X		listhtable(aliastab ,addcmdmatch);
+X		listhtable(cmdnamtab,addcmdnodis);
+X		if (d = opendir(".")) {
+X			char *q;
+X			struct stat buf;
+X
+X			readdir(d); readdir(d);
+X			while ((de = readdir(d)) && !errflag)
+X				if (strpfx(pat,q = de->d_name) &&
+X						(*q != '.' || *u == '.' || isset(GLOBDOTS)) &&
+X						stat(q,&buf) >= 0 &&
+X						(buf.st_mode & (S_IFMT|S_IEXEC)) == (S_IFREG|S_IEXEC))
+X					addmatch(q);
+X			closedir(d);
+X		}
+X	} else if (d = OPENDIR(pathprefix =
+X			((haspath || *s == '~') ? ((*s) ? s : "/") : "."))) {
+X		char *q,buf2[MAXPATHLEN];
+X		struct stat buf;
+X		char dn[MAXPATHLEN];
+X		
+X		strcpy(dn,dirname(pathprefix));
+X		readdir(d); readdir(d);
+X		while ((de = readdir(d)) && !errflag)
+X		  if (strpfx(pat,q = de->d_name) &&
+X				(*q != '.' || *u == '.' || isset(GLOBDOTS))) {
+X			 if (incmd) {
+X				sprintf(buf2,"%s/%s",dn,q);
+X				if (stat(buf2,&buf) < 0 ||
+X					 (buf.st_mode & S_IEXEC) == S_IEXEC) {
+X				  addmatch(q);
+X				}
+X			 } else {
+X				addmatch(q);
+X			 }
+X		  }
+X		closedir(d);
+X	}
+X}
+X
+Xvoid do_fignore(origstr) /**/
+Xchar *origstr;
+X{
+X	if (full(matches) && nextnode(firstnode(matches))) {
+X		Lknode z,zn;
+X
+X		for (z = firstnode(matches); z; z = zn) {
+X			char *q = getdata(z);
+X			int namlen = strlen(q);
+X			int	slen = strlen(origstr);
+X			char **pt = fignore;
+X	
+X			zn = nextnode(z);
+X			for (; *pt; pt++) {
+X				/* We try to be smart here and override the
+X				   fignore variable if the user has explicity
+X				   used the ignored prefix, pem, 7 May 1991 */
+X				if (!addedstar && strcmp(origstr+slen-strlen(*pt), *pt) == 0)
+X					continue;
+X				if (strlen(*pt) < namlen && !strcmp(q+namlen-strlen(*pt),*pt)) {
+X					uremnode(matches,z);
+X					break;
+X				}
+X			}
+X		}
+X	}
+X}
+X
+Xvoid do_ambiguous(s) /**/
+Xchar *s;
+X{
+X	lastambig = 1;
+X	if (usemenu) { do_ambig_menu(s); return; }
+X	if (useglob) {
+X		feep();
+X		if (isset(AUTOLIST))
+X			listmatches(matches,
+X				unset(LISTTYPES) ? NULL : (haspath) ? pathprefix : "./");
+X		return;
+X	}
+X	cs = wb;
+X	foredel(we-wb);
+X	if (*s == '~' || *s == '=' || *s == '$') {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X	}
+X	if (haspath) {
+X		inststr(s);
+X		spaceinline(1);
+X		line[cs++] = typechar;
+X	}
+X	if (isset(RECEXACT) && exact) {
+X		lastambig = 0;
+X		if ((*pat == '~' || *pat == '=' || *pat == '$') && !haspath) {
+X			spaceinline(1);
+X			line[cs++] = *s++;
+X		}
+X		inststr(pat);
+X		spaceinline(1);
+X		switch (slashflag) {
+X			case SLASH_YES: line[cs++] = '/'; break;
+X			case SLASH_NO : line[cs++] = ' '; break;
+X			case SLASH_MAYBE: line[cs++] = isdir(pat,pathprefix)?'/':' '; break;
+X		}
+X		return;
+X	}
+X	s = peekfirst(matches);
+X	if ((*s == '~' || *s == '=' || *s == '$') && !haspath) {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X		ambig--;
+X	}
+X	inststrlen(s,ambig);
+X	refresh();
+X	if (isset(AUTOLIST)) {
+X		if (unset(NOLISTBEEP)) feep();
+X		listmatches(matches,
+X			unset(LISTTYPES) ? NULL : (haspath) ? pathprefix : "./");
+X	} else feep();
+X}
+X
+Xvoid do_single(s) /**/
+Xchar *s;
+X{
+X	cs = wb;
+X	foredel(we-wb);
+X	if (*s == '~' || *s == '=' || *s == '$') {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X	}
+X	if (haspath) {
+X		inststr(s);
+X		spaceinline(1);
+X		line[cs++] = typechar;
+X	}
+X	s = peekfirst(matches);
+X	if ((*s == '~' || *s == '=' || *s == '$') && !haspath) {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X	}
+X	inststr(s);
+X	spaceinline(1);
+X	switch (slashflag) {
+X		case SLASH_YES: line[cs++] = '/'; break;
+X		case SLASH_NO : line[cs++] = ' '; break;
+X		case SLASH_MAYBE: line[cs++] = isdir(s,pathprefix) ? '/' : ' '; break;
+X	}
+X}
+X
+Xvoid do_ambig_menu(s) /**/
+Xchar *s;
+X{
+X	menucmp = 1;
+X	if (isset(MENUCOMPLETEBEEP)) feep();
+X	cs = wb;
+X	menuw = cs;
+X	foredel(we-wb);
+X	if (*s == '~' || *s == '=' || *s == '$') {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X	}
+X	if (haspath) {
+X		inststr(s);
+X		spaceinline(1);
+X		line[cs++] = typechar;
+X	}
+X	menub = cs;
+X	s = peekfirst(matches);
+X	if ((*s == '~' || *s == '=' || *s == '$') && !haspath) {
+X		spaceinline(1);
+X		line[cs++] = *s++;
+X	}
+X	inststr(s);
+X	menue = cs;
+X	permalloc();
+X	menulist = duplist(matches,(VFunc)ztrdup);
+X	heapalloc();
+X	menunode = firstnode(menulist);
+X	permalloc();
+X	if (isset(LASTMENU)) {
+X		if (lastmenu)
+X			free(lastmenu);
+X		lastmenu = ztrdup(line);
+X		lastmenupos = cs;
+X	}
+X}
+X
+Xint strpfx(s,t) /**/
+Xchar *s;char *t;
+X{
+X	while (*s && *s == *t) s++,t++;
+X	return !*s;
+X}
+X
+Xint pfxlen(s,t) /**/
+Xchar *s;char *t;
+X{
+Xint i = 0;
+X
+X	while (*s && *s == *t) s++,t++,i++;
+X	return i;
+X}
+X
+Xvoid listmatches(l,apps) /**/
+XLklist l;char *apps;
+X{
+Xint longest = 1,fct,fw = 0,colsz,t0,t1,ct;
+XLknode n;
+Xchar **arr,**ap;
+X
+X	trashzle();
+X	ct = countnodes(l);
+X	if (listmax && ct > listmax)
+X		{
+X		fprintf(stdout,"zsh: do you wish to see all %d possibilities? ",ct);
+X		fflush(stdout);
+X		if (getquery() != 'y')
+X			return;
+X		}
+X	ap = arr = alloc((countnodes(l)+1)*sizeof(char **));
+X	for (n = firstnode(l); n; incnode(n))
+X		*ap++ = getdata(n);
+X	*ap = NULL;
+X	for (ap = arr; *ap; ap++)
+X		if (strlen(*ap) > longest)
+X			longest = strlen(*ap);
+X	if (apps)
+X		{
+X		apps = strdup(apps);
+X		if (*apps == '~')
+X			*apps = Tilde;
+X		else if (*apps == '=')
+X			*apps = Equals;
+X		else if (*apps == '$')
+X			*apps = String;
+X		singsub(&apps);
+X		longest++;
+X		}
+X	qsort(arr,ct,sizeof(char *),forstrcmp);
+X	fct = (columns-1)/(longest+2);
+X	if (fct == 0)
+X		fct = 1;
+X	else
+X		fw = (columns-1)/fct;
+X	colsz = (ct+fct-1)/fct;
+X	for (t1 = 0; t1 != colsz; t1++)
+X		{
+X		ap = arr+t1;
+X		if (apps)
+X			{
+X			do
+X				{
+X				int t2 = strlen(*ap)+1;
+X				char pbuf[MAXPATHLEN];
+X				struct stat buf;
+X
+X				printf("%s",*ap);
+X				sprintf(pbuf,"%s/%s",apps,*ap);
+X				if (lstat(pbuf,&buf))
+X					putchar(' ');
+X				else switch (buf.st_mode & S_IFMT) /* screw POSIX */
+X					{
+X					case S_IFDIR: putchar('/'); break;
+X#ifdef S_IFIFO
+X					case S_IFIFO: putchar('|'); break;
+X#endif
+X					case S_IFCHR: putchar('%'); break;
+X					case S_IFBLK: putchar('#'); break;
+X#ifdef S_IFLNK
+X					case S_IFLNK: putchar(
+X						(access(pbuf,F_OK) == -1) ? '&' : '@'); break;
+X#endif
+X#ifdef S_IFSOCK
+X					case S_IFSOCK: putchar('='); break;
+X#endif
+X					default:
+X						if (buf.st_mode & 0111)
+X							putchar('*');
+X						else
+X							putchar(' ');
+X						break;
+X					}
+X				for (; t2 < fw; t2++) putchar(' ');
+X				for (t0 = colsz; t0 && *ap; t0--,ap++);
+X				}
+X			while (*ap);
+X			}
+X		else
+X			do
+X				{
+X				int t2 = strlen(*ap);
+X
+X				printf("%s",*ap);
+X				for (; t2 < fw; t2++) putchar(' ');
+X				for (t0 = colsz; t0 && *ap; t0--,ap++);
+X				}
+X			while (*ap);
+X		putchar('\n');
+X		}
+X	resetneeded = 1;
+X	fflush(stdout);
+X}
+X
+Xvoid selectlist(l) /**/
+XLklist l;
+X{
+Xint longest = 1,fct,fw = 0,colsz,t0,t1,ct;
+XLknode n;
+Xchar **arr,**ap;
+X
+X	trashzle();
+X	ct = countnodes(l);
+X	ap = arr = alloc((countnodes(l)+1)*sizeof(char **));
+X	for (n = firstnode(l); n; incnode(n))
+X		*ap++ = getdata(n);
+X	*ap = NULL;
+X	for (ap = arr; *ap; ap++)
+X		if (strlen(*ap) > longest)
+X			longest = strlen(*ap);
+X	t0 = ct;
+X	longest++;
+X	while (t0)
+X		t0 /= 10, longest++;
+X	fct = (columns-1)/(longest+2);
+X	if (fct == 0)
+X		fct = 1;
+X	else
+X		fw = (columns-1)/fct;
+X	colsz = (ct+fct-1)/fct;
+X	for (t1 = 0; t1 != colsz; t1++)
+X		{
+X		ap = arr+t1;
+X		do
+X			{
+X			int t2 = strlen(*ap)+1,t3;
+X
+X			fprintf(stderr,"%d %s",t3 = ap-arr+1,*ap);
+X			while (t3)
+X				t2++,t3 /= 10;
+X			for (; t2 < fw; t2++) fputc(' ',stderr);
+X			for (t0 = colsz; t0 && *ap; t0--,ap++);
+X			}
+X		while (*ap);
+X		fputc('\n',stderr);
+X		}
+X	resetneeded = 1;
+X	fflush(stderr);
+X}
+X
+Xint doexpandhist() /**/
+X{
+Xchar *cc,*ce;
+Xint t0,oldcs,oldll;
+X
+X	for (cc = line, ce = line+ll; cc < ce; cc++)
+X		if (*cc == '\\' && cc[1])
+X			cc++;
+X		else if (*cc == bangchar)
+X			break;
+X	if (*cc == bangchar && cc[1] == '"') return 0;
+X	if (cc == ce && *line != hatchar)
+X		return 0;
+X	oldcs = cs;
+X	oldll = ll;
+X	zleparse = 1;
+X	lexsave();
+X	hungets(line);
+X	strinbeg();
+X	pushheap();
+X	ll = cs = 0;
+X	for(;;)
+X		{
+X		t0 = hgetc();
+X		if (lexstop)
+X			break;
+X		spaceinline(1);
+X		line[cs++] = t0;
+X		}
+X	hflush();
+X	popheap();
+X	strinend();
+X	errflag = zleparse = 0;
+X	t0 = histdone;
+X	lexrestore();
+X	line[ll = cs] = '\0';
+X	if (ll == oldll) cs = oldcs;
+X	return t0;
+X}
+X
+Xvoid magicspace() /**/
+X{
+X	doexpandhist();
+X	c = ' ';
+X	selfinsert();
+X}
+X
+Xvoid expandhistory() /**/
+X{
+X	if (!doexpandhist())
+X		feep();
+X}
+X
+Xstatic int cmdwb,cmdwe;
+X
+Xchar *getcurcmd() /**/
+X{
+Xint lincmd = incmdpos;
+Xchar *s = NULL;
+X
+X	zleparse = 1;
+X	lexsave();
+X	hungets(" "); /* KLUDGE! */
+X	hungets(line);
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/zle_tricky.c failed'
+fi
+echo 'End of zsh2.1.0 part 13'
+echo 'File zsh2.1/src/zle_tricky.c is continued in part 14'
+echo 14 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

@@ -1,0 +1,60 @@
+#
+# my login file for zsh
+#
+clear
+cd
+stty dec new cr0
+
+# nice little thing that figures out my termtype based on where I logged
+# in from
+
+
+# get the hostname of where I logged in from
+setopt nobanghist
+FROM=$(who said that | sed 's/^.*(\([^.:!]*\).*).*$/\1/')
+unsetopt nobanghist
+
+case "$FROM" {
+learning*)
+	FROMTYPE=SUNOS-4.1
+	stty rows 54 ;;
+unix*)
+	FROM=$(hostname)
+	FROMTYPE="$(host -t hinfo $FROM | sed 's/^.*HINFO//')" ;;
+*)
+	FROMTYPE="$(host -t hinfo $FROM | sed 's/^.*HINFO//')" ;;
+}
+
+# got the type of host from DNS; set up things accordingly
+
+case "$FROMTYPE" {
+*CISCO*)
+	eval $(tset -s vt100-new)
+	FROM=comserv
+	export PRINTER=dod; 48; BAUD=1800; ;;
+*MAC-OS*|*MS-DOS*|*IBM*) eval $(tset -s vt100)
+		export PRINTER=edwards; FROM=madison;;
+*SUNOS-4.1*) eval $(tset -s xterm); export DISPLAY=$FROM:0.0; FROM=sun
+		stty erase ; export PRINTER=ps1 ;;
+*SGI*) eval $(tset -s iris-ansi) ; export PRINTER=gutenberg
+		export DISPLAY=$FROM:0.0; FROM=iris; stty erase \^H ;;
+*NCD*) eval $(tset -s vt100) ; export DISPLAY=$FROM:0.0;;
+*) eval $(tset -s -Q '?vt100') ;;
+}
+case "$FROM" in dndod*) export PRINTER=dod;; esac
+
+stty -tabs
+umask 022
+export MAIL=/usr/spool/mail/$USER
+MAILCHECK=60
+stty columns 80
+mesg y
+uptime
+fortune
+log
+from 2>/dev/null
+< notes
+unlimit
+limit core 0
+msgs -fp
+pmsgs -q

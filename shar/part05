@@ -1,0 +1,2411 @@
+Path: funic!news.funet.fi!sunic!seunet!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i005:  zsh2.1 - The Z shell, Part05/19
+Message-ID: <1991Oct24.190820.25645@sparky.imd.sterling.com>
+Date: 24 Oct 91 19:08:20 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 2397
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 5e7ea05d892fb6c05ee120f1110c3b0a
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 5
+Archive-name: zsh2.1/part05
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.05 (part 5 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/builtin.c continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 5; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/builtin.c'
+else
+echo 'x - continuing file zsh2.1/src/builtin.c'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/builtin.c' &&
+X		}
+X	return 0;
+X}
+X
+Xstatic char *recs[] = {
+X	"cputime","filesize","datasize","stacksize","coredumpsize",
+X	"resident","descriptors"
+X	};
+X
+Xint bin_limit(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+X#ifndef RLIM_INFINITY
+X	zerrnam(nam,"not available on this system",NULL,0);
+X	return 1;
+X#else
+Xchar *s;
+Xint hard = ops['h'],t0,lim;
+Xlong val;
+X
+X	if (ops['s'])
+X		{
+X		if (*argv)
+X			zerrnam(nam,"arguments after -s ignored",NULL,0);
+X		for (t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X			if (setrlimit(t0,limits+t0) < 0)
+X				zerrnam(nam,"setrlimit failed: %e",NULL,errno);
+X		return 0;
+X		}
+X	if (!*argv)
+X		{
+X		showlimits(hard,-1);
+X		return 0;
+X		}
+X	while (s = *argv++)
+X		{
+X		for (lim = -1, t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X			if (!strncmp(recs[t0],s,strlen(s)))
+X				{
+X				if (lim != -1)
+X					lim = -2;
+X				else
+X					lim = t0;
+X				}
+X		if (lim < 0)
+X			{
+X			zerrnam("limit",
+X				(lim == -2) ? "ambiguous resource specification: %s"
+X								: "no such resource: %s",s,0);
+X			return 1;
+X			}
+X		if (!(s = *argv++))
+X			{
+X			showlimits(hard,lim);
+X			return 0;
+X			}
+X		if (!lim)
+X			{
+X			val = zstrtol(s,&s,10);
+X			if (*s)
+X				if ((*s == 'h' || *s == 'H') && !s[1])
+X					val *= 3600L;
+X				else if ((*s == 'm' || *s == 'M') && !s[1])
+X					val *= 60L;
+X				else if (*s == ':')
+X					val = val*60+zstrtol(s+1,&s,10);
+X				else
+X					{
+X					zerrnam("limit","unknown scaling factor: %s",s,0);
+X					return 1;
+X					}
+X			}
+X#ifdef RLIMIT_NOFILE
+X		else if (lim == RLIMIT_NOFILE)
+X			val = zstrtol(s,&s,10);
+X#endif
+X		else
+X			{
+X			val = zstrtol(s,&s,10);
+X			if (!*s || ((*s == 'k' || *s == 'K') && !s[1]))
+X				val *= 1024L;
+X			else if ((*s == 'M' || *s == 'm') && !s[1])
+X				val *= 1024L*1024;
+X			else
+X				{
+X				zerrnam("limit","unknown scaling factor: %s",s,0);
+X				return 1;
+X				}
+X			}
+X		if (hard)
+X			if (val > limits[lim].rlim_max && geteuid())
+X				{
+X				zerrnam("limit","can't raise hard limits",NULL,0);
+X				return 1;
+X				}
+X			else
+X				{
+X				limits[lim].rlim_max = val;
+X				if (limits[lim].rlim_max < limits[lim].rlim_cur)
+X					limits[lim].rlim_cur = limits[lim].rlim_max;
+X				}
+X		else
+X			if (val > limits[lim].rlim_max)
+X				{
+X				zerrnam("limit","limit exceeds hard limit",NULL,0);
+X				return 1;
+X				}
+X			else
+X				limits[lim].rlim_cur = val;
+X		}
+X	return 0;
+X#endif
+X}
+X
+Xint bin_unlimit(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+X#ifndef RLIM_INFINITY
+X	zerrnam(nam,"not available on this system",NULL,0);
+X	return 1;
+X#else
+Xint hard = ops['h'],t0,lim;
+X
+X	if (hard && geteuid())
+X		{
+X		zerrnam(nam,"can't remove hard limits",NULL,0);
+X		return 1;
+X		}
+X	if (!*argv)
+X		{
+X		for (t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X			{
+X			if (hard)
+X				limits[t0].rlim_max = RLIM_INFINITY;
+X			else
+X				limits[t0].rlim_cur = limits[t0].rlim_max;
+X			}
+X		return 0;
+X		}
+X	for (; *argv; argv++)
+X		{
+X		for (lim = -1, t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X			if (!strncmp(recs[t0],*argv,strlen(*argv)))
+X				{
+X				if (lim != -1)
+X					lim = -2;
+X				else
+X					lim = t0;
+X				}
+X		if (lim < 0)
+X			{
+X			zerrnam(nam,
+X				(lim == -2) ? "ambiguous resource specification: %s"
+X								: "no such resource: %s",*argv,0);
+X			return 1;
+X			}
+X		if (hard)
+X			limits[lim].rlim_max = RLIM_INFINITY;
+X		else
+X			limits[lim].rlim_cur = limits[lim].rlim_max;
+X		}
+X	return 0;
+X#endif
+X}
+X
+Xvoid showlimits(hard,lim) /**/
+Xint hard;int lim;
+X{
+Xint t0;
+Xlong val;
+X
+X#ifdef RLIM_INFINITY
+X	for (t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X		if (t0 == lim || lim == -1)
+X			{
+X			printf("%-16s",recs[t0]);
+X			val = (hard) ? limits[t0].rlim_max : limits[t0].rlim_cur;
+X			if (val == RLIM_INFINITY)
+X				printf("unlimited\n");
+X			else if (!t0)
+X				printf("%d:%02d:%02d\n",(int) (val/3600),
+X					(int) (val/60) % 60,(int) (val % 60));
+X#ifdef RLIMIT_NOFILE
+X			else if (t0 == RLIMIT_NOFILE)
+X				printf("%d\n",(int) val);
+X#endif
+X			else if (val >= 1024L*1024L)
+X				printf("%ldMb\n",val/(1024L*1024L));
+X			else
+X				printf("%ldKb\n",val/1024L);
+X			}
+X#endif
+X}
+X
+Xint bin_sched(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xchar *s = *argv++;
+Xtime_t t;
+Xlong h,m;
+Xstruct tm *tm;
+Xstruct schedcmd *sch,*sch2,*schl;
+Xint t0;
+X
+X	if (s && *s == '-')
+X		{
+X		t0 = atoi(s+1);
+X
+X		if (!t0)
+X			{
+X			zerrnam("sched","usage for delete: sched -<item#>.",NULL,0);
+X			return 1;
+X			}
+X		for (schl = (struct schedcmd *) &schedcmds, sch = schedcmds, t0--;
+X				sch && t0; sch = (schl = sch)->next, t0--);
+X		if (!sch)
+X			{
+X			zerrnam("sched","not that many entries",NULL,0);
+X			return 1;
+X			}
+X		schl->next = sch->next;
+X		free(sch->cmd);
+X		free(sch);
+X		return 0;
+X		}
+X	if (!s)
+X		{
+X		char tbuf[40];
+X
+X		for (t0 = 1, sch = schedcmds; sch; sch = sch->next,t0++)
+X			{
+X			t = sch->time;
+X			tm = localtime(&t);
+X			ztrftime(tbuf,20,"%a %b %e %k:%M:%S",tm);
+X			printf("%3d %s %s\n",t0,tbuf,sch->cmd);
+X			}
+X		return 0;
+X		}
+X	else if (!*argv)
+X		{
+X		zerrnam("sched","not enough arguments",NULL,0);
+X		return 1;
+X		}
+X	if (*s == '+')
+X		{
+X		h = zstrtol(s+1,&s,10);
+X		if (*s != ':')
+X			{
+X			zerrnam("sched","bad time specifier",NULL,0);
+X			return 1;
+X			}
+X		m = zstrtol(s+1,&s,10);
+X		if (*s)
+X			{
+X			zerrnam("sched","bad time specifier",NULL,0);
+X			return 1;
+X			}
+X		t = time(NULL)+h*3600+m*60;
+X		}
+X	else
+X		{
+X		h = zstrtol(s,&s,10);
+X		if (*s != ':')
+X			{
+X			zerrnam("sched","bad time specifier",NULL,0);
+X			return 1;
+X			}
+X		m = zstrtol(s+1,&s,10);
+X		if (*s && *s != 'a' && *s != 'p')
+X			{
+X			zerrnam("sched","bad time specifier",NULL,0);
+X			return 1;
+X			}
+X		t = time(NULL);
+X		tm = localtime(&t);
+X		t -= tm->tm_sec+tm->tm_min*60+tm->tm_hour*3600;
+X		if (*s == 'p')
+X			h += 12;
+X		t += h*3600+m*60;
+X		if (t < time(NULL))
+X			t += 3600*24;
+X		}
+X	sch = zcalloc(sizeof *sch);
+X	sch->time = t;
+X	sch->cmd = spacejoin(argv);
+X	sch->next = NULL;
+X	for (sch2 = (struct schedcmd *) &schedcmds; sch2->next; sch2 = sch2->next);
+X	sch2->next = sch;
+X	return 0;
+X}
+X
+Xint bin_eval(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xchar *s = spacejoin(argv);
+XList list;
+X
+X	hungets(s);
+X	free(s);
+X	strinbeg();
+X	if (!(list = parse_list()))
+X		{
+X		hflush();
+X		strinend();
+X		return 1;
+X		}
+X	strinend();
+X	runlist(list);
+X	return lastval;
+X}
+X
+X/* get the history event associated with s */
+X
+Xint fcgetcomm(s) /**/
+Xchar *s;
+X{
+Xint cmd;
+X
+X	if (cmd = atoi(s))
+X		{
+X		if (cmd < 0)
+X			cmd = curhist+cmd+1;
+X		return cmd;
+X		}
+X	cmd = hcomsearch(s);
+X	if (cmd == -1)
+X		zerrnam("fc","event not found: %s",s,0);
+X	return cmd;
+X}
+X
+X/* perform old=new substituion */
+X
+Xint fcsubs(sp,sub) /**/
+Xchar **sp;struct asgment *sub;
+X{
+Xchar *s1,*s2,*s3,*s4,*s = *sp,*s5;
+Xint subbed = 0;
+X
+X	while (sub)
+X		{
+X		s1 = sub->name;
+X		s2 = sub->value;
+X		sub = sub->next;
+X		s5 = s;
+X		while (s3 = (char *) ztrstr(s5,s1))
+X			{
+X			s4 = alloc(1+(s3-s)+strlen(s2)+strlen(s3+strlen(s1)));
+X			ztrncpy(s4,s,s3-s);
+X			strcat(s4,s2);
+X			s5 = s4+strlen(s4);
+X			strcat(s4,s3+strlen(s1));
+X			s = s4;
+X			subbed = 1;
+X			}
+X		}
+X	*sp = s;
+X	return subbed;
+X}
+X
+X/* print a series of history events to a file */
+X
+Xint fclist(f,n,r,first,last,subs) /**/
+XFILE *f;int n;int r;int first;int last;struct asgment *subs;
+X{
+Xint done = 0,ct;
+XLknode node;
+Xchar *s;
+X
+X	if (!subs)
+X		done = 1;
+X	last -= first;
+X	first -= firsthist;
+X	if (r)
+X		first += last;
+X	for (node = firstnode(histlist),ct = first; ct && node;
+X		incnode(node), ct--);
+X	first += firsthist;
+X	while (last-- >= 0)
+X		{
+X		if (!node)
+X			{
+X			zerrnam("fc","no such event: %d",NULL,first);
+X			return 1;
+X			}
+X		s = makehstr(getdata(node));
+X		done |= fcsubs(&s,subs);
+X		if (n)
+X			fprintf(f,"%5d  ",first);
+X		if (f == stdout)
+X			{
+X			niceprintf(s,f);
+X			putc('\n',f);
+X			}
+X		else
+X			fprintf(f,"%s\n",s);
+X		node = (r) ? prevnode(node) : nextnode(node);
+X		(r) ? first-- : first++;
+X		}
+X	if (f != stdout)
+X		fclose(f);
+X	if (!done)
+X		{
+X		zerrnam("fc","no substitutions performed",NULL,0);
+X		return 1;
+X		}
+X	return 0;
+X}
+X
+Xint fcedit(ename,fn) /**/
+Xchar *ename;char *fn;
+X{
+X	if (!strcmp(ename,"-"))
+X		return 1;
+X	return !zyztem(ename,fn);
+X}
+X
+X/* fc, history, r */
+X
+Xint bin_fc(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xint first = -1,last = -1,retval,minflag = 0;
+Xchar *s;
+Xstruct asgment *asgf = NULL,*asgl = NULL;
+X
+X	if (!interact)
+X		{
+X		zerrnam(nam,"not interactive shell",NULL,0);
+X		return 1;
+X		}
+X	if (!(ops['l'] && unset(HISTNOSTORE)))
+X		remhist();
+X	if (ops['R'])
+X		{
+X		readhistfile(*argv ? *argv : getsparam("HISTFILE"),1);
+X		return 0;
+X		}
+X	if (ops['W'])
+X		{
+X		savehistfile(*argv ? *argv : getsparam("HISTFILE"),1);
+X		return 0;
+X		}
+X	while (*argv && equalsplit(*argv,&s))
+X		{
+X		struct asgment *a = (struct asgment *) alloc(sizeof *a);
+X
+X		if (!asgf)
+X			asgf = asgl = a;
+X		else
+X			{
+X			asgl->next = a;
+X			asgl = a;
+X			}
+X		a->name = *argv;
+X		a->value = s;
+X		argv++;
+X		}
+X	if (*argv)
+X		{
+X		minflag = **argv == '-';
+X		first = fcgetcomm(*argv);
+X		if (first == -1)
+X			return 1;
+X		argv++;
+X		}
+X	if (*argv)
+X		{
+X		last = fcgetcomm(*argv);
+X		if (last == -1)
+X			return 1;
+X		argv++;
+X		}
+X	if (*argv)
+X		{
+X		zerrnam("fc","too many arguments",NULL,0);
+X		return 1;
+X		}
+X	if (first == -1)
+X		{
+X		first = (ops['l']) ? curhist-16 : curhist;
+X		if (last == -1)
+X			last = (ops['l']) ? curhist : first;
+X		}
+X	if (first < firsthist)
+X		first = firsthist;
+X	if (last == -1)
+X		last = (minflag) ? curhist : first;
+X	if (ops['l'])
+X		retval = fclist(stdout,!ops['n'],ops['r'],first,last,asgf);
+X	else
+X		{
+X		FILE *out;
+X		char *fil = gettemp();
+X
+X		out = fopen(fil,"w");
+X		if (!out)
+X			zerrnam("fc","can't open temp file: %e",NULL,errno);
+X		else
+X			{
+X			retval = 1;
+X			if (!fclist(out,0,ops['r'],first,last,asgf))
+X				if (fcedit(auxdata ? auxdata : fceditparam,fil))
+X					if (stuff(fil))
+X						zerrnam("fc","%e: %s",s,errno);
+X					else
+X						retval = 0;
+X			}
+X		unlink(fil);
+X		}
+X	return retval;
+X}
+X
+Xint bin_suspend(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+X	if (islogin && !ops['f'])
+X		{
+X		zerrnam(name,"can't suspend login shell",NULL,0);
+X		return 1;
+X		}
+X	if (jobbing)
+X		signal(SIGTSTP,SIG_DFL);
+X	kill(0,SIGTSTP);
+X	if (jobbing)
+X		signal(SIGTSTP,SIG_IGN);
+X	return 0;
+X}
+X
+Xint bin_alias(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xstruct alias *an;
+Xstruct asgment *asg;
+Xint incm = !(ops['a'] || ops['g']),ret = 0;
+X
+X	showflag = !incm;
+X	if (!*argv)
+X		listhtable(aliastab,(HFunc) printalias);
+X	else while (asg = getasg(*argv++))
+X		{
+X		if (asg->value)
+X			addhnode(ztrdup(asg->name),mkanode(ztrdup(asg->value),incm),
+X				aliastab,freeanode);
+X		else if (an = (Alias) gethnode(asg->name,aliastab))
+X			printalias(asg->name,an);
+X		else
+X			ret = 1;
+X		}
+X	return ret;
+X}
+X
+X/* print an alias; used with listhtable */
+X
+Xvoid printalias(s,a) /**/
+Xchar *s;struct alias *a;
+X{
+X	if (a->cmd >= 0 && !(showflag && a->cmd))
+X		printf("%s=%s\n",s,a->text);
+X}
+X
+X/* print a param; used with listhtable */
+X
+Xvoid printparam(s,p) /**/
+Xchar *s;Param p;
+X{
+X	if (showflag && !(p->flags & showflag))
+X		return;
+X	if (!showflag)
+X		{
+X		int fgs = p->flags;
+X
+X		if (fgs & PMFLAG_i) printf("integer ");
+X		if (fgs & PMFLAG_A) printf("array ");
+X		if (fgs & PMFLAG_L) printf("left justified %d ",p->ct);
+X		if (fgs & PMFLAG_R) printf("right justified %d ",p->ct);
+X		if (fgs & PMFLAG_Z) printf("zero filled %d ",p->ct);
+X		if (fgs & PMFLAG_l) printf("lowercase ");
+X		if (fgs & PMFLAG_u) printf("uppercase ");
+X		if (fgs & PMFLAG_r) printf("readonly ");
+X		if (fgs & PMFLAG_t) printf("tagged ");
+X		if (fgs & PMFLAG_x) printf("exported ");
+X		}
+X	if (showflag2)
+X		printf("%s\n",s);
+X	else
+X		{
+X		char *t,**u;
+X
+X		printf("%s=",s);
+X		switch (p->flags & PMTYPE)
+X			{
+X			case PMFLAG_s:
+X				if (p->gets.cfn && (t = p->gets.cfn(p)))
+X					puts(t);
+X				else
+X					putchar('\n');
+X				break;
+X			case PMFLAG_i: printf("%ld\n",p->gets.ifn(p)); break;
+X			case PMFLAG_A:
+X				putchar('(');
+X				u = p->gets.afn(p);
+X				if (!*u)
+X					printf(")\n");
+X				else
+X					{
+X					while (u[1])
+X						printf("%s ",*u++);
+X					printf("%s)\n",*u);
+X					}
+X				break;
+X			}
+X		}
+X}
+X
+X/* autoload, declare, export, functions, integer, local, readonly, typeset */
+X
+Xint bin_typeset(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xint on = 0,off = 0,roff,bit = 1,retcode = 0;
+Xchar *optstr = "LRZilurtx";
+Xstruct param *pm;
+Xstruct asgment *asg;
+X
+X	for (; *optstr; optstr++,bit <<= 1)
+X		if (ops[*optstr] == 1)
+X			on |= bit;
+X		else if (ops[*optstr] == 2)
+X			off |= bit;
+X	roff = off;
+X	if (ops['f'])
+X		{
+X		on &= PMFLAG_t|PMFLAG_u;
+X		off &= PMFLAG_t|PMFLAG_u;
+X		showflag = (ops['f'] == 1);
+X		if (ops['@'] && (off || (on & ~(PMFLAG_u|PMFLAG_t))))
+X			{
+X			zerrnam(name,"invalid option(s)",NULL,0);
+X			return 1;
+X			}
+X		showflag2 = 0;
+X		if (!*argv)
+X			{
+X			showflag2 = off|on;
+X			listhtable(cmdnamtab,(HFunc) pshfunc);
+X			}
+X		else for (; *argv; argv++)
+X			{
+X			Cmdnam cc;
+X
+X			if ((cc = (Cmdnam) gethnode(*argv,cmdnamtab)) && cc->type == SHFUNC)
+X				if (on)
+X					cc->flags |= on;
+X				else
+X					pshfunc(*argv,cc);
+X			else if (on & PMFLAG_u)
+X				{
+X				cc = (Cmdnam) zcalloc(sizeof *cc);
+X				cc->type = SHFUNC;
+X				cc->flags = on;
+X				addhnode(ztrdup(*argv),cc,cmdnamtab,freecmdnam);
+X				}
+X			else
+X				retcode = 1;
+X			}
+X		return retcode;
+X		}
+X	if (on & PMFLAG_L)
+X		off |= PMFLAG_R;
+X	if (on & PMFLAG_R)
+X		off |= PMFLAG_L;
+X	if (on & PMFLAG_u)
+X		off |= PMFLAG_l;
+X	if (on & PMFLAG_l)
+X		off |= PMFLAG_u;
+X	on &= ~off;
+X	if (!*argv)
+X		{
+X		showflag = on|off;
+X		showflag2 = roff;
+X		listhtable(paramtab,(HFunc) printparam);
+X		}
+X	else while (asg = getasg(*argv++))
+X		{
+X		if (asg->value && *asg->value == '~') {
+X			*asg->value = Tilde;
+X			singsub(&asg->value);
+X		}
+X		pm = (Param) gethnode(asg->name,paramtab);
+X		if (pm)
+X			{
+X			if (!on && !roff && !asg->value)
+X				{
+X				printparam(asg->name,pm);
+X				continue;
+X				}
+X			pm->flags = (pm->flags | on) & ~off;
+X			if ((on & (PMFLAG_L | PMFLAG_R | PMFLAG_Z | PMFLAG_i)) 
+X					&& (pmtype(pm) != PMFLAG_A))
+X				pm->ct = auxlen;
+X			if (pmtype(pm) != PMFLAG_A)
+X				{
+X				if (pm->flags & PMFLAG_x)
+X					{
+X					if (!pm->env)
+X						pm->env = addenv(asg->name,
+X							(asg->value) ? asg->value : getsparam(asg->name));
+X					}
+X				else if (pm->env)
+X					delenv(pm->env);
+X				if (asg->value)
+X					setsparam(asg->name,ztrdup(asg->value));
+X				}
+X			}
+X		else
+X			{
+X			if (locallist && !(on & PMFLAG_x))
+X				{
+X				permalloc();
+X				addnode(locallist,ztrdup(asg->name));
+X				heapalloc();
+X				}
+X			createparam(ztrdup(asg->name),
+X				ztrdup((asg->value) ? asg->value : ""),on);
+X			pm = (Param) gethnode(asg->name,paramtab);
+X			pm->ct = auxlen;
+X			}
+X		}
+X	return 0;
+X}
+X
+X/* print s with escape sequences */
+X
+Xint escputs(s) /**/
+Xchar *s;
+X{
+Xint nnl = 0;
+X
+X	for (; *s; s++)
+X		if (*s == '\\' && s[1])
+X			switch (*++s)
+X				{
+X				case 'b': putchar('\b'); break;
+X				case 'c': nnl = 1; break;
+X				case 'e': putchar('\033'); break;
+X				case 'f': putchar('\f'); break;
+X				case 'n': putchar('\n'); break;
+X				case 'r': putchar('\r'); break;
+X				case 't': putchar('\t'); break;
+X				case 'v': putchar('\v'); break;
+X				case '\\': putchar('\\'); break;
+X				case '0': putchar(zstrtol(s,&s,8)); s--; break;
+X				default: putchar('\\'); putchar(*s); break;
+X				}
+X		else
+X			putchar(*s);
+X	return nnl;
+X}
+X
+X/* echo, print, pushln */
+X
+Xint bin_print(name,args,ops,func) /**/
+Xchar *name;char **args;char *ops;int func;
+X{
+Xint nnl = 0;
+X
+X	if (ops['z'])
+X		{
+X		permalloc();
+X		pushnode(bufstack,spacejoin(args));
+X		heapalloc();
+X		return 0;
+X		}
+X	if (ops['s'])
+X		{
+X		permalloc();
+X		addnode(histlist,join(args,HISTSPACE));
+X		addnode(lithistlist,join(args,' '));
+X		heapalloc();
+X		curhist++;
+X		return 0;
+X		}
+X	if (ops['R'])
+X		ops['r'] = 1;
+X	for (; *args; args++)
+X		{
+X		if (ops['D'])
+X			printdir(*args);
+X		else if (ops['P'])
+X			{
+X			int junk;
+X			fputs(putprompt(*args,&junk),stdout);
+X			}
+X		else if (ops['r'])
+X			fputs(*args,stdout);
+X		else
+X			nnl |= escputs(*args);
+X		if (args[1])
+X			putchar(ops['l'] ? '\n' : ops['0'] ? '\0' : ' ');
+X		}
+X	if (!(ops['n'] || nnl))
+X		putchar(ops['0'] ? '\0' : '\n');
+X	return 0;
+X}
+X
+Xint bin_dirs(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+XLklist l;
+X
+X	if (ops['v'])
+X		{
+X		Lknode node;
+X		int t0 = 1;
+X
+X		printf("0\t");
+X		printdir(cwd);
+X		for (node = firstnode(dirstack); node; incnode(node))
+X			{
+X			printf("\n%d\t",t0++);
+X			printdir(getdata(node));
+X			}
+X		putchar('\n');
+X		return 0;
+X		}
+X	if (!*argv)
+X		{
+X		pdstack();
+X		return 0;
+X		}
+X	permalloc();
+X	l = newlist();
+X	if (!*argv)
+X		{
+X		heapalloc();
+X		return 0;
+X		}
+X	while (*argv)
+X		addnode(l,ztrdup(*argv++));
+X	freetable(dirstack,freestr);
+X	dirstack = l;
+X	heapalloc();
+X	return 0;
+X}
+X
+Xint bin_unalias(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xint ret = 0;
+Xvptr dat;
+X
+X	while (*argv)
+X		{
+X		if (dat = remhnode(*argv++,aliastab))
+X			freeanode(dat);
+X		else
+X			ret = 1;
+X		}
+X	return ret;
+X}
+X
+X/* disable, unfunction, unhash */
+X
+Xint bin_unhash(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+XCmdnam chn;
+X
+X	while (*argv)
+X		{
+X		if (!strncmp(*argv,"TRAP",4))
+X			unsettrap(getsignum(*argv+4));
+X		chn = zalloc(sizeof *chn);
+X		chn->type = DISABLED;
+X		addhnode(ztrdup(*argv++),chn,cmdnamtab,freecmdnam);
+X		}
+X	return 0;
+X}
+X
+Xint bin_unset(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xint retval = 0;
+Xchar *s;
+X
+X	while (s = *argv++)
+X		if (gethnode(s,paramtab))
+X			unsetparam(s);
+X		else
+X			retval = 1;
+X	return retval;
+X}
+X
+Xstatic char *zbuf;
+X
+Xint zread() /**/
+X{
+Xchar cc;
+X
+X	if (zbuf)
+X		return *zbuf++;
+X	if (read(0,&cc,1) != 1)
+X		return EOF;
+X	return cc;
+X}
+X
+Xint bin_read(name,args,ops,func) /**/
+Xchar *name;char **args;char *ops;int func;
+X{
+Xchar *reply,*pmpt;
+Xint bsiz,c,gotnl = 0;
+Xchar *buf,*bptr;
+X
+X	attachtty((jobtab[thisjob].gleader) ? jobtab[thisjob].gleader : mypgrp);
+X	if (*args)
+X		reply = *args++;
+X	else
+X		reply = "REPLY";
+X	if (ops['z'])
+X		zbuf = (full(bufstack)) ? (char *) getnode(bufstack) : ztrdup("");
+X	else
+X		zbuf = NULL;
+X	if (isatty(0))
+X		{
+X		for (pmpt = reply; *pmpt && *pmpt != '?'; pmpt++);
+X		if (*pmpt++)
+X			{
+X			write(2,pmpt,strlen(pmpt));
+X			pmpt[-1] = '\0';
+X			}
+X		}
+X	while (*args)
+X		{
+X		buf = bptr = zalloc(bsiz = 64);
+Xredo:
+X		for(;;)
+X			{
+X			if (gotnl)
+X				break;
+X			c = zread();
+X			if (!ops['r'] && c == '\n' && bptr != buf && bptr[-1] == '\\')
+X				{
+X				bptr--;
+X				continue;
+X				}
+X			if (c == EOF || iblank(c))
+X				break;
+X			*bptr++ = c;
+X			if (bptr == buf+bsiz)
+X				{
+X				buf = realloc(buf,bsiz *= 2);
+X				bptr = buf+(bsiz/2);
+X				}
+X			}
+X		if (c == EOF)
+X			return 1;
+X		if (c == '\n')
+X			gotnl = 1;
+X		if (bptr == buf)
+X			goto redo;
+X		*bptr = '\0';
+X		setsparam(reply,buf);
+X		reply = *args++;
+X		}
+X	buf = bptr = zalloc(bsiz = 64);
+X	if (!gotnl)
+X		for (;;)
+X			{
+X			c = zread();
+X			if (!ops['r'] && c == '\n' && bptr != buf && bptr[-1] == '\\')
+X				{
+X				bptr--;
+X				continue;
+X				}
+X			if (c == EOF || c == '\n')
+X				break;
+X			*bptr++ = c;
+X			if (bptr == buf+bsiz)
+X				{
+X				buf = realloc(buf,bsiz *= 2);
+X				bptr = buf+(bsiz/2);
+X				}
+X			}
+X	*bptr = '\0';
+X	if (c == EOF)
+X		return 1;
+X	setsparam(reply,buf);
+X	return 0;
+X}
+X
+Xint bin_vared(name,args,ops,func) /**/
+Xchar *name;char **args;char *ops;int func;
+X{
+Xchar *s,*t;
+Xstruct param *pm;
+X
+X	if (!(s = getsparam(args[0])))
+X		{
+X		zerrnam(name,"no such variable: %s",args[0],0);
+X		return 1;
+X		}
+X	permalloc();
+X	pushnode(bufstack,ztrdup(s));
+X	heapalloc();
+X	t = zleread("> ",NULL,2);
+X	if (!t || errflag)
+X		return 1;
+X	if (t[strlen(t)-1] == '\n')
+X		t[strlen(t)-1] = '\0';
+X	pm = gethnode(args[0],paramtab);
+X	if (pmtype(pm) == PMFLAG_A)
+X		setaparam(args[0],spacesplit(t));
+X	else
+X		setsparam(args[0],t);
+X	return 0;
+X}
+X
+X#define fset(X) (flags & X)
+X
+X/* execute a builtin handler function after parsing the arguments */
+X
+Xint execbin(args,cnode) /**/
+XLklist args;Cmdnam cnode;
+X{
+Xstruct bincmd *b;
+Xchar ops[128],*arg,*pp,*name,**argv,**oargv,*optstr;
+Xint t0,flags,sense,argc = 0,op;
+XLknode n;
+X
+X	auxdata = NULL;
+X	auxlen = 0;
+X	for (t0 = 0; t0 != 128; t0++)
+X		ops[t0] = 0;
+X	name = ugetnode(args);
+X	b = builtins+cnode->u.binnum;
+X
+X/* the 'builtin' builtin is handled specially */
+X
+X	if (b->funcid == BIN_BUILTIN)
+X		{
+X		if (!(name = ugetnode(args)))
+X			{
+X			zerrnam("builtin","command name expected",NULL,0);
+X			return 1;
+X			}
+X		for (t0 = 0, b = builtins; b->name; b++,t0++)
+X			if (!strcmp(name,b->name))
+X				break;
+X		if (!b->name)
+X			{
+X			zerrnam("builtin","no such builtin: %s",name,0);
+X			return 1;
+X			}
+X		}
+X	flags = b->flags;
+X	arg = ugetnode(args);
+X	optstr = b->optstr;
+X	if (flags & BINF_ECHOPTS && arg && strcmp(arg,"-n"))
+X		optstr = NULL;
+X	if (optstr)
+X		while (arg &&
+X				((sense = *arg == '-') || fset(BINF_PLUSOPTS) && *arg == '+') &&
+X				(fset(BINF_PLUSOPTS) || !atoi(arg)))
+X			{
+X			pp = arg;
+X			if (arg[1] == '-')
+X				arg++;
+X			if (!arg[1])
+X				{
+X				ops['-'] = 1;
+X				if (!sense)
+X					ops['+'] = 1;
+X				}
+X			else
+X				ops['@'] = 1;
+X			op = -1;
+X			while (*++arg)
+X				if (strchr(b->optstr,op = *arg))
+X					ops[*arg] = (sense) ? 1 : 2;
+X				else
+X					break;
+X			if (*arg)
+X				{
+X				zerr("bad option: %c",NULL,*arg);
+X				return 1;
+X				}
+X			arg = ugetnode(args);
+X			if (fset(BINF_SETOPTS) && op == 'o')
+X				{
+X				int c;
+X				
+X				if (!arg)
+X					prtopt();
+X				else
+X					{
+X					c = optlookup(arg);
+X					if (c == -1)
+X						{
+X						zerr("bad option: %s",arg,0);
+X						return 1;
+X						}
+X					else
+X						{
+X						ops[c] = ops['o'];
+X						arg = ugetnode(args);
+X						}
+X					}
+X				}
+X			if ((fset(BINF_PRINTOPTS) && ops['R']) || ops['-'])
+X				break;
+X			if (fset(BINF_SETOPTS) && ops['A'])
+X				{
+X				auxdata = arg;
+X				arg = ugetnode(args);
+X				break;
+X				}
+X			if (fset(BINF_FCOPTS) && op == 'e')
+X				{
+X				auxdata = arg;
+X				arg = ugetnode(args);
+X				}
+X			if (fset(BINF_TYPEOPT) && (op == 'L' || op == 'R' ||
+X					op == 'Z' || op == 'i') && arg && idigit(*arg))
+X				{
+X				auxlen = atoi(arg);
+X				arg = ugetnode(args);
+X				}
+X			}
+X	if (fset(BINF_R))
+X		auxdata = "-";
+X	if (pp = b->defopts)
+X		while (*pp)
+X			ops[*pp++] = 1;
+X	if (arg)
+X		{
+X		argc = 1;
+X		n = firstnode(args);
+X		while (n)
+X			argc++,incnode(n);
+X		}
+X	oargv = argv = (char **) ncalloc(sizeof(char **) * (argc+1));
+X	if (*argv++ = arg)
+X		while (*argv++ = ugetnode(args));
+X	argv = oargv;
+X	if (errflag)
+X		return 1;
+X	if (argc < b->minargs || (argc > b->maxargs && b->maxargs != -1)) {
+X		zerrnam(name,(argc < b->minargs)
+X			? "not enough arguments" : "too many arguments",NULL,0);
+X		return 1;
+X	}
+X	if (isset(XTRACE)) {
+X		char **pp = argv;
+X		fprintf(stderr,"%s%s",(prompt4) ? prompt4 : "",name);
+X		while (*pp) fprintf(stderr," %s",*pp++);
+X		fputc('\n',stderr);
+X		fflush(stderr);
+X	}
+X	return (*(b->handlerfunc))(name,argv,ops,b->funcid);
+X}
+X
+Xstruct asgment *getasg(s) /**/
+Xchar *s;
+X{
+Xstatic struct asgment asg;
+X
+X	if (!s)
+X		return NULL;
+X	if (*s == '=')
+X		{
+X		zerr("bad assignment",NULL,0);
+X		return NULL;
+X		}
+X	asg.name = s;
+X	for (; *s && *s != '='; s++);
+X	if (*s)
+X		{
+X		*s = '\0';
+X		asg.value = s+1;
+X		}
+X	else
+X		asg.value = NULL;
+X	return &asg;
+X}
+X
+X/* ., source */
+X
+Xint bin_dot(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xchar **old,*old0;
+Xint ret;
+Xchar buf[MAXPATHLEN];
+Xchar *s,**t,*enam;
+X
+X	if (!*argv)
+X		return 0;
+X	old = pparams;
+X	old0 = argzero;
+X	permalloc();
+X	pparams = arrdup(argv+1);
+X	heapalloc();
+X	enam = argzero = ztrdup(*argv);
+X	errno = ENOENT;
+X	ret = 1;
+X	for (s = argzero; *s; s++)
+X		if (*s == '/')
+X			{
+X			ret = source(argzero);
+X			break;
+X			}
+X	if (!*s)
+X		{
+X		for (t = path; *t; t++)
+X			if ((*t)[0] == '.' && !(*t)[1])
+X				{
+X				ret = source(argzero);
+X				break;
+X				}
+X			else
+X				{
+X				sprintf(buf,"%s/%s",*t,argzero);
+X				if (access(buf,F_OK) == 0)
+X					{
+X					ret = source(enam = buf);
+X					break;
+X					}
+X				}
+X		if (!*t && access(argzero,F_OK) == 0)
+X			ret = source(enam = argzero);
+X		}
+X	freearray(pparams);
+X	pparams = old;
+X	if (ret)
+X		zerrnam(name,"%e: %s",enam,errno);
+X	free(argzero);
+X	argzero = old0;
+X	return ret;
+X}
+X
+Xint bin_set(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xstruct option *opp;
+Xchar **x;
+X
+X	if (((ops['+'] && ops['-']) || !ops['-']) && !ops['@'] && !*argv)
+X		{
+X		showflag = ~0;
+X		showflag2 = ops['+'];
+X		listhtable(paramtab,(HFunc) printparam);
+X		}
+X   for (opp = optns; opp->name; opp++)
+X      if (ops[opp->id] == 1)
+X         opts[opp->id] = OPT_SET;
+X      else if (ops[opp->id] == 2)
+X         opts[opp->id] = OPT_UNSET;
+X	if (!*argv && !ops['-'])
+X		return 0;
+X	permalloc();
+X	x = arrdup(argv);
+X	heapalloc();
+X	if (ops['A'])
+X		setaparam(auxdata,x);
+X	else
+X		{
+X		freearray(pparams);
+X		permalloc();
+X		pparams = x;
+X		heapalloc();
+X		}
+X	return 0;
+X}
+X
+X#define pttime(X) printf("%dm%ds",(X)/3600,(X)/60%60)
+X
+Xint bin_times(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xstruct tms buf;
+X
+X	if (times(&buf) == -1)
+X		return 1;
+X	pttime(buf.tms_utime);
+X	putchar(' ');
+X	pttime(buf.tms_stime);
+X	putchar('\n');
+X	pttime(buf.tms_cutime);
+X	putchar(' ');
+X	pttime(buf.tms_cstime);
+X	putchar('\n');
+X	return 0;
+X}
+X
+Xint bin_getopts(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xchar *optstr = *argv++,*var = *argv++;
+Xchar **args = (*argv) ? argv : pparams;
+Xstatic int optcind = 1,quiet;
+Xchar *str,optbuf[3],*opch = optbuf+1;
+X
+X	optbuf[0] = '+'; optbuf[1] = optbuf[2] = '\0';
+X	if (optarg)
+X		free(optarg);
+X	optarg = ztrdup("");
+X	setsparam(var,ztrdup(""));
+X	if (*optstr == ':')
+X		{
+X		quiet = 1;
+X		optstr++;
+X		}
+X	if (optind >= arrlen(args))
+X		return 1;
+X	str = args[optind];
+X	if (*str != '+' && *str != '-' || optcind >= strlen(str) ||
+X			!strcmp("--",str))
+X		{
+X		if (*str == '+' || *str == '-')
+X			optind++;
+X		optcind = 0;
+X		return 1;
+X		}
+X	if (!optcind)
+X		optcind = 1;
+X	*opch = str[optcind++];
+X	if (!args[optind][optcind])
+X		{
+X		optind++;
+X		optcind = 0;
+X		}
+X	for (; *optstr; optstr++)
+X		if (*opch == *optstr)
+X			break;
+X	if (!*optstr)
+X		{
+X		if (quiet)
+X			{
+X			optarg = ztrdup(opch);
+X			setsparam(var,ztrdup("?"));
+X			return 0;
+X			}
+X		zerr("bad option: %c",NULL,*opch);
+X		return 1;
+X		}
+X	setsparam(var,ztrdup(opch-(*str == '+')));
+X	if (optstr[1] == ':')
+X		{
+X		if (!args[optind])
+X			{
+X			if (quiet)
+X				{
+X				optarg = ztrdup(opch);
+X				setsparam(var,ztrdup(":"));
+X				return 0;
+X				}
+X			zerr("argument expected after %c option",NULL,*opch);
+X			return 1;
+X			}
+X		free(optarg);
+X		optarg = ztrdup(args[optind-1]+optcind);
+X		optind++;
+X		optcind = 0;
+X		}
+X	return 0;
+X}
+X
+X/* get a signal number from a string */
+X
+Xint getsignum(s) /**/
+Xchar *s;
+X{
+Xint x = atoi(s),t0;
+X
+X	if (idigit(*s) && x >= 0 && x < VSIGCOUNT)
+X		return x;
+X	for (t0 = 0; t0 != VSIGCOUNT; t0++)
+X		if (!strcmp(s,sigs[t0]))
+X			return t0;
+X	return -1;
+X}
+X
+Xint bin_trap(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+XList l;
+Xchar *arg;
+X
+X	if (!*argv)
+X		{
+X		int t0;
+X
+X		for (t0 = 0; t0 != VSIGCOUNT; t0++)
+X			if (sigtrapped[t0])
+X				if (!sigfuncs[t0])
+X					printf("TRAP%s () {}\n",sigs[t0]);
+X				else
+X					{
+X					char *s = gettext((vptr) sigfuncs[t0],1);
+X					printf("TRAP%s () {\n\t%s\n}\n",sigs[t0],s);
+X					free(s);
+X					}
+X		return 0;
+X		}
+X	if (!strcmp(*argv,"-"))
+X		{
+X		int t0;
+X
+X		argv++;
+X		if (*argv)
+X			for (t0 = 0; t0 != VSIGCOUNT; t0++)
+X				unsettrap(t0);
+X		else
+X			while (*argv)
+X				unsettrap(getsignum(*argv++));
+X		return 0;
+X		}
+X	arg = *argv++;
+X	if (!*arg)
+X		l = NULL;
+X	else if (!(l = parselstring(arg)))
+X		{
+X		zerrnam(name,"couldn't parse trap command",NULL,0);
+X		popheap();
+X		return 1;
+X		}
+X	for (; *argv; argv++)
+X		{
+X		int sg = getsignum(*argv);
+X		if (sg == -1)
+X			{
+X			zerrnam(name,"undefined signal: %s",*argv,0);
+X			break;
+X			}
+X		settrap(sg,l);
+X		}
+X	if (l)
+X		popheap();
+X	return errflag;
+X}
+X
+Xvoid printulimit(lim,hard) /**/
+Xint lim;int hard;
+X{
+Xlong t0;
+X
+X#ifdef RLIM_INFINITY
+X	t0 = (hard) ? limits[lim].rlim_max : limits[lim].rlim_cur;
+X	switch (lim)
+X		{
+X		case RLIMIT_CPU: printf("cpu time (seconds)         "); break;
+X		case RLIMIT_FSIZE: printf("file size (blocks)         "); t0 /= 512; break;
+X		case RLIMIT_DATA: printf("data seg size (kbytes)     "); t0 /= 1024; break;
+X		case RLIMIT_STACK: printf("stack size (kbytes)        "); t0 /= 1024; break;
+X		case RLIMIT_CORE: printf("core file size (blocks)    "); t0 /= 512; break;
+X#ifdef RLIMIT_RSS
+X		case RLIMIT_RSS: printf("resident set size (kbytes) "); t0 /= 1024; break;
+X#endif
+X#ifdef RLIMIT_NOFILE
+X		case RLIMIT_NOFILE: printf("file descriptors           "); break;
+X#endif
+X		}
+X	printf("%ld\n",t0);
+X#endif
+X}
+X
+Xint bin_ulimit(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xint res,hard;
+X
+X#ifndef RLIM_INFINITY
+X	zerrnam(name,"not available on this system",NULL,0);
+X	return 1;
+X#else
+X	hard = ops['H'];
+X	if (ops['a'] || !ops['@'])
+X		res = -1;
+X	else if (ops['t'])
+X		res = RLIMIT_CPU;
+X	else if (ops['f'])
+X		res = RLIMIT_FSIZE;
+X	else if (ops['d'])
+X		res = RLIMIT_DATA;
+X	else if (ops['s'])
+X		res = RLIMIT_STACK;
+X	else if (ops['c'])
+X		res = RLIMIT_CORE;
+X#ifdef RLIMIT_RSS
+X	else if (ops['m'])
+X		res = RLIMIT_RSS;
+X#endif
+X#ifdef RLIMIT_NOFILE
+X	else if (ops['n'])
+X		res = RLIMIT_NOFILE;
+X#endif
+X	else
+X		{
+X		zerrnam(name,"no such limit",NULL,0);
+X		return 1;
+X		}
+X	if (res == -1)
+X		if (*argv)
+X			{
+X			zerrnam(name,"no arguments required after -a",NULL,0);
+X			return 1;
+X			}
+X		else
+X			{
+X			int t0;
+X
+X			for (t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X				printulimit(t0,hard);
+X			return 0;
+X			}
+X	if (!*argv)
+X		printulimit(res,hard);
+X	else if (strcmp(*argv,"unlimited"))
+X		{
+X		long t0;
+X		
+X		t0 = atol(*argv);
+X		switch(res)
+X			{
+X			case RLIMIT_FSIZE: case RLIMIT_CORE: t0 *= 512; break;
+X			case RLIMIT_DATA: case RLIMIT_STACK:
+X#ifdef RLIMIT_RSS
+X			case RLIMIT_RSS:
+X#endif
+X				t0 *= 1024; break;
+X			}
+X		if (hard)
+X			{
+X			if (t0 > limits[res].rlim_max && geteuid())
+X				{
+X				zerrnam(name,"can't raise hard limits",NULL,0);
+X				return 1;
+X				}
+X			limits[res].rlim_max = t0;
+X			}
+X		else
+X			{
+X			if (t0 > limits[res].rlim_max)
+X				{
+X				if (geteuid())
+X					{
+X					zerrnam(name,"value exceeds hard limit",NULL,0);
+X					return 1;
+X					}
+X				limits[res].rlim_max = limits[res].rlim_cur = t0;
+X				}
+X			else
+X				limits[res].rlim_cur = t0;
+X			}
+X		}
+X	else
+X		{
+X		if (hard)
+X			{
+X			if (geteuid())
+X				{
+X				zerrnam(name,"can't remove hard limits",NULL,0);
+X				return 1;
+X				}
+X			limits[res].rlim_max = RLIM_INFINITY;
+X			}
+X		else
+X			limits[res].rlim_cur = limits[res].rlim_max;
+X		}
+X	return 0;
+X#endif
+X}
+X
+Xint putraw(c) /**/
+Xint c;
+X{
+X	putchar(c);
+X	return 0;
+X}
+X
+Xint bin_echotc(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xchar *s,buf[2048],*t,*u;
+Xint num,argct,t0;
+X
+X	s = *argv++;
+X	if (!termok)
+X		return 1;
+X	if ((num = tgetnum(s)) != -1)
+X		{
+X		printf("%d\n",num);
+X		return 0;
+X		}
+X	u = buf;
+X	t = tgetstr(s,&u);
+X	if (!t || !*t)
+X		{
+X		zerrnam(name,"no such capability: %s",s,0);
+X		return 1;
+X		}
+X	for (argct = 0, u = t; *u; u++)
+X		if (*u == '%')
+X			{
+X			if (u++, (*u == 'd' || *u == '2' || *u == '3' || *u == '.' ||
+X					*u == '+'))
+X				argct++;
+X			}
+X	if (arrlen(argv) != argct)
+X		{
+X		zerrnam(name,(arrlen(argv) < argct) ? "not enough arguments" :
+X			"too many arguments",NULL,0);
+X		return 1;
+X		}
+X	if (!argct)
+X		tputs(t,1,putraw);
+X	else
+X		{
+X		t0 = (argv[1]) ? atoi(argv[1]) : atoi(*argv);
+X		tputs(tgoto(t,atoi(*argv),t0),t0,putraw);
+X		}
+X	return 0;
+X}
+X
+Xint bin_pwd(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+X	printf("%s\n",cwd);
+X	return 0;
+X}
+X
+X#define TEST_END 0
+X#define TEST_INPAR 1
+X#define TEST_OUTPAR 2
+X#define TEST_STR 3
+X#define TEST_AND 4
+X#define TEST_OR 5
+X#define TEST_NOT 6
+X
+Xstatic char **tsp;
+Xstatic int *tip;
+X
+Xint bin_test(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xchar **s;
+Xint cnt,*arr,*ap;
+XCond c;
+X
+X	if (func == BIN_BRACKET)
+X		{
+X		for (s = argv; *s; s++);
+X		if (s == argv || strcmp(s[-1],"]"))
+X			{
+X			zerrnam(name,"']' expected",NULL,0);
+X			return 1;
+X			}
+X		s[-1] = NULL;
+X		}
+X	for (s = argv, cnt = 0; *s; s++,cnt++);
+X	ap = arr = alloc((cnt+1)*sizeof *arr);
+X	for (s = argv; *s; s++,ap++)
+X		if (!strcmp(*s,"("))
+X			*ap = TEST_INPAR;
+X		else if (!strcmp(*s,")"))
+X			*ap = TEST_OUTPAR;
+X		else if (!strcmp(*s,"-a"))
+X			*ap = TEST_AND;
+X		else if (!strcmp(*s,"-o"))
+X			*ap = TEST_OR;
+X		else if (!strcmp(*s,"!"))
+X			*ap = TEST_NOT;
+X		else
+X			*ap = TEST_STR;
+X	*ap = TEST_END;
+X	tsp = argv;
+X	tip = arr;
+X	c = partest(0);
+X	if (*tip != TEST_END || errflag)
+X		{
+X		zerrnam(name,"parse error",NULL,0);
+X		return 1;
+X		}
+X	return (c) ? !evalcond(c) : 1;
+X}
+X
+XCond partest(level) /**/
+Xint level;
+X{
+XCond a,b;
+X
+X	switch (level)
+X		{
+X		case 0:
+X			a = partest(1);
+X			if (*tip == TEST_OR)
+X				{
+X				tip++,tsp++;
+X				b = makecond();
+X				b->left = a;
+X				b->right = partest(0);
+X				b->type = COND_OR;
+X				return b;
+X				}
+X			return a;
+X		case 1:
+X			a = partest(2);
+X			if (*tip == TEST_AND)
+X				{
+X				tip++,tsp++;
+X				b = makecond();
+X				b->left = a;
+X				b->right = partest(1);
+X				b->type = COND_AND;
+X				return b;
+X				}
+X			return a;
+X		case 2:
+X			if (*tip == TEST_NOT)
+X				{
+X				tip++,tsp++;
+X				b = makecond();
+X				b->left = partest(2);
+X				b->type = COND_NOT;
+X				return b;
+X				}
+X		case 3:
+X			if (*tip == TEST_INPAR)
+X				{
+X				tip++,tsp++;
+X				b = partest(0);
+X				if (*tip != TEST_OUTPAR)
+X					{
+X					zerrnam("test","parse error",NULL,0);
+X					return NULL;
+X					}
+X				tip++,tsp++;
+X				return b;
+X				}
+X			if (tip[0] != TEST_STR)
+X				{
+X				zerrnam("test","parse error",NULL,0);
+X				return NULL;
+X				}
+X			else if (tip[1] != TEST_STR)
+X				{
+X				b = makecond();
+X				if (!strcmp(*tsp,"-t"))
+X					{
+X					b->left = strdup("1");
+X					b->type = 't';
+X					}
+X				else
+X					{
+X					b->left = tsp[0];
+X					b->type = 'n';
+X					}
+X				tip++,tsp++;
+X				return b;
+X				}
+X			else if (tip[2] != TEST_STR)
+X				{
+X				b = par_cond_double(tsp[0],tsp[1]);
+X				tip += 2,tsp += 2;
+X				return b;
+X				}
+X			else
+X				{
+X				b = par_cond_triple(tsp[0],tsp[1],tsp[2]);
+X				tip += 3,tsp += 3;
+X				return b;
+X				}
+X		}
+X   return NULL;
+X}
+X
+SHAR_EOF
+echo 'File zsh2.1/src/builtin.c is complete' &&
+chmod 0644 zsh2.1/src/builtin.c ||
+echo 'restore of zsh2.1/src/builtin.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/builtin.c'`"
+test 56254 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/builtin.c: original size 56254, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/cond.c ==============
+if test -f 'zsh2.1/src/cond.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/cond.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/cond.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/cond.c' &&
+X/*
+X
+X	cond.c - evaluate conditional expressions
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X
+Xint evalcond(c) /**/
+XCond c;
+X{
+Xstruct stat *st;
+X
+X	switch (c->type)
+X		{
+X		case COND_NOT: return !evalcond(c->left);
+X		case COND_AND: return evalcond(c->left) && evalcond(c->right);
+X		case COND_OR: return evalcond(c->left) || evalcond(c->right);
+X		}
+X	singsub((char **) &c->left);
+X	untokenize(c->left);
+X	if (c->right)
+X		{
+X		singsub((char **) &c->right);
+X		if (c->type != COND_STREQ && c->type != COND_STRNEQ)
+X			untokenize(c->right);
+X		}
+X	switch (c->type)
+X		{
+X		case COND_STREQ: return matchpat(c->left,c->right);
+X		case COND_STRNEQ: return !matchpat(c->left,c->right);
+X		case COND_STRLT: return strcmp(c->left,c->right) < 0;
+X		case COND_STRGTR: return strcmp(c->left,c->right) > 0;
+X		case 'a': return(doaccess(c->left,F_OK));
+X		case 'b': return(S_ISBLK(dostat(c->left)));
+X		case 'c': return(S_ISCHR(dostat(c->left)));
+X		case 'd': return(S_ISDIR(dostat(c->left)));
+X		case 'f': return(S_ISREG(dostat(c->left)));
+X		case 'g': return(!!(dostat(c->left) & S_ISGID));
+X		case 'k': return(!!(dostat(c->left) & S_ISVTX));
+X		case 'n': return(!!strlen(c->left));
+X		case 'o': return(optison(c->left));
+X		case 'p': return(S_ISFIFO(dostat(c->left)));
+X		case 'r': return(doaccess(c->left,R_OK));
+X		case 's': return((st = getstat(c->left)) && !!(st->st_size));
+X		case 'S': return(S_ISSOCK(dostat(c->left)));
+X		case 'u': return(!!(dostat(c->left) & S_ISUID));
+X		case 'w': return(doaccess(c->left,W_OK));
+X		case 'x': return(doaccess(c->left,X_OK));
+X		case 'z': return(!strlen(c->left));
+X		case 'L': return(S_ISLNK(dolstat(c->left)));
+X		case 'O': return((st = getstat(c->left)) && st->st_uid == geteuid());
+X		case 'G': return((st = getstat(c->left)) && st->st_gid == getegid());
+X		case 't': return isatty(matheval(c->left));
+X		case COND_EQ: return matheval(c->left) == matheval(c->right);
+X		case COND_NE: return matheval(c->left) != matheval(c->right);
+X		case COND_LT: return matheval(c->left) < matheval(c->right);
+X		case COND_GT: return matheval(c->left) > matheval(c->right);
+X		case COND_LE: return matheval(c->left) <= matheval(c->right);
+X		case COND_GE: return matheval(c->left) >= matheval(c->right);
+X		case COND_NT: case COND_OT:
+X			{
+X			time_t a;
+X			if (!(st = getstat(c->left)))
+X				return 0;
+X			a = st->st_mtime;
+X			if (!(st = getstat(c->right)))
+X				return 0;
+X			return (c->type == COND_NT) ? a > st->st_mtime : a < st->st_mtime;
+X			}
+X		case COND_EF:
+X			{
+X			dev_t d;
+X			ino_t i;
+X
+X			if (!(st = getstat(c->left)))
+X				return 0;
+X			d = st->st_dev;
+X			i = st->st_ino;
+X			if (!(st = getstat(c->right)))
+X				return 0;
+X			return d == st->st_dev && i == st->st_ino;
+X			}
+X		default: zerr("bad cond structure",NULL,0);
+X		}
+X	return 0;
+X}
+X
+Xint doaccess(s,c) /**/
+Xchar *s;int c;
+X{
+X	return !access(s,c);
+X}
+X
+Xstatic struct stat st;
+X
+Xstruct stat *getstat(s) /**/
+Xchar *s;
+X{
+X	if (!strncmp(s,"/dev/fd/",8))
+X		{
+X		if (fstat(atoi(s+8),&st))
+X			return NULL;
+X		}
+X	else if (stat(s,&st))
+X		return NULL;
+X	return &st;
+X}
+X
+Xunsigned short dostat(s) /**/
+Xchar *s;
+X{
+Xstruct stat *st;
+X
+X	if (!(st = getstat(s)))
+X		return 0;
+X	return st->st_mode;
+X}
+X
+X/* pem@aaii.oz; needed since dostat now uses "stat" */
+X
+Xunsigned short dolstat(s) /**/
+Xchar *s;
+X{
+X	if (lstat(s, &st) < 0)
+X		return 0;
+X	return st.st_mode;
+X}
+X
+Xint optison(s) /**/
+Xchar *s;
+X{
+Xint i;
+X
+X	if (strlen(s) == 1)
+X		return opts[*s];
+X	if ((i = optlookup(s)) != -1)
+X		return opts[i];
+X	zerr("no such option: %s",s,0);
+X	return 0;
+X}
+X
+SHAR_EOF
+chmod 0644 zsh2.1/src/cond.c ||
+echo 'restore of zsh2.1/src/cond.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/cond.c'`"
+test 4485 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/cond.c: original size 4485, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/exec.c ==============
+if test -f 'zsh2.1/src/exec.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/exec.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/exec.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/exec.c' &&
+X/*
+X
+X	exec.c - command execution
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X#include <sys/errno.h>
+X#ifdef __hpux
+X#include <ndir.h>
+X#else
+X#include <sys/dir.h>
+X#endif
+X
+X#define execerr() { if (forked) exit(1); \
+X	closemnodes(mfds); errflag = 1; return; }
+X
+X/* parse list in a string */
+X
+XList parselstring(s) /**/
+Xchar *s;
+X{
+XList l;
+X
+X	hungets(s);
+X	strinbeg();
+X	pushheap();
+X	if (!(l = parse_list()))
+X		{
+X		strinend();
+X		hflush();
+X		popheap();
+X		return NULL;
+X		}
+X	strinend();
+X	return l;
+X}
+X
+X/* execute a string */
+X
+Xvoid execstring(s) /**/
+Xchar *s;
+X{
+XList l;
+X
+X	if (l = parselstring(s))
+X		{
+X		execlist(l);
+X		popheap();
+X		}
+X}
+X
+X/* duplicate a list and run it */
+X
+Xvoid newrunlist(l) /**/
+XList l;
+X{
+X	List a = (List) dupstruct(l); runlist(a);
+X}
+X
+X/* fork and set limits */
+X
+Xint phork() /**/
+X{
+Xint pid = fork(),t0;
+X
+X	if (pid == -1)
+X		{
+X		zerr("fork failed: %e",NULL,errno);
+X		return -1;
+X		}
+X#ifdef RLIM_INFINITY
+X	if (!pid)
+X		for (t0 = 0; t0 != RLIM_NLIMITS; t0++)
+X			setrlimit(t0,limits+t0);
+X#endif
+X	return pid;
+X}
+X
+X/* execute a current shell command */
+X
+Xint execcursh(cmd) /**/
+XCmd cmd;
+X{
+X	runlist(cmd->u.list);
+X	cmd->u.list = NULL;
+X	return lastval;
+X}
+X
+X/* execve after handling $_ and #! */
+X
+X#define POUNDBANGLIMIT 64
+X
+Xvoid zexecve(pth,argv,ee,b1,b2) /**/
+Xchar *pth;char **argv;int *ee;char *b1;char *b2;
+X{
+Xint eno;
+Xchar buf[MAXPATHLEN*2];
+Xchar **eep;
+X
+X	for (eep = environ; *eep; eep++)
+X		if (**eep == '_' && (*eep)[1] == '=')
+X			break;
+X	buf[0] = '_';
+X	buf[1] = '=';
+X	if (*pth == '/')
+X		strcpy(buf+2,pth);
+X	else
+X		sprintf(buf+2,"%s/%s",cwd,pth);
+X	if (!*eep)
+X		eep[1] = NULL;
+X	*eep = buf;
+X	execve(pth,argv,environ);
+X	if ((eno = errno) == ENOEXEC)
+X		{
+X		char buf[POUNDBANGLIMIT+1],*ptr,*ptr2,*argv0;
+X		int fd,ct,t0;
+X
+X		if ((fd = open(pth,O_RDONLY)) >= 0)
+X			{
+X			argv0 = *argv;
+X			*argv = pth;
+X			ct = read(fd,buf,POUNDBANGLIMIT);
+X			close(fd);
+X			if (ct > 0)
+X				{
+X				if (buf[0] == '#')
+X					if (buf[1] == '!')
+X						{
+X						for (t0 = 0; t0 != ct; t0++)
+X							if (buf[t0] == '\n')
+X								buf[t0] = '\0';
+X						buf[POUNDBANGLIMIT] = '\0';
+X						for (ptr = buf+2; *ptr && *ptr == ' '; ptr++);
+X						for (ptr2 = ptr; *ptr && *ptr != ' '; ptr++);
+X						if (*ptr)
+X							{
+X							*ptr = '\0';
+X							argv[-2] = ptr2;
+X							argv[-1] = ptr+1;
+X							execve(ptr2,argv-2,environ);
+X							}
+X						else
+X							{
+X							argv[-1] = ptr2;
+X							execve(ptr2,argv-1,environ);
+X							}
+X						}
+X					else
+X						{
+X						argv[-1] = "sh";
+X						execve("/bin/sh",argv-1,environ);
+X						}
+X				else
+X					{
+X					for (t0 = 0; t0 != ct; t0++)
+X						if (!buf[t0])
+X							break;
+X					if (t0 == ct)
+X						{
+X						argv[-1] = "sh";
+X						execve("/bin/sh",argv-1,environ);
+X						}
+X					}
+X				}
+X			else
+X				eno = errno;
+X			*argv = argv0;
+X			}
+X		else
+X			eno = errno;
+X		}
+X	if (ee && eno != ENOENT)
+X		{
+X		*ee = eno;
+X		strcpy(b1,b2);
+X		}
+X}
+X
+X#define MAXCMDLEN (MAXPATHLEN*4)
+X
+X/* execute an external command */
+X
+Xvoid execute(args,dash) /**/
+XLklist args;int dash;
+X{
+Xchar **argv,*arg0;
+Xchar *z,*s,buf[MAXCMDLEN],buf2[MAXCMDLEN];
+XCmdnam cn;
+Xint tl,ee = 0;
+X
+X	if (!full(args)) {
+X		zerr("no command");
+X		_exit(1);
+X	}
+X	cn = (Cmdnam) gethnode(peekfirst(args),cmdnamtab);
+X	if (cn && cn->type == DISABLED)
+X		cn = NULL;
+X	if (s = zgetenv("STTY"))
+X		zyztem("stty",s);
+X	arg0 = peekfirst(args);
+X	if (z = zgetenv("ARGV0"))
+X		{
+X		setdata(firstnode(args),ztrdup(z));
+X		delenv(z-6);
+X		}
+X	else if (dash)
+X		{
+X		sprintf(buf2,"-%s",arg0);
+X		setdata(firstnode(args),ztrdup(buf2));
+X		}
+X	argv = makecline(args);
+X	fixsigs();
+X	if (cn && ISEXCMD(cn->type))
+X		{
+X		if (cn->type == EXCMD_POSTDOT)
+X			zexecve(arg0,argv,&ee,buf2,buf);
+X		zexecve(cn->u.nam,argv,&ee,buf2,buf);
+X		}
+X	for (s = arg0; *s; s++)
+X		if (*s == '/')
+X			{
+X			zexecve(arg0,argv,NULL,NULL,NULL);
+X			if (arg0 == s || unset(PATHDIRS))
+X				{
+X				zerr("%e: %s",arg0,errno);
+X				_exit(1);
+X				}
+X			break;
+X			}
+X	for (; *path; path++)
+X		if ((*path)[0] == '.' && !(*path)[1])
+X			zexecve(arg0,argv,&ee,buf2,buf);
+X		else
+X			{
+X			tl = strlen(*path);
+X			strcpy(buf,*path);
+X			buf[tl] = '/';
+X			if (strlen(arg0)+strlen(buf)+1 >= MAXCMDLEN)
+X				{
+X				zerr("command too long: %s",arg0,0);
+X				_exit(1);
+X				}
+X			strcpy(buf+tl+1,arg0);
+X			zexecve(buf,argv,&ee,buf2,buf);
+X			}
+X	if (ee)
+X		{
+X		zerr("%e: %s",arg0,ee);
+X		_exit(1);
+X		}
+X	zerr("command not found: %s",arg0,0);
+X	_exit(1);
+X}
+X
+X#define try(X) { if (!access(X,X_OK)) return ztrdup(X); }
+X
+X/* get the pathname of a command */
+X
+Xchar *findcmd(arg0) /**/
+Xchar *arg0;
+X{
+Xchar *s,buf[MAXPATHLEN];
+Xint tl;
+Xstruct cmdnam *cn = (Cmdnam) gethnode(arg0,cmdnamtab);
+Xchar **pp = path;
+X
+X	if (cn && cn->type == DISABLED)
+X		cn = NULL;
+X	if (cn && ISEXCMD(cn->type))
+X		{
+X		if (cn->type == EXCMD_POSTDOT)
+X			{
+X			strcpy(buf,"./");
+X			strcat(buf,arg0);
+X			try(buf);
+X			}
+X		try(cn->u.nam);
+X		}
+X	for (s = arg0; *s; s++)
+X		if (*s == '/')
+X			{
+X			try(arg0);
+X			if (s == arg0 || unset(PATHDIRS))
+X				goto failed;
+X			break;
+X			}
+X	for (; *pp; pp++)
+X		if (**pp == '.')
+X			{
+X			strcpy(buf,"./");
+X			strcat(buf,arg0);
+X			try(buf);
+X			}
+X		else
+X			{
+X			tl = strlen(*pp);
+X			strcpy(buf,*pp);
+X			buf[tl] = '/';
+X			strcpy(buf+tl+1,arg0);
+X			try(buf);
+X			}
+Xfailed:
+X	return NULL;
+X}
+X
+Xvoid execlist(list) /**/
+XList list;
+X{
+X	if (breaks)
+X		return;
+X	simplifyright(list);
+X	switch(list->type)
+X		{
+X		case SYNC:
+X		case ASYNC:
+X			execlist2(list->left,list->type,!list->right);
+X			if (sigtrapped[SIGDEBUG])
+X				dotrap(SIGDEBUG);
+X			if (sigtrapped[SIGERR] && lastval)
+X				dotrap(SIGERR);
+X			if (list->right && !retflag)
+X				execlist(list->right);
+X			break;
+X		}
+X}
+X
+Xvoid execlist2(list,type,last1) /**/
+XSublist list;int type;int last1;
+X{
+X	switch(list->type)
+X		{
+X		case END:
+X			execpline(list,type,last1);
+X			break;
+X		case ORNEXT:
+X			if (!execpline(list,SYNC,0))
+X				execlist2(list->right,type,last1);
+X			break;
+X		case ANDNEXT:
+X			if (execpline(list,SYNC,0))
+X				execlist2(list->right,type,last1);
+X			break;
+X		}
+X}
+X
+Xint execpline(l,how,last1) /**/
+XSublist l;int how;int last1;
+X{
+Xint ipipe[2],opipe[2];
+X
+X	ipipe[0] = ipipe[1] = opipe[0] = opipe[1] = 0;
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/exec.c failed'
+fi
+echo 'End of zsh2.1.0 part 5'
+echo 'File zsh2.1/src/exec.c is continued in part 6'
+echo 6 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

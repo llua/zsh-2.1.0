@@ -1,0 +1,2431 @@
+Path: funic!news.funet.fi!sunic!seunet!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i006:  zsh2.1 - The Z shell, Part06/19
+Message-ID: <1991Oct24.190840.25712@sparky.imd.sterling.com>
+Date: 24 Oct 91 19:08:40 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 2417
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 01c07cafb955e10e801560c9c5869f5c
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 6
+Archive-name: zsh2.1/part06
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.06 (part 6 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/exec.c continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 6; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/exec.c'
+else
+echo 'x - continuing file zsh2.1/src/exec.c'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/exec.c' &&
+X	blockchld();
+X	if ((thisjob = getfreejob()) == -1)
+X		return 1;
+X	initjob();
+X	if (how == TIMED)
+X		{
+X		jobtab[thisjob].stat |= STAT_TIMED;
+X		how = SYNC;
+X		}
+X	if (l->flags & PFLAG_COPROC)
+X		{
+X		how = ASYNC;
+X		mpipe(ipipe);
+X		mpipe(opipe);
+X		if (coprocin)
+X			{
+X			close(coprocin);
+X			close(coprocout);
+X			}
+X		coprocin = ipipe[0];
+X		coprocout = opipe[1];
+X		}
+X	execpline2(l->left,how,opipe[0],ipipe[1],last1);
+X	if (how == ASYNC)
+X		{
+X		spawnjob();
+X		unblockchld();
+X		return 1;
+X		}
+X	else
+X		{
+X		waitjobs();
+X		unblockchld();
+X		if (l->flags & PFLAG_NOT)
+X			lastval = !lastval;
+X		return !lastval;
+X		}
+X}
+X
+Xvoid execpline2(pline,how,input,output,last1) /**/
+XPline pline;int how;int input;int output;int last1;
+X{
+Xint pid;
+Xint pipes[2];
+X
+X	if (breaks)
+X		return;
+X	if (!pline)
+X		return;
+X	if (pline->type == END)
+X		{
+X		execcmd(pline->left,input,output,how==ASYNC,last1);
+X		pline->left = NULL;
+X		}
+X	else
+X		{
+X		mpipe(pipes);
+X
+X		/* if we are doing "foo | bar" where foo is a current
+X			shell command, do foo in the current shell and do
+X			the rest of the pipeline in a subshell. */
+X
+X		if (pline->left->type >= CURSH && how == SYNC)
+X			{
+X			if (!(pid = fork()))
+X				{
+X				close(pipes[1]);
+X				entersubsh(how==ASYNC);
+X				exiting = 1;
+X				execpline2(pline->right,ASYNC,pipes[0],output,1);
+X				_exit(lastval);
+X				}
+X			else if (pid == -1)
+X				zerr("fork failed: %e",NULL,errno);
+X			else
+X				{
+X				char *s,*text;
+X
+X				close(pipes[0]);
+X				text = s = gettext((vptr) pline->right,0);
+X				addproc(pid,text)->lastfg = 1;
+X				pline->right = NULL;
+X				}
+X			}
+X
+X		/* otherwise just do the pipeline normally. */
+X
+X		execcmd(pline->left,input,pipes[1],how==ASYNC,0);
+X		pline->left = NULL;
+X		close(pipes[1]);
+X		if (pline->right)
+X			{
+X			execpline2(pline->right,how,pipes[0],output,last1);
+X			close(pipes[0]);
+X			}
+X		}
+X}
+X
+X/* make the argv array */
+X
+Xchar **makecline(list) /**/
+Xstruct lklist *list;
+X{
+Xint ct = 0;
+XLknode node;
+Xchar **argv,**ptr;
+X
+X	if (isset(XTRACE))
+X		{
+X		fprintf(stderr,"%s",(prompt4) ? prompt4 : "");
+X		for (node = firstnode(list); node; incnode(node),ct++);
+X		ptr = argv = 2+(char **) ncalloc((ct+4)*sizeof(char *));
+X		for (node = firstnode(list); node; incnode(node))
+X			if (*(char *) getdata(node))
+X				{
+X				*ptr++ = getdata(node);
+X				untokenize(getdata(node));
+X				fputs(getdata(node),stderr);
+X				if (nextnode(node))
+X					fputc(' ',stderr);
+X				}
+X		*ptr = NULL;
+X		fputc('\n',stderr);
+X		fflush(stderr);
+X		return(argv);
+X		}
+X	else
+X		{
+X		for (node = firstnode(list); node; incnode(node),ct++);
+X		ptr = argv = 2+(char **) ncalloc((ct+4)*sizeof(char *));
+X		for (node = firstnode(list); node; incnode(node))
+X			if (*(char *) getdata(node))
+X				{
+X				*ptr++ = getdata(node);
+X				untokenize(getdata(node));
+X				}
+X		*ptr = NULL;
+X		return(argv);
+X		}
+X}
+X
+X/* untokenize the command line and remove null arguments */
+X
+Xvoid fixcline(l) /**/
+XLklist l;
+X{
+XLknode node,next;
+X
+X	for (node = firstnode(l); node; node = next)
+X		{
+X		next = nextnode(node);
+X		if (!*(char *) getdata(node))
+X			uremnode(l,node);
+X		else
+X			untokenize(getdata(node));
+X		}
+X}
+X
+Xvoid untokenize(s) /**/
+Xchar *s;
+X{
+X	for (; *s; s++)
+X		if (itok(*s))
+X			if (*s == Nularg)
+X				chuck(s--);
+X			else
+X				*s = ztokens[*s-Pound];
+X}
+X
+X/* nonzero if we shouldn't clobber a file */
+X
+Xint dontclob(f) /**/
+Xstruct redir *f;
+X{
+Xstruct stat buf;
+X
+X	if (unset(NOCLOBBER) || f->type & 1)
+X		return 0;
+X	if (stat(f->name,&buf) == -1)
+X		return 1;
+X	return S_ISREG(buf.st_mode);
+X}
+X
+X/* close an multio (success) */
+X
+Xvoid closemn(mfds,fd) /**/
+Xstruct multio **mfds;int fd;
+X{
+X	if (mfds[fd])
+X		{
+X		if (mfds[fd]->ct > 1)
+X			if (mfds[fd]->rflag == 0)
+X				catproc(mfds[fd]);
+X			else
+X				teeproc(mfds[fd]);
+X		mfds[fd] = NULL;
+X		}
+X}
+X
+X/* close all the mnodes (failure) */
+X
+Xvoid closemnodes(mfds) /**/
+Xstruct multio **mfds;
+X{
+Xint t0,t1;
+X
+X	for (t0 = 0; t0 != 10; t0++)
+X		if (mfds[t0])
+X			{
+X			for (t1 = 0; t1 != mfds[t0]->ct; t1++)
+X				close(mfds[t0]->fds[t1]);
+X			mfds[t0] = NULL;
+X			}
+X}
+X
+X/* add a fd to an multio */
+X/* an multio is a list of fds associated with a certain fd.
+X	thus if you do "foo >bar >ble", the multio for fd 1 will have
+X	two fds, the result of open("bar",...), and the result of
+X	open("ble",....). */
+X
+Xvoid addfd(forked,save,mfds,fd1,fd2,rflag) /**/
+Xint forked;int *save;struct multio **mfds;int fd1;int fd2;int rflag;
+X{
+Xint pipes[2];
+X
+X	if (!mfds[fd1])	/* starting a new multio */
+X		{
+X		mfds[fd1] = (struct multio *) alloc(sizeof(struct multio));
+X		if (!forked && fd1 != fd2 && fd1 < 10)
+X			save[fd1] = movefd(fd1);
+X		redup(fd2,fd1);
+X		mfds[fd1]->ct = 1;
+X		mfds[fd1]->fds[0] = fd1;
+X		mfds[fd1]->rflag = rflag;
+X		}
+X	else
+X		{
+X		if (mfds[fd1]->rflag != rflag)
+X			{
+X			zerr("file mode mismatch on fd %d",NULL,fd1);
+X			return;
+X			}
+X		if (mfds[fd1]->ct == 1)		/* split the stream */
+X			{
+X			mfds[fd1]->fds[0] = movefd(fd1);
+X			mfds[fd1]->fds[1] = movefd(fd2);
+X			mpipe(pipes);
+X			mfds[fd1]->pipe = pipes[1-rflag];
+X			redup(pipes[rflag],fd1);
+X			mfds[fd1]->ct = 2;
+X			}
+X		else		/* add another fd to an already split stream */
+X			mfds[fd1]->fds[mfds[fd1]->ct++] = movefd(fd2);
+X		}
+X}
+X
+Xvoid addvars(l,export) /**/
+XLklist l;int export;
+X{
+Xstruct varasg *v;
+XLklist vl;
+X
+X	while (full(l))
+X		{
+X		char **arr,**ptr;
+X
+X		v = (struct varasg *) ugetnode(l);
+X		singsub(&v->name);
+X		if (errflag)
+X			return;
+X		untokenize(v->name);
+X		if (v->type == PMFLAG_s)
+X			{
+X			vl = newlist();
+X			addnode(vl,v->str);
+X			}
+X		else
+X			vl = v->arr;
+X		prefork(vl);
+X		if (errflag)
+X			return;
+X		postfork(vl,1);
+X		if (errflag)
+X			return;
+X		if (v->type == PMFLAG_s && (!full(vl) || !nextnode(firstnode(vl))))
+X			{
+X			Param pm;
+X			char *val;
+X
+X			if (!full(vl))
+X				pm = setsparam(v->name,val = ztrdup(""));
+X			else
+X				{
+X				untokenize(peekfirst(vl));
+X				pm = setsparam(v->name,val = ztrdup(ugetnode(vl)));
+X				}
+X			if (export && !(pm->flags & PMFLAG_x))
+X				addenv(v->name,val);
+X			continue;
+X			}
+X		ptr = arr = (char **) zalloc(sizeof(char **)*(countnodes(vl)+1));
+X		while (full(vl))
+X			{
+X			*ptr = ztrdup(ugetnode(vl));
+X			untokenize(*ptr++);
+X			}
+X		*ptr = NULL;
+X		setaparam(v->name,arr);
+X		}
+X}
+X
+Xvoid execcmd(cmd,input,output,bkg,last1) /**/
+XCmd cmd;int input;int output;int bkg;int last1;
+X{
+Xint type;
+Xlong pid = 0;
+XLklist args = cmd->args;
+Xint save[10],t0;
+Xstruct redir *fn;
+Xstruct multio *mfds[10];
+Xint fil,forked = 0,iscursh = 0,nullexec = 0;
+XCmdnam chn = NULL;
+Xchar *text;
+X
+X	for (t0 = 0; t0 != 10; t0++)
+X		{
+X		save[t0] = 0;
+X		mfds[t0] = NULL;
+X		}
+X	if ((type = cmd->type) == SIMPLE && !full(args))
+X		if (full(cmd->redir))
+X			if (cmd->flags & CFLAG_EXEC)
+X				nullexec = 1;
+X			else if (!*nullcmd)
+X				{
+X				zerr("redirection with no command",NULL,0);
+X				errflag = lastval = 1;
+X				return;
+X				}
+X			else
+X				addnode(args,strdup(nullcmd));
+X		else
+X			{
+X			addvars(cmd->vars,0);
+X			return;
+X			}
+X	if (full(args) && *(char *) peekfirst(args) == '%')
+X		{
+X		insnode(args,(Lknode) args,strdup((bkg) ? "bg" : "fg"));
+X		bkg = 0;
+X		}
+X	if (isset(AUTORESUME) && !bkg && !full(cmd->redir) && full(args) &&
+X			!input && type == SIMPLE && !nextnode(firstnode(args)) &&
+X			findjobnam(peekfirst(args)) != -1)
+X		pushnode(args,strdup("fg"));
+X	if (unset(RMSTARSILENT) && interact && isset(SHINSTDIN) &&
+X				type == SIMPLE && full(args) && nextnode(firstnode(args)) &&
+X				!strcmp(peekfirst(args),"rm"))
+X			{
+X			char *s = getdata(nextnode(firstnode(args)));
+X
+X			if (s[0] == Star && !s[1])
+X				checkrmall();
+X			}
+X	if (jobbing)	/* get the text associated with this command */
+X		{
+X		char *s;
+X		s = text = gettext((vptr) cmd,0);
+X		}
+X	else
+X		text = NULL;
+X	prefork(args);	/* do prefork substitutions */
+X	if (errflag)
+X		{
+X		lastval = 1;
+X		return;
+X		}
+X	if (full(args) && ((char*)peekfirst(args))[0] == Inbrack &&
+X			((char*)peekfirst(args))[1] == '\0')
+X		((char*)peekfirst(args))[0] = '[';
+X	if (full(args) && !(cmd->flags & CFLAG_COMMAND))
+X		chn = (Cmdnam) gethnode(peekfirst(args),cmdnamtab);
+X	if (type == SIMPLE && !pathsuppress && !chn && isset(AUTOCD) &&
+X			full(args) && !full(cmd->redir) &&
+X			!nextnode(firstnode(args)) && cancd(peekfirst(args)))
+X		{
+X		pushnode(args,strdup("cd"));
+X		chn = (Cmdnam) gethnode("cd",cmdnamtab);
+X		}
+X
+X	/* this is nonzero if cmd is a current shell procedure */
+X
+X	iscursh = (type >= CURSH) || (type == SIMPLE && chn &&
+X		(chn->type == BUILTIN || chn->type == SHFUNC));
+X
+X	/* if this command is backgrounded or (this is an external
+X		command and we are not exec'ing it) or this is a builtin
+X		with output piped somewhere, then fork.  If this is the
+X		last stage in a subshell pipeline, don't fork, but make
+X		the rest of the function think we forked. */
+X
+X	if (bkg || !(iscursh || (cmd->flags & CFLAG_EXEC)) ||
+X			(chn && (chn->type == BUILTIN || chn->type == SHFUNC) && output))
+X		{
+X		int synch[2];
+X
+X		pipe(synch);
+X		pid = (last1 && execok()) ? 0 : phork();
+X		if (pid == -1)
+X			{
+X			close(synch[0]);
+X			close(synch[1]);
+X			return;
+X			}
+X		if (pid)
+X			{
+X			close(synch[1]);
+X			read(synch[0],"foo",1);
+X			close(synch[0]);
+X			if (pid == -1)
+X				zerr("%e",NULL,errno);
+X			else
+X				( void ) addproc(pid,text);
+X			return;
+X			}
+X		close(synch[0]);
+X		entersubsh(bkg);
+X		close(synch[1]);
+X		forked = 1;
+X		}
+X	if (bkg && isset(BGNICE))	/* stupid */
+X		nice(5);
+X	if (input)		/* add pipeline input/output to mnodes */
+X		addfd(forked,save,mfds,0,input,0);
+X	if (output)
+X		addfd(forked,save,mfds,1,output,1);
+X	spawnpipes(cmd->redir);		/* do process substitutions */
+X	while (full(cmd->redir))
+X		if ((fn = (struct redir*) ugetnode(cmd->redir))->type == INPIPE)
+X			{
+X			if (fn->fd2 == -1)
+X				execerr();
+X			addfd(forked,save,mfds,fn->fd1,fn->fd2,0);
+X			}
+X		else if (fn->type == OUTPIPE)
+X			{
+X			if (fn->fd2 == -1)
+X				execerr();
+X			addfd(forked,save,mfds,fn->fd1,fn->fd2,1);
+X			}
+X		else
+X			{
+X			if (!(fn->type == HERESTR || fn->type == CLOSE || fn->type ==
+X					MERGE || fn->type == MERGEOUT))
+X				if (xpandredir(fn,cmd->redir))
+X					continue;
+X			if (fn->type == HERESTR)
+X				{
+X				fil = getherestr(fn);
+X				if (fil == -1)
+X					{
+X					if (errno != EINTR)
+X						zerr("%e",NULL,errno);
+X					execerr();
+X					}
+X				addfd(forked,save,mfds,fn->fd1,fil,0);
+X				}
+X			else if (fn->type == READ)
+X				{
+X				fil = open(fn->name,O_RDONLY);
+X				if (fil == -1)
+X					{
+X					if (errno != EINTR)
+X						zerr("%e: %s",fn->name,errno);
+X					execerr();
+X					}
+X				addfd(forked,save,mfds,fn->fd1,fil,0);
+X				}
+X			else if (fn->type == CLOSE)
+X				{
+X				if (!forked && fn->fd1 < 10)
+X					save[fn->fd1] = movefd(fn->fd1);
+X				closemn(mfds,fn->fd1);
+X				close(fn->fd1);
+X				}
+X			else if (fn->type == MERGE || fn->type == MERGEOUT)
+X				{
+X				fil = dup(fn->fd2);
+X				if (mfds[fn->fd1])
+X					redup(fil,fn->fd1);
+X				else
+X					addfd(forked,save,mfds,fn->fd1,fil,fn->type == MERGEOUT);
+X				}
+X			else
+X				{
+X				if (fn->type >= APP)
+X					fil = open(fn->name,isset(NOCLOBBER) ?
+X						O_WRONLY|O_APPEND : O_WRONLY|O_APPEND|O_CREAT,0666);
+X				else
+X					fil = open(fn->name,dontclob(fn) ? 
+X						O_WRONLY|O_CREAT|O_EXCL : O_WRONLY|O_CREAT|O_TRUNC,0666);
+X				if (fil == -1)
+X					{
+X					if (errno != EINTR)
+X						zerr("%e: %s",fn->name,errno);
+X					execerr();
+X					}
+X				addfd(forked,save,mfds,fn->fd1,fil,1);
+X				}
+X			}
+X	/* perform postfork substitutions */
+X	/* you put this here so that ls *.sdfoij >& /dev/null works, remember? */
+X	postfork(args,!(cmd->flags & CFLAG_NOGLOB));
+X	if (errflag)
+X		{
+X		lastval = 1;
+X		goto err;
+X		}
+X	
+X	/* we are done with redirection.  close the mnodes, spawning
+X		tee/cat processes as necessary. */
+X	for (t0 = 0; t0 != 10; t0++)
+X		closemn(mfds,t0);
+X
+X	if (nullexec)
+X		return;
+X	if (unset(NOEXEC))
+X		if (type >= ZCTIME)
+X			{
+X			static int (*func[]) DCLPROTO((Cmd)) = {
+X				exectime,execcursh,execfuncdef,execfor,execwhile,
+X				execrepeat,execif,execcase,execselect,execcond };
+X	
+X			fixcline(args);
+X			lastval = (func[type-ZCTIME])(cmd);
+X			}
+X		else if (iscursh)		/* builtin or shell function */
+X			{
+X			if (cmd->vars)
+X				addvars(cmd->vars,0);
+X			fixcline(args);
+X			if (chn && chn->type == SHFUNC)
+X				execshfunc(cmd,chn);
+X			else
+X				{
+X				lastval = execbin(args,chn);
+X				if (isset(PRINTEXITVALUE) && lastval)
+X					zerr("exit %d",NULL,lastval);
+X				fflush(stdout);
+X				if (ferror(stdout))
+X					{
+X					zerr("write error: %e",NULL,errno);
+X					clearerr(stdout);
+X					}
+X				}
+X			}
+X		else
+X			{
+X			if (cmd->vars)
+X				addvars(cmd->vars,1);
+X			if (type == SIMPLE)
+X				{
+X				closem();
+X				execute(args,cmd->flags & CFLAG_DASH);
+X				}
+X			else	/* ( ... ) */
+X				execlist(cmd->u.list);
+X			}
+Xerr:
+X	if (forked)
+X		_exit(lastval);
+X	fixfds(save);
+X}
+X
+X/* restore fds after redirecting a builtin */
+X
+Xvoid fixfds(save) /**/
+Xint *save;
+X{
+Xint t0;
+X
+X	for (t0 = 0; t0 != 10; t0++)
+X		if (save[t0])
+X			redup(save[t0],t0);
+X}
+X
+Xvoid entersubsh(bkg) /**/
+Xint bkg;
+X{
+X	if (!jobbing)
+X		{
+X		if (bkg && isatty(0))
+X			{
+X			close(0);
+X			if (open("/dev/null",O_RDWR))
+X				{
+X				zerr("can't open /dev/null: %e",NULL,errno);
+X				_exit(1);
+X				}
+X			}
+X		}
+X	else if (!jobtab[thisjob].gleader)
+X		{
+X		jobtab[thisjob].gleader = getpid();
+X		setpgrp(0L,jobtab[thisjob].gleader);
+X		if (!bkg)
+X			attachtty(jobtab[thisjob].gleader);
+X		}
+X	else
+X		setpgrp(0L,jobtab[thisjob].gleader);
+X	subsh = 1;
+X	if (SHTTY != -1)
+X		{
+X		close(SHTTY);
+X		SHTTY = -1;
+X		}
+X	if (jobbing)
+X		{
+X		signal(SIGTTOU,SIG_DFL);
+X		signal(SIGTTIN,SIG_DFL);
+X		signal(SIGTSTP,SIG_DFL);
+X		signal(SIGPIPE,SIG_DFL);
+X		}
+X	if (interact)
+X		{
+X		signal(SIGTERM,SIG_DFL);
+X		if (sigtrapped[SIGINT])
+X			signal(SIGINT,SIG_IGN);
+X		}
+X	if (!sigtrapped[SIGQUIT])
+X		signal(SIGQUIT,SIG_DFL);
+X	opts[MONITOR] = OPT_UNSET;
+X	clearjobtab();
+X}
+X
+X/* close all internal shell fds */
+X
+Xvoid closem() /**/
+X{
+Xint t0;
+X
+X	for (t0 = 10; t0 != NOFILE; t0++)
+X		close(t0);
+X}
+X
+X/* convert here document into a here string */
+X
+Xchar *gethere(str,typ) /**/
+Xchar *str;int typ;
+X{
+Xchar pbuf[256];
+Xint qt = 0,siz = 0,l,strip = 0;
+Xchar *s,*t,*bptr;
+X
+X	for (s = str; *s; s++)
+X		if (*s == Nularg)
+X			qt = 1;
+X	untokenize(str);
+X	if (typ == HEREDOCDASH)
+X		{
+X		strip = 1;
+X		while (*str == '\t')
+X			str++;
+X		}
+X	t = ztrdup("");
+X	for(;;)
+X		{
+X		char *u,*v;
+X
+X		if (!fgets(pbuf,256,bshin))
+X			break;
+X		bptr = pbuf;
+X		if (strip)
+X			while (*bptr == '\t')
+X				bptr++;
+X		for (u = bptr, v = str; *u != '\n' && *v; u++,v++)
+X			if (*u != *v)
+X				break;
+X		if (!(*u == '\n' && !*v))
+X			{
+X			l = strlen(bptr);
+X			if (!qt && l > 1 && bptr[l-1] == '\n' && bptr[l-2] == '\\')
+X				bptr[l -= 2] = '\0';
+X			t = realloc(t,siz+l+1);
+X			strncpy(t+siz,bptr,l);
+X			siz += l;
+X			}
+X		else
+X			break;
+X		}
+X	t[siz] = '\0';
+X	if (siz && t[siz-1] == '\n')
+X		t[siz-1] = '\0';
+X	if (!qt)
+X		for (s = t; *s; s++)
+X			if (*s == '$')
+X				*s = Qstring;
+X			else if (*s == '`')
+X				*s = Qtick;
+X			else if (*s == '\\')
+X				{
+X				s++;
+X				if (!*s)
+X					break;
+X				}
+X	s = strdup(t);
+X	free(t);
+X	return s;
+X}
+X
+X/* open here string fd */
+X
+Xint getherestr(fn) /**/
+Xstruct redir *fn;
+X{
+XLklist fake;
+Xchar *s = gettemp(),*t;
+Xint fd;
+X
+X	fake = newlist();
+X	addnode(fake,fn->name);
+X	prefork(fake);
+X	if (!errflag)
+X		postfork(fake,1);
+X	if (errflag)
+X		return -1;
+X	if ((fd = open(s,O_CREAT|O_WRONLY,0600)) == -1)
+X		return -1;
+X	while (t = ugetnode(fake))
+X		{
+X		untokenize(t);
+X		write(fd,t,strlen(t));
+X		if (full(fake))
+X			write(fd," ",1);
+X		}
+X	write(fd,"\n",1);
+X	close(fd);
+X	fd = open(s,O_RDONLY);
+X	unlink(s);
+X	return fd;
+X}
+X
+Xvoid catproc(mn) /**/
+Xstruct multio *mn;
+X{
+Xint len,t0;
+Xchar *buf;
+X
+X	if (phork())
+X		{
+X		for (t0 = 0; t0 != mn->ct; t0++)
+X			close(mn->fds[t0]);
+X		close(mn->pipe);
+X		return;
+X		}
+X	closeallelse(mn);
+X	buf = zalloc(4096);
+X	for (t0 = 0; t0 != mn->ct; t0++)
+X		while (len = read(mn->fds[t0],buf,4096))
+X			write(mn->pipe,buf,len);
+X	_exit(0);
+X}
+X 
+Xvoid teeproc(mn) /**/
+Xstruct multio *mn;
+X{
+Xint len,t0;
+Xchar *buf;
+X
+X	if (phork())
+X		{
+X		for (t0 = 0; t0 != mn->ct; t0++)
+X			close(mn->fds[t0]);
+X		close(mn->pipe);
+X		return;
+X		}
+X	buf = zalloc(4096);
+X	closeallelse(mn);
+X	while ((len = read(mn->pipe,buf,4096)) > 0)
+X		for (t0 = 0; t0 != mn->ct; t0++)
+X			write(mn->fds[t0],buf,len);
+X	_exit(0);
+X}
+X
+Xvoid closeallelse(mn) /**/
+Xstruct multio *mn;
+X{
+Xint t0,t1;
+X
+X	for (t0 = 0; t0 != NOFILE; t0++)
+X		if (mn->pipe != t0)
+X			{
+X			for (t1 = 0; t1 != mn->ct; t1++)
+X				if (mn->fds[t1] == t0)
+X					break;
+X			if (t1 == mn->ct)
+X				close(t0);
+X			}
+X}
+X
+Xlong int zstrtol(s,t,base) /**/
+Xchar *s;char **t;int base;
+X{
+Xint ret = 0;
+X
+X	if (base <= 10)
+X		for (; *s >= '0' && *s < ('0'+base); s++)
+X			ret = ret*base+*s-'0';
+X	else
+X		for (; idigit(*s) || (*s >= 'a' && *s < ('a'+base-10))
+X								|| (*s >= 'A' && *s < ('A'+base-10)); s++)
+X			ret = ret*base+(idigit(*s) ? (*s-'0') : (*s & 0x1f)+9);
+X	if (t)
+X		*t = (char *) s;
+X	return ret;
+X}
+X
+X/* $(...) */
+X
+XLklist getoutput(cmd,qt) /**/
+Xchar *cmd;int qt;
+X{
+XList list;
+Xint pipes[2];
+X
+X	if (*cmd == '<')
+X		{
+X		int stream;
+X		char *fi,*s,x;
+X
+X		for (cmd++; *cmd == ' '; cmd++);
+X		for (s = cmd; *s && *s != ' '; s++)
+X			if (*s == '\\') s++;
+X			else if (*s == '$') *s = String;
+X		x = *s;
+X		*s = '\0';
+X		fi = strdup(cmd);
+X		*s = x;
+X		if (*fi == '~')
+X			*fi = Tilde;
+X		else if (*fi == '=')
+X			*fi = Equals;
+X		singsub(&fi);
+X		if (errflag)
+X			return NULL;
+X		stream = open(fi,O_RDONLY);
+X		if (stream == -1)
+X			{
+X			zerr("%e: %s",cmd+1,errno);
+X			return NULL;
+X			}
+X		return readoutput(stream,qt);
+X		}
+X	if (!(list = parselstring(cmd)))
+X		return NULL;
+X	mpipe(pipes);
+X	if (phork())
+X		{
+X		popheap();
+X		close(pipes[1]);
+X		/* chldsuspend(); */
+X		return readoutput(pipes[0],qt);
+X		}
+X	subsh = 1;
+X	close(pipes[0]);
+X	redup(pipes[1],1);
+X	entersubsh(0);
+X	signal(SIGTSTP,SIG_IGN);
+X	exiting = 1;
+X	execlist(list);
+X	close(1);
+X	exit(0);  return NULL;
+X}
+X
+X/* read output of command substitution */
+X
+XLklist readoutput(in,qt) /**/
+Xint in;int qt;
+X{
+XLklist ret;
+Xchar *buf,*ptr;
+Xint bsiz,c,cnt = 0;
+XFILE *fin;
+X
+X	fin = fdopen(in,"r");
+X	ret = newlist();
+X	ptr = buf = zalloc(bsiz = 256);
+X	while ((c = fgetc(fin)) != EOF)
+X		if (!qt && isep(c))
+X			{
+X			if (cnt)
+X				{
+X				*ptr = '\0';
+X				addnode(ret,ztrdup(buf));
+X				cnt = 0;
+X				ptr = buf;
+X				}
+X			}
+X		else
+X			{
+X			*ptr++ = c;
+X			if (++cnt == bsiz)
+X				{
+X				char *pp = zalloc(bsiz *= 2);
+X				
+X				memcpy(pp,buf,cnt);
+X				free(buf);
+X				ptr = (buf = pp)+cnt;
+X				}
+X			}
+X	if (ptr != buf && ptr[-1] == '\n')
+X		ptr[-1] = '\0';
+X	else
+X		*ptr = '\0';
+X	if (cnt)
+X		addnode(ret,ztrdup(buf));
+X	free(buf);
+X	fclose(fin);
+X	return ret;
+X}
+X
+X/* =(...) */
+X
+Xchar *getoutputfile(cmd) /**/
+Xchar *cmd;
+X{
+X#ifdef WAITPID
+Xint pid;
+X#endif
+Xchar *nam = gettemp(),*str;
+Xint tfil;
+XList list;
+X
+X	if (thisjob == -1)
+X		return NULL;
+X	for (str = cmd; *str && *str != Outpar; str++);
+X	if (!*str)
+X		zerr("oops.",NULL,0);
+X	*str = '\0';
+X	if (!(list = parselstring(cmd)))
+X		return NULL;
+X	permalloc();
+X	if (!jobtab[thisjob].filelist)
+X		jobtab[thisjob].filelist = newlist();
+X	addnode(jobtab[thisjob].filelist,ztrdup(nam));
+X	heapalloc();
+X#ifdef WAITPID
+X	if (pid = phork())
+X		{
+X		popheap();
+X		waitpid(pid,NULL,WUNTRACED);
+X		return nam;
+X		}
+X#else
+X	if (waitfork())
+X		return nam;
+X#endif
+X	subsh = 1;
+X	close(1);
+X	entersubsh(0);
+X	tfil = creat(nam,0666);
+X	exiting = 1;
+X	execlist(list);
+X	close(1);
+X	exit(0); return NULL;
+X}
+X
+X/* get a temporary named pipe */
+X
+Xchar *namedpipe() /**/
+X{
+Xchar *tnam = gettemp();
+X
+X	mknod(tnam,0010666,0);
+X	return tnam;
+X}
+X
+X/* <(...) */
+X
+Xchar *getoutproc(cmd) /**/
+Xchar *cmd;
+X{
+XList list;
+Xint fd;
+Xchar *pnam,*str;
+X
+X	if (thisjob == -1)
+X		return NULL;
+X	for (str = cmd; *str && *str != Outpar; str++);
+X	if (!*str)
+X		zerr("oops.",NULL,0);
+X	*str = '\0';
+X	pnam = namedpipe();
+X	permalloc();
+X	if (!jobtab[thisjob].filelist)
+X		jobtab[thisjob].filelist = newlist();
+X	addnode(jobtab[thisjob].filelist,ztrdup(pnam));
+X	heapalloc();
+X	if (!(list = parselstring(cmd)))
+X		return NULL;
+X	if (phork())
+X		{
+X		popheap();
+X		return pnam;
+X		}
+X	entersubsh(1);
+X	fd = open(pnam,O_WRONLY);
+X	if (fd == -1)
+X		{
+X		zerr("can't open %s: %e",pnam,errno);
+X		_exit(0);
+X		}
+X	redup(fd,1);
+X	fd = open("/dev/null",O_RDONLY);
+X	redup(fd,0);
+X	exiting = 1;
+X	execlist(list);
+X	close(1);
+X	_exit(0);  return NULL;
+X}
+X
+X/* >(...) */
+X
+Xchar *getinproc(cmd) /**/
+Xchar *cmd;
+X{
+XList list;
+Xint pid,fd;
+Xchar *pnam,*str;
+X
+X	if (thisjob == -1)
+X		return NULL;
+X	for (str = cmd; *str && *str != Outpar; str++);
+X	if (!*str)
+X		zerr("oops.",NULL,0);
+X	*str = '\0';
+X	pnam = namedpipe();
+X	permalloc();
+X	if (!jobtab[thisjob].filelist)
+X		jobtab[thisjob].filelist = newlist();
+X	addnode(jobtab[thisjob].filelist,ztrdup(pnam));
+X	heapalloc();
+X	if (!(list = parselstring(cmd)))
+X		return NULL;
+X	if (pid = phork())
+X		{
+X		popheap();
+X		return pnam;
+X		}
+X	entersubsh(1);
+X	fd = open(pnam,O_RDONLY);
+X	redup(fd,0);
+X	exiting = 1;
+X	execlist(list);
+X	_exit(0);  return NULL;
+X}
+X
+X/* > >(...) (does not use named pipes) */
+X
+Xint getinpipe(cmd) /**/
+Xchar *cmd;
+X{
+XList list;
+Xint pipes[2];
+Xchar *str = cmd;
+X
+X	for (str = cmd; *str && *str != Outpar; str++);
+X	if (!*str)
+X		zerr("oops.",NULL,0);
+X	*str = '\0';
+X	if (!(list = parselstring(cmd+2)))
+X		return -1;
+X	mpipe(pipes);
+X	if (phork())
+X		{
+X		popheap();
+X		close(pipes[1]);
+X		return pipes[0];
+X		}
+X	close(pipes[0]);
+X	entersubsh(1);
+X	redup(pipes[1],1);
+X	exiting = 1;
+X	execlist(list);
+X	_exit(0);  return 0;
+X}
+X
+X/* < <(...) */
+X
+Xint getoutpipe(cmd) /**/
+Xchar *cmd;
+X{
+XList list;
+Xint pipes[2];
+Xchar *str;
+X
+X	for (str = cmd; *str && *str != Outpar; str++);
+X	if (!*str)
+X		zerr("oops.",NULL,0);
+X	*str = '\0';
+X	if (!(list = parselstring(cmd+2)))
+X		return -1;
+X	strinend();
+X	mpipe(pipes);
+X	if (phork())
+X		{
+X		popheap();
+X		close(pipes[0]);
+X		return pipes[1];
+X		}
+X	close(pipes[1]);
+X	entersubsh(1);
+X	redup(pipes[0],0);
+X	exiting = 1;
+X	execlist(list);
+X	_exit(0);  return 0;
+X}
+X
+X/* run a list, saving the current job num */
+X
+Xvoid runlist(l) /**/
+XList l;
+X{
+Xint cj = thisjob;
+X
+X	execlist(l);
+X	thisjob = cj;
+X}
+X
+Xchar *gettemp() /**/
+X{
+X	return mktemp(dyncat(tmpprefix,"XXXXXX"));
+X}
+X
+X/* my getwd; all the other ones I tried confused the SIGCHLD handler */
+X
+Xchar *zgetwd() /**/
+X{
+Xstatic char buf0[MAXPATHLEN];
+Xchar buf3[MAXPATHLEN],*buf2 = buf0+1;
+Xstruct stat sbuf;
+Xstruct direct *de;
+XDIR *dir;
+Xino_t ino = -1;
+Xdev_t dev = -1;
+X
+X	holdintr();
+X	buf2[0] = '\0';
+X	buf0[0] = '/';
+X	for(;;)
+X		{
+X		if (stat(".",&sbuf) < 0)
+X			{
+X			chdir(buf0);
+X			noholdintr();
+X			return ztrdup(".");
+X			}
+X		ino = sbuf.st_ino;
+X		dev = sbuf.st_dev;
+X		if (stat("..",&sbuf) < 0)
+X			{
+X			chdir(buf0);
+X			noholdintr();
+X			return ztrdup(".");
+X			}
+X		if (sbuf.st_ino == ino && sbuf.st_dev == dev)
+X			{
+X			chdir(buf0);
+X			noholdintr();
+X			return ztrdup(buf0);
+X			}
+X		dir = opendir("..");
+X		if (!dir)
+X			{
+X			chdir(buf0);
+X			noholdintr();
+X			return ztrdup(".");
+X			}
+X		chdir("..");
+X		readdir(dir); readdir(dir);
+X		while (de = readdir(dir))
+X			if (de->d_ino == ino)
+X				{
+X				lstat(de->d_name,&sbuf);
+X				if (sbuf.st_dev == dev)
+X					goto match;
+X				}
+X		rewinddir(dir);
+X		readdir(dir); readdir(dir);
+X		while (de = readdir(dir))
+X			{
+X			lstat(de->d_name,&sbuf);
+X			if (sbuf.st_dev == dev)
+X				goto match;
+X			}
+X		noholdintr();
+X		closedir(dir);
+X		return ztrdup(".");
+Xmatch:
+X		strcpy(buf3,de->d_name);
+X		if (*buf2)
+X			strcat(buf3,"/");
+X		strcat(buf3,buf2);
+X		strcpy(buf2,buf3);
+X		closedir(dir);
+X		}
+X}
+X
+X/* open pipes with fds >= 10 */
+X
+Xvoid mpipe(pp) /**/
+Xint *pp;
+X{
+X	pipe(pp);
+X	pp[0] = movefd(pp[0]);
+X	pp[1] = movefd(pp[1]);
+X}
+X
+X/* do process substitution with redirection */
+X
+Xvoid spawnpipes(l) /**/
+XLklist l;
+X{
+XLknode n = firstnode(l);
+XRedir f;
+X
+X	for (; n; incnode(n))
+X		{
+X		f = (Redir) getdata(n);
+X		if (f->type == OUTPIPE)
+X			{
+X			char *str = f->name;
+X			f->fd2 = getoutpipe(str);
+X			}
+X		if (f->type == INPIPE)
+X			{
+X			char *str = f->name;
+X			f->fd2 = getinpipe(str);
+X			}
+X		}
+X}
+X
+X/* perform time ... command */
+X
+Xint exectime(cmd) /**/
+XCmd cmd;
+X{
+Xint jb = thisjob;
+X
+X	execpline(cmd->u.pline,TIMED,0);
+X	thisjob = jb;
+X	return lastval;
+X}
+X
+X/* define a function */
+X
+Xint execfuncdef(cmd) /**/
+XCmd cmd;
+X{
+XCmdnam cc;
+Xchar *s;
+X
+X	permalloc();
+X	while (s = ugetnode(cmd->args))
+X		{
+X		cc = (Cmdnam) zalloc(sizeof *cc);
+X		cc->type = SHFUNC;
+X		cc->flags = 0;
+X		if (!cmd->u.list)
+X			cc->u.list = NULL;
+X		else
+X			cc->u.list = (List) dupstruct(cmd->u.list);
+X		addhnode(ztrdup(s),cc,cmdnamtab,freecmdnam);
+X		if (!strncmp(s,"TRAP",4))
+X			{
+X			int t0 = getsignum(s+4);
+X
+X			if (t0 != -1)
+X				settrap(t0,cmd->u.list);
+X			}
+X		}
+X	heapalloc();
+X	return 0;
+X}
+X
+X/* evaluate a [[ ... ]] */
+X
+Xint execcond(cmd) /**/
+XCmd cmd;
+X{
+X	return !evalcond(cmd->u.cond);
+X}
+X
+Xvoid execshfunc(cmd,cn) /**/
+XCmd cmd;Cmdnam cn;
+X{
+Xchar **tab,**x,*oargv0;
+Xint oxtr = opts[XTRACE],flags,xexittr;
+XList l;
+XLklist olist;
+Xchar *s;
+XList xexitfn;
+X
+X	if (errflag)
+X		return;
+X	l = cn->u.list;
+X	if (!l)
+X		{
+X		char *nam;
+X
+X		if (!(l = getfpfunc(nam = peekfirst(cmd->args))))
+X			{
+X			zerr("function not found: %s",nam,0);
+X			lastval = 1;
+X			return;
+X			}
+X		cn->flags &= ~PMFLAG_u;
+X		permalloc();
+X		cn->u.list = (List) dupstruct(l);
+X		heapalloc();
+X		}
+X	flags = cn->flags;
+X	xexittr = sigtrapped[SIGEXIT];
+X	xexitfn = sigfuncs[SIGEXIT];
+X	tab = pparams;
+X	oargv0 = argzero;
+X	optind = 0;
+X	if (flags & PMFLAG_t)
+X		opts[XTRACE] = OPT_SET;
+X	pparams = x = (char **) zcalloc(((sizeof *x)*(1+countnodes(cmd->args))));
+X	argzero = ztrdup(ugetnode(cmd->args));
+X	while (*x = ugetnode(cmd->args))
+X		*x = ztrdup(*x), x++;
+X	permalloc();
+X	olist = locallist;
+X	locallist = newlist();
+X	heapalloc();
+X	newrunlist(l);
+X	while (s = getnode(locallist))
+X		unsetparam(s);
+X	free(locallist);
+X	locallist = olist;
+X	retflag = 0;
+X	cmd->u.list = NULL;
+X	freearray(pparams);
+X	free(argzero);
+X	argzero = oargv0;
+X	pparams = tab;
+X	if (sigfuncs[SIGEXIT] && sigfuncs[SIGEXIT] != xexitfn)
+X		{
+X		dotrap(SIGEXIT);
+X		freestruct(sigfuncs[SIGEXIT]);
+X		}
+X	sigtrapped[SIGEXIT] = xexittr;
+X	sigfuncs[SIGEXIT] = xexitfn;
+X	opts[XTRACE] = oxtr;
+X}
+X
+X/* search fpath for an undefined function */
+X
+XList getfpfunc(s) /**/
+Xchar *s;
+X{
+Xchar **pp = fpath,buf[MAXPATHLEN];
+Xint fd;
+X
+X	for (; *pp; pp++)
+X		{
+X		sprintf(buf,"%s/%s",*pp,s);
+X		if (!access(buf,R_OK) && (fd = open(buf,O_RDONLY)) != -1)
+X			{
+X			int len = lseek(fd,0,2);
+X
+X			if (len == -1)
+X				close(fd);
+X			else
+X				{
+X				char *d;
+X
+X				lseek(fd,0,0);
+X				d = zcalloc(len+1);
+X				if (read(fd,d,len) != len)
+X					{
+X					free(d);
+X					close(fd);
+X					}
+X				else
+X					{
+X					close(fd);
+X					return parselstring(d);
+X					}
+X				}
+X			}
+X		}
+X	return NULL;
+X}
+X
+X/* check to see if AUTOCD applies here */
+X
+Xint cancd(s)
+Xchar *s;
+X{
+X	if (*s != '/')
+X		{
+X		char sbuf[MAXPATHLEN],**cp;
+X
+X		if (cancd2(s))
+X			return 1;
+X		if (access(s,X_OK) == 0)
+X			return 0;
+X		for (cp = cdpath; *cp; cp++)
+X			{
+X			sprintf(sbuf,"%s/%s",*cp,s);
+X			if (cancd2(sbuf))
+X				return 1;
+X			}
+X		return 0;
+X		}
+X	return cancd2(s);
+X}
+X
+Xint cancd2(s)
+Xchar *s;
+X{
+Xstruct stat buf;
+X
+X	return !(access(s,X_OK) || stat(s,&buf) || !S_ISDIR(buf.st_mode));
+X}
+X
+SHAR_EOF
+echo 'File zsh2.1/src/exec.c is complete' &&
+chmod 0644 zsh2.1/src/exec.c ||
+echo 'restore of zsh2.1/src/exec.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/exec.c'`"
+test 33003 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/exec.c: original size 33003, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/funcs.h ==============
+if test -f 'zsh2.1/src/funcs.h' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/funcs.h (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/funcs.h (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/funcs.h' &&
+Xstruct asgment;
+Xstruct utmp;
+X
+X#include "builtin.pro"
+X#include "cond.pro"
+X#include "exec.pro"
+X#include "glob.pro"
+X#include "hist.pro"
+X#include "init.pro"
+X#include "jobs.pro"
+X#include "lex.pro"
+X#include "loop.pro"
+X#include "math.pro"
+X#include "mem.pro"
+X#include "params.pro"
+X#include "parse.pro"
+X#include "subst.pro"
+X#include "table.pro"
+X#include "text.pro"
+X#include "utils.pro"
+X#include "watch.pro"
+X#include "zle_hist.pro"
+X#include "zle_main.pro"
+X#include "zle_misc.pro"
+X#include "zle_move.pro"
+X#include "zle_refresh.pro"
+X#include "zle_tricky.pro"
+X#include "zle_utils.pro"
+X#include "zle_vi.pro"
+X#include "zle_word.pro"
+X
+Xchar *mktemp DCLPROTO((char *));
+Xchar *malloc DCLPROTO((int));
+X#ifndef __STDC__
+Xchar *realloc DCLPROTO((char *,int));
+Xchar *calloc DCLPROTO((int,int));
+X#endif /* __STDC__ */
+Xchar *ttyname DCLPROTO((int));
+X
+Xextern char PC, *BC, *UP;
+Xextern short ospeed;
+Xextern int tgetent DCLPROTO((char *bp, char *name));
+Xextern int tgetnum DCLPROTO((char *id));
+Xextern int tgetflag DCLPROTO((char *id));
+Xextern char *tgetstr DCLPROTO((char *id, char **area));
+Xextern char *tgoto DCLPROTO((char *cm, int destcol, int destline));
+Xextern int tputs DCLPROTO((char *cp, int affcnt, int (*outc)()));
+SHAR_EOF
+chmod 0644 zsh2.1/src/funcs.h ||
+echo 'restore of zsh2.1/src/funcs.h failed'
+Wc_c="`wc -c < 'zsh2.1/src/funcs.h'`"
+test 1198 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/funcs.h: original size 1198, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/glob.c ==============
+if test -f 'zsh2.1/src/glob.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/glob.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/glob.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/glob.c' &&
+X/*
+X
+X	glob.c - filename generation
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X
+X#ifdef __hpux
+X#include <ndir.h>
+X#else
+X#ifdef SYSV
+X#define direct dirent
+X#else
+X#include <sys/dir.h>
+X#endif
+X#endif
+X#include <sys/errno.h>
+X
+X#define exists(X) (access(X,0) == 0)
+X
+Xstatic int mode;				/* != 0 if we are parsing glob patterns */
+Xstatic int pathpos;			/* position in pathbuf */
+Xstatic int matchsz;			/* size of matchbuf */
+Xstatic int matchct;			/* number of matches found */
+Xstatic char pathbuf[MAXPATHLEN];	/* pathname buffer */
+Xstatic char **matchbuf;		/* array of matches */
+Xstatic char **matchptr;		/* &matchbuf[matchct] */
+X
+X/* max # of qualifiers */
+X
+X#define QUALCT 16
+X
+Xstatic int (*qualfuncs[QUALCT])DCLPROTO((struct stat *,long));
+Xstatic long qualdata[QUALCT];
+Xstatic int qualsense[QUALCT];
+Xstatic int qualct;
+X
+X/* pathname component in filename patterns */
+X
+Xstruct complist {
+X	Complist next;
+X	Comp comp;
+X	int closure;	/* 1 if this is a (foo/)# */
+X	};
+Xstruct comp {
+X	Comp left,right,next;
+X	char *str;
+X	int closure,last;
+X	};
+X
+Xvoid glob(list,np) /**/
+XLklist list;Lknode *np;
+X{
+XLknode node = prevnode(*np);
+XLknode next = nextnode(*np);
+Xint sl;			/* length of the pattern */
+Xchar *ostr;		/* the pattern before the parser chops it up */
+XComplist q;		/* pattern after parsing */
+Xchar *str = getdata(*np);	/* the pattern */
+X
+X	sl = strlen(str);
+X	ostr = strdup(str);
+X	uremnode(list,*np);
+X	qualct = 0;
+X	if (str[sl-1] == Outpar)	/* check for qualifiers */
+X		{
+X		char *s;
+X		int sense = 0;
+X		long data;
+X		int (*func) DCLPROTO((struct stat *,long));
+X
+X		for (s = str+sl-2; s != str; s--)
+X			if (*s == Bar || *s == Outpar || *s == Inpar)
+X				break;
+X		if (*s == Inpar)
+X			{
+X			*s++ = '\0';
+X			func = NULL;
+X			while (*s != Outpar)
+X				{
+X				func = NULL;
+X				if (idigit(*s))
+X					{
+X					func = qualflags;
+X					data = 0;
+X					while (idigit(*s))
+X						data = data*010+(*s++-'0');
+X					}
+X				else switch (*s++)
+X					{
+X					case Hat: case '^': sense = 1-sense; break;
+X#ifdef S_IFLNK
+X					case '@': func = qualmode; data = S_IFLNK; break;
+X#endif
+X#ifdef S_IFSOCK
+X					case '=': func = qualmode; data = S_IFSOCK; break;
+X#endif
+X#ifdef S_IFIFO
+X					case 'p': func = qualmode; data = S_IFIFO; break;
+X#endif
+X					case '/': func = qualmode; data = S_IFDIR; break;
+X					case '.': func = qualmode; data = S_IFREG; break;
+X					case '%': func = qualisdev; break;
+X					case Star:  func = qualiscom; break;
+X					case 'R': func = qualflags; data = 0004; break;
+X					case 'W': func = qualflags; data = 0002; break;
+X					case 'X': func = qualflags; data = 0001; break;
+X					case 'r': func = qualflags; data = 0400; break;
+X					case 'w': func = qualflags; data = 0200; break;
+X					case 'x': func = qualflags; data = 0100; break;
+X					case 's': func = qualflags; data = 04000; break;
+X					case 'S': func = qualflags; data = 02000; break;
+X					case 'd': func = qualdev; data = qgetnum(&s); break;
+X					case 'l': func = qualnlink; data = qgetnum(&s); break;
+X					case 'U': func = qualuid; data = geteuid(); break;
+X					case 'G': func = qualgid; data = getegid(); break;
+X					case 'u': func = qualuid; data = qgetnum(&s); break;
+X					case 'g': func = qualgid; data = qgetnum(&s); break;
+X					default: zerr("unknown file attribute",NULL,0); return;
+X					}
+X				if (func)
+X					{
+X					if (qualct == QUALCT-1)
+X						{
+X						zerr("too many qualifiers",NULL,0);
+X						return;
+X						}
+X					qualfuncs[qualct] = func;
+X					qualsense[qualct] = sense;
+X					qualdata[qualct] = data;
+X					qualct++;
+X					}
+X				if (errflag)
+X					return;
+X				}
+X			}
+X		}
+X	else if (str[sl-1] == '/')		/* foo/ == foo(/) */
+X		{
+X		str[sl-1] = '\0';
+X		qualfuncs[0] = qualmode;
+X		qualdata[0] = S_IFDIR;
+X		qualsense[0] = 0;
+X		qualct = 1;
+X		}
+X	qualfuncs[qualct] = NULL;
+X	if (*str == '/')	/* pattern has absolute path */
+X		{
+X		str++;
+X		pathbuf[0] = '/';
+X		pathbuf[pathpos = 1] = '\0';
+X		}
+X	else		/* pattern is relative to cwd */
+X		pathbuf[pathpos = 0] = '\0';
+X	q = parsepat(str);
+X	if (!q || errflag)	/* if parsing failed */
+X		{
+X		if (isset(NOBADPATTERN))
+X			{
+X			insnode(list,node,ostr);
+X			return;
+X			}
+X		errflag = 0;
+X		zerr("bad pattern: %s",ostr,0);
+X		return;
+X		}
+X	matchptr = matchbuf = (char **) zalloc((matchsz = 16)*sizeof(char *));
+X	matchct = 0;
+X	scanner(q);		/* do the globbing */
+X	if (matchct)
+X		badcshglob |= 2;
+X	else if (unset(NULLGLOB))
+X		if (isset(CSHNULLGLOB)) {
+X			badcshglob |= 1;
+X		} else if (unset(NONOMATCH)) {
+X			zerr("no matches found: %s",ostr,0);
+X			free(matchbuf);
+X			return;
+X		} else {
+X			*matchptr++ = strdup(ostr);
+X			matchct = 1;
+X		}
+X	qsort(&matchbuf[0],matchct,sizeof(char *),notstrcmp);
+X	matchptr = matchbuf;
+X	while (matchct--)			/* insert matches in the arg list */
+X		insnode(list,node,*matchptr++);
+X	free(matchbuf);
+X	*np = (next) ? prevnode(next) : lastnode(list);
+X}
+X
+X/* get number after qualifier */
+X
+Xlong qgetnum(s) /**/
+Xchar **s;
+X{
+Xlong v = 0;
+X
+X	if (!idigit(**s))
+X		{
+X		zerr("number expected",NULL,0);
+X		return 0;
+X		}
+X	while (idigit(**s))
+X		v = v*10+*(*s)++-'0';
+X	return v;
+X}
+X
+Xint notstrcmp(a,b) /**/
+Xchar **a;char **b;
+X{
+Xchar *c = *b,*d = *a;
+Xint x1,x2;
+X
+X	for (; *c == *d && *c; c++,d++);
+X	x1 = atoi(c); x2 = atoi(d);
+X	if (x1==x2)
+X		return ((int) (unsigned char) *c-(int) (unsigned char) *d);
+X	return x1-x2;
+X}
+X
+Xint forstrcmp(a,b) /**/
+Xchar **a;char **b;
+X{
+Xchar *c = *b,*d = *a;
+X
+X	for (; *c == *d && *c; c++,d++);
+X	return ((int) (unsigned char) *d-(int) (unsigned char) *c);
+X}
+X
+X/* add a match to the list */
+X
+Xvoid insert(s) /**/
+Xchar *s;
+X{
+Xstruct stat buf;
+X
+X	if (isset(MARKDIRS) && !lstat(s,&buf) && S_ISDIR(buf.st_mode)) /* grrr */
+X		{
+X		char *t;
+X		int ll = strlen(s);
+X
+X		t = ncalloc(ll+2);
+X		strcpy(t,s);
+X		t[ll] = '/';
+X		t[ll+1] = '\0';
+X		s = t;
+X		}
+X	*matchptr++ = s;
+X	if (++matchct == matchsz)
+X		{
+X		matchbuf = (char **) realloc((char *) matchbuf,
+X			sizeof(char **)*(matchsz *= 2));
+X		matchptr = matchbuf+matchct;
+X		}
+X}
+X
+X/* check to see if str is eligible for filename generation */
+X
+Xint haswilds(str) /**/
+Xchar *str;
+X{
+X	if (!str[1] && (*str == Inbrack || *str == Outbrack))
+X		return 0;
+X	if (str[0] == '%')
+X		return 0;
+X	for (; *str; str++)
+X		if (str[0] == Star && str[1] == Star &&
+X			 str[2] == Star && str[3] == Star && str[4] == '/')
+X			return 1;
+X		else if (*str == Pound || *str == Hat || *str == Star ||
+X				*str == Bar || *str == Inbrack || *str == Inang ||
+X				*str == Quest)
+X			return 1;
+X	return 0;
+X}
+X
+X/* check to see if str is eligible for brace expansion */
+X
+Xint hasbraces(str) /**/
+Xchar *str;
+X{
+Xint mb,bc,cmct1,cmct2;
+Xchar *lbr = NULL;
+X
+X	if (str[0] == Inbrace && str[1] == Outbrace)
+X		return 0;
+X	for (mb = bc = cmct1 = cmct2 = 0; *str; str++)
+X		{
+X		if (*str == Inbrace)
+X			{
+X			if (!bc)
+X				lbr = str;
+X			bc++;
+X			if (str[4] == Outbrace && str[2] == '-') /* {a-z} */
+X				{
+X				cmct1++;
+X				if (bc == 1)
+X					cmct2++;
+X				}
+X			}
+X		else if (*str == Outbrace)
+X			{
+X			bc--;
+X			if (!bc)
+X				{
+X				if (!cmct2)
+X					{
+X					*lbr = '{';
+X					*str = '}';
+X					}
+X				cmct2 = 0;
+X				}
+X			}
+X		else if (*str == Comma && bc)
+X			{
+X			cmct1++;
+X			if (bc == 1)
+X				cmct2++;
+X			}
+X		if (bc > mb)
+X			mb = bc;
+X		if (bc < 0)
+X			return 0;
+X		}
+X	return (mb && bc == 0 && cmct1);
+X}
+X
+X/* expand stuff like >>*.c */
+X
+Xint xpandredir(fn,tab) /**/
+Xstruct redir *fn;Lklist tab;
+X{
+XLklist fake;
+Xchar *nam;
+Xstruct redir *ff;
+Xint ret = 0;
+X
+X	fake = newlist();
+X	addnode(fake,fn->name);
+X	prefork(fake);
+X	if (!errflag)
+X		postfork(fake,1);
+X	if (errflag)
+X		return 0;
+X	if (full(fake) && !nextnode(firstnode(fake)))
+X		{
+X		fn->name = peekfirst(fake);
+X		untokenize(fn->name);
+X		}
+X	else
+X		while (nam = ugetnode(fake))
+X			{
+X			ff = alloc(sizeof *ff);
+X			*ff = *fn;
+X			ff->name = nam;
+X			addnode(tab,ff);
+X			ret = 1;
+X			}
+X	return ret;
+X}
+X
+X/* concatenate s1 and s2 in dynamically allocated buffer */
+X
+Xchar *dyncat(s1,s2) /**/
+Xchar *s1;char *s2;
+X{
+Xchar *ptr;
+X 
+X	ptr = ncalloc(strlen(s1)+strlen(s2)+1);
+X	strcpy(ptr,s1);
+X	strcat(ptr,s2);
+X	return ptr;
+X}
+X
+X/* concatenate s1, s2, and s3 in dynamically allocated buffer */
+X
+Xchar *tricat(s1,s2,s3) /**/
+Xchar *s1;char *s2;char *s3;
+X{
+Xchar *ptr;
+X
+X	ptr = zalloc(strlen(s1)+strlen(s2)+strlen(s3)+1);
+X	strcpy(ptr,s1);
+X	strcat(ptr,s2);
+X	strcat(ptr,s3);
+X	return ptr;
+X}
+X
+X/* brace expansion */
+X
+Xvoid xpandbraces(list,np) /**/
+XLklist list;Lknode *np;
+X{
+XLknode node = (*np),last = prevnode(node);
+Xchar *str = getdata(node),*str3 = str,*str2;
+Xint prev;
+X
+X	for (; *str != Inbrace; str++);
+X 	if (str[2] == '-' && str[4] == Outbrace)	 /* {a-z} */
+X		{
+X		char c1,c2;
+X
+X		uremnode(list,node);
+X		chuck(str);
+X		c1 = *str;
+X		chuck(str);
+X		chuck(str);
+X		c2 = *str;
+X		chuck(str);
+X		if (itok(c1))
+X			c1 = ztokens[c1-Pound];
+X		if (itok(c2))
+X			c2 = ztokens[c2-Pound];
+X		if (c1 < c2)
+X			for (; c2 >= c1; c2--)	/* {a-z} */
+X				{
+X				*str = c2;
+X				insnode(list,last,strdup(str3));
+X				}
+X		else
+X			for (; c2 <= c1; c2++)	/* {z-a} */
+X				{
+X				*str = c2;
+X				insnode(list,last,strdup(str3));
+X				}
+X		*np = nextnode(last);
+X		return;
+X		}
+X	prev = str-str3;
+X	str2 = getparen(str++);
+X	if (!str2)
+X		{
+X		zerr("how did you get this error?",NULL,0);
+X		return;
+X		}
+X	uremnode(list,node);
+X	node = last;
+X	for(;;)
+X		{
+X		char *zz,*str4;
+X		int cnt;
+X		
+X		for (str4 = str, cnt = 0; cnt || *str != Comma && *str !=
+X				Outbrace; str++)
+X			if (*str == Inbrace)
+X				cnt++;
+X			else if (*str == Outbrace)
+X				cnt--;
+X			else if (!*str)
+X				exit(10);
+X		zz = zalloc(prev+(str-str4)+strlen(str2)+1);
+X		ztrncpy(zz,str3,prev);
+X		strncat(zz,str4,str-str4);
+X		strcat(zz,str2);
+X		insnode(list,node,zz);
+X		incnode(node);
+X		if (*str != Outbrace)
+X			str++;
+X		else
+X			break;
+X		}
+X	*np = nextnode(last);
+X}
+X
+X/* get closing paren, given pointer to opening paren */
+X
+Xchar *getparen(str) /**/
+Xchar *str;
+X{
+Xint cnt = 1;
+Xchar typein = *str++,typeout = typein+1;
+X
+X	for (; *str && cnt; str++)
+X		if (*str == typein)
+X			cnt++;
+X		else if (*str == typeout)
+X			cnt--;
+X	if (!str && cnt)
+X		return NULL;
+X	return str;
+X}
+X
+X/* check to see if a matches b (b is not a filename pattern) */
+X
+Xint matchpat(a,b) /**/
+Xchar *a;char *b;
+X{
+XComp c;
+Xint val,len;
+Xchar *b2;
+X
+X	remnulargs(b);
+X	len = strlen(b);
+X	b2 = alloc(len+3);
+X	strcpy(b2+1,b);
+X	b2[0] = Inpar;
+X	b2[len+1] = Outpar;
+X	b2[len+2] = '\0';
+X	c = parsereg(b2);
+X	if (!c)
+X		{
+X		zerr("bad pattern: %s",b,0);
+X		return 0;
+X		}
+X	val = domatch(a,c,0);
+X	return val;
+X}
+X
+X/* do the ${foo%%bar}, ${foo#bar} stuff */
+X/* please do not laugh at this code. */
+X
+Xvoid getmatch(sp,pat,dd) /**/
+Xchar **sp;char *pat;int dd;
+X{
+XComp c;
+Xchar *t,*lng = NULL,cc,*s = *sp;
+X
+X	remnulargs(pat);
+X	c = parsereg(pat);
+X	if (!c)
+X		{
+X		zerr("bad pattern: %s",pat,0);
+X		return;
+X		}
+X	if (!(dd & 2))
+X		{
+X		for (t = s; t==s || t[-1]; t++)
+X			{
+X			cc = *t;
+X			*t = '\0';
+X			if (domatch(s,c,0))
+X				{
+X				if (!(dd & 1))
+X					{
+X					*t = cc;
+X					t = strdup(t);
+X					*sp = t;
+X					return;
+X					}
+X				lng = t;
+X				}
+X			*t = cc;
+X			}
+X		if (lng)
+X			{
+X			t = strdup(lng);
+X			*sp = t;
+X			return;
+X			}
+X		}
+X	else
+X		{
+X		for (t = s+strlen(s); t >= s; t--)
+X			{
+X			if (domatch(t,c,0))
+X				{
+X				if (!(dd & 1))
+X					{
+X					cc = *t;
+X					*t = '\0';
+X					*sp = strdup(*sp);
+X					*t = cc;
+X					return;
+X					}
+X				lng = t;
+X				}
+X			}
+X		if (lng)
+X			{
+X			cc = *lng;
+X			*lng = '\0';
+X			*sp = strdup(*sp);
+X			*lng = cc;
+X			return;
+X			}
+X		}
+X}
+X
+X/* add a component to pathbuf */
+X
+Xstatic int addpath(s)
+Xchar *s;
+X{
+X	if (strlen(s)+pathpos >= MAXPATHLEN) return 0;
+X	while (pathbuf[pathpos++] = *s++);
+X	pathbuf[pathpos-1] = '/';
+X	pathbuf[pathpos] = '\0';
+X	return 1;
+X}
+X
+Xchar *getfullpath(s) /**/
+Xchar *s;
+X{
+Xstatic char buf[MAXPATHLEN];
+X
+X	strcpy(buf,pathbuf);
+X	strcat(buf,s);
+X	return buf;
+X}
+X
+X/* do the globbing */
+X
+Xvoid scanner(q) /**/
+XComplist q;
+X{
+XComp c;
+Xint closure;
+X
+X	if (closure = q->closure)	/* (foo/)# */
+X		if (q->closure == 2)		/* (foo/)## */
+X			q->closure = 1;
+X		else
+X			scanner(q->next);
+X	if (c = q->comp)
+X		{
+X		if (!(c->next || c->left) && !haswilds(c->str))
+X			if (q->next)
+X				{
+X				int oppos = pathpos;
+X
+X				if (errflag)
+X					return;
+X				if (q->closure && !strcmp(c->str,".")) return;
+X				if (!addpath(c->str)) return;
+X				if (!closure || exists(pathbuf))
+X					scanner((q->closure) ? q : q->next);
+X				pathbuf[pathpos = oppos] = '\0';
+X				}
+X			else
+X				{
+X				char *s;
+X
+X				if (exists(s = getfullpath(c->str)))
+X					insert(strdup(s));
+X				}
+X		else
+X			{
+X			char *fn;
+X			int dirs = !!q->next;
+X			struct direct *de;
+X			DIR *lock = opendir((*pathbuf) ? pathbuf : ".");
+X			 
+X			if (lock == NULL)
+X				return;
+X			readdir(lock); readdir(lock); 	/* skip . and .. */
+X			while (de = readdir(lock))
+X				{
+X				if (errflag)
+X					break;
+X				fn = &de->d_name[0];
+X				if (domatch(fn,c,unset(GLOBDOTS)))
+X					{
+X					int oppos = pathpos;
+X
+X					if (dirs)
+X						{
+X						if (closure)
+X							{
+X							int type3;
+X							struct stat buf;
+X
+X					 		if (lstat(getfullpath(fn),&buf) == -1)
+X								{
+X								if (errno != ENOENT && errno != EINTR &&
+X										errno != ENOTDIR)
+X									{
+X									zerr("%e: %s",fn,errno);
+X									errflag = 0;
+X									}
+X								continue;
+X								}
+X							type3 = buf.st_mode & S_IFMT;
+X							if (type3 != S_IFDIR)
+X								continue;
+X							}
+X						if (addpath(fn))
+X							scanner((q->closure) ? q : q->next); /* scan next level */
+X						pathbuf[pathpos = oppos] = '\0';
+X						}
+X					else
+X						{
+X						if (qualct)	/* do the (X) (^X) stuff */
+X							{
+X							int (**fptr)DCLPROTO((struct stat *,long)) = qualfuncs;
+X							int *sptr = qualsense;
+X							long *lptr = qualdata;
+X							struct stat buf;
+X	
+X							if (lstat(getfullpath(fn),&buf) == -1)
+X								{
+X								if (errno != ENOENT && errno != EINTR)
+X									{
+X									zerr("%e: %s",fn,errno);
+X									errflag = 0;
+X									}
+X								continue;
+X								}
+X							while (*fptr)
+X								if (!(!!((*fptr++)(&buf,*lptr++)) ^ *sptr++))
+X									{
+X									fptr = NULL;
+X									break;
+X									}
+X							if (!fptr)
+X								continue;
+X							}
+X						insert(dyncat(pathbuf,fn));
+X						}
+X					}
+X				}
+X			closedir(lock);
+X			}
+X		}
+X	else
+X		zerr("no idea how you got this error message.",NULL,0);
+X}
+X
+X/* do the [..(foo)..] business */
+X
+Xint minimatch(pat,str) /**/
+Xchar **pat;char **str;
+X{
+Xchar *pt = *pat+1,*s = *str;
+X	
+X	for (; *pt != Outpar; s++,pt++)
+X		if ((*pt != Quest || !*s) && *pt != *s)
+X			{
+X			*pat = getparen(*pat)-1;
+X			return 0;
+X			}
+X	*str = s-1;
+X	return 1;
+X}
+X
+Xstatic char *pptr;
+Xstatic Comp tail = 0;
+Xstatic int first;
+X
+Xint domatch(str,c,fist) /**/
+Xchar *str;Comp c;int fist;
+X{
+X	pptr = str;
+X	first = fist;
+X	return doesmatch(c);
+X}
+X
+X/* see if current pattern matches c */
+X
+Xint doesmatch(c) /**/
+XComp c;
+X{
+Xchar *pat = c->str;
+X
+X	if (c->closure == 1)
+X		{
+X		char *saves = pptr;
+X		int savei = first;
+X
+X		if (doesmatch(c->next))
+X			return 1;
+X		pptr = saves;
+X		first = savei;
+X		}
+X	for(;;)
+X		{
+X		if (!pat || !*pat)
+X			{
+X			char *saves;
+X			int savei;
+X
+X			if (errflag)
+X				return 0;
+X			saves = pptr;
+X			savei = first;
+X			if (c->left || c->right)
+X				if (!doesmatch(c->left))
+X					if (c->right)
+X						{
+X						pptr = saves;
+X						first = savei;
+X						if (!doesmatch(c->right))
+X							return 0;
+X						}
+X					else
+X						return 0;
+X			if (c->closure)
+X				return doesmatch(c);
+X			if (!c->next)
+X				return (!c->last || !*pptr);
+X			return doesmatch(c->next);
+X			}
+X		if (first && *pptr == '.' && *pat != '.')
+X			return 0;
+X		if (*pat == Star)	/* final * is not expanded to ?#; returns success */
+X			{
+X			while (*pptr) pptr++;
+X			return 1;
+X			}
+X		first = 0;
+X		if (*pat == Quest && *pptr)
+X			{
+X			pptr++;
+X			pat++;
+X			continue;
+X			}
+X		if (*pat == Hat)
+X			return 1-doesmatch(c->next);
+X		if (*pat == Inbrack) {
+X			if (!*pptr) break;
+X			if (pat[1] == Hat || pat[1] == '^') {
+X				pat[1] = Hat;
+X				for (pat += 2; *pat != Outbrack && *pat; pat++)
+X					if (*pat == '-' && pat[-1] != Hat && pat[1] != Outbrack) {
+X						if (pat[-1] <= *pptr && pat[1] >= *pptr)
+X							break;
+X					} else if (*pptr == *pat) break;
+X				if (!*pat) {
+X					zerr("something is very wrong.",NULL,0);
+X					return 0;
+X				}
+X				if (*pat != Outbrack)
+X					break;
+X				pat++;
+X				pptr++;
+X				continue;
+X			} else {
+X				for (pat++; *pat != Outbrack && *pat; pat++)
+X					if (*pat == Inpar) {
+X						if (minimatch(&pat,&pptr))
+X							break;
+X					} else if (*pat == '-' && pat[-1] != Inbrack &&
+X							pat[1] != Outbrack) {
+X						if (pat[-1] <= *pptr && pat[1] >= *pptr)
+X							break;
+X					} else if (*pptr == *pat) break;
+X				if (!pat || !*pat) {
+X					zerr("oh dear.  that CAN'T be right.",NULL,0);
+X					return 0;
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/glob.c failed'
+fi
+echo 'End of zsh2.1.0 part 6'
+echo 'File zsh2.1/src/glob.c is continued in part 7'
+echo 7 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

@@ -1,0 +1,1430 @@
+Path: funic!news.funet.fi!sunic!seunet!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i001:  zsh2.1 - The Z shell, Part01/19
+Message-ID: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Date: 24 Oct 91 19:06:13 GMT
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 1417
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 11016e2cde4c66e9be85b1f2e0b1b1c1
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 1
+Archive-name: zsh2.1/part01
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+This is zsh 2.1.0, written by Paul Falstad (pfalstad@phoenix.princeton.edu).
+I've tested it on the following machines, where it compiled just by running
+a shell script:
+
+Sun SPARCServer 4/490 running SunOS 4.1.1
+NeXTstation running Mach 2.0
+DECSystem-5000 running ULTRIX 4.2
+Sun 3/50M running SunOS 4.0
+Iris 4D/20 running IRIX 3.3.1
+Tahoe running BSD 4.3 tahoe
+HP 9000/855 running HP-UX 8.0
+HP 9000/370 running HP-UX 7.05
+
+It should be easier to port the shell to different architectures now.
+The reason it won't run on SysV-like machines is that I don't have
+access to any SysV-like machines.  I'd love to have someone help port the
+shell to other architectures.
+
+Basically, zsh is a shell with most of the features of tcsh, ksh,
+and bash, plus a few more.  The input syntax is mostly ksh-like, though
+csh syntax is also accepted in most cases; plus, almost all of the
+bells and whistles of other shells have been included.
+
+A PostScript version of "An Introduction to the Z Shell" has also been
+included with this distribution.
+
+You can ftp the distribution (or just the introduction) from cs.ucsd.edu
+(132.239.51.3) as "/pub/zsh/{zsh2.1.0.tar.Z,intro.ps.Z}".
+
+This version supersedes zsh2.0.?.  Major changes in this version:
+
+1. Parser was rewritten and improved.  All the old syntax is still
+accepted, with the addition of some other command forms.
+
+2. Almost all known bugs (from previous releases) have been fixed.  It
+won't sit around after the connection closes anymore.  It won't die
+if you press TAB inside a `...` expression.  It won't mangle your
+tty settings, since it doesn't fiddle with the tty as much.  Plus,
+lots of little bugs have been fixed.
+
+3. The completion has been improved; hostname completion is supported
+now.  If you give the shell a list of hosts, you can type
+"telnet hostn[tab]" and it will complete the hostname.  Plus you can
+say "bindkey control-whatever forward-w[tab]", and "vared PRO[tab]",
+and "echo $PRIN[tab]", and "setopt cshnul[tab]", and
+"mail foobar@foohos[tab]", etc.
+
+4. vi-mode emulation has been improved.  All the fancy stuff is there,
+like multiple buffers and repeat-last-change, and a real insert mode.
+
+Paul
+-----
+#!/bin/sh
+# This is zsh2.1.0, a shell archive (produced by shar 3.49)
+# To extract the files from this archive, save it to a file, remove
+# everything above the "!/bin/sh" line above, and type "sh file_name".
+#
+# made 10/19/1991 01:07 UTC by pfalstad@phoenix
+# Source directory /n/homeserver/c/pfalstad/zshdist
+#
+# existing files will NOT be overwritten unless -c is specified
+#
+# This is part 1 of a multipart archive                                    
+# do not concatenate these parts, unpack them in order with /bin/sh        
+#
+# This shar contains:
+# length  mode       name
+# ------ ---------- ------------------------------------------
+#  12488 -rw-r--r-- zsh2.1/COPYING
+#  10214 -rw-r--r-- zsh2.1/README
+#   1295 -rw-r--r-- zsh2.1/dots/zlogin
+#   3170 -rw-r--r-- zsh2.1/dots/zshrc
+#    104 -rwxr-xr-x zsh2.1/func/acx
+#    109 -rwxr-xr-x zsh2.1/func/cx
+#     97 -rwxr-xr-x zsh2.1/func/harden
+#     84 -rwxr-xr-x zsh2.1/func/mere
+#    412 -rwxr-xr-x zsh2.1/func/namedir
+#    194 -rwxr-xr-x zsh2.1/func/proto
+#     80 -rwxr-xr-x zsh2.1/func/randline
+#     29 -rwxr-xr-x zsh2.1/func/yp
+#     35 -rwxr-xr-x zsh2.1/func/yu
+# 107626 -rw-r--r-- zsh2.1/man/man1/zsh.1
+#    755 -rwxr-xr-x zsh2.1/scripts/aproto
+#    173 -rwxr-xr-x zsh2.1/scripts/fproto
+#   3299 -rwxr-xr-x zsh2.1/scripts/c2z
+#   8053 -rwxr-xr-x zsh2.1/src/buildzsh
+#  56254 -rw-r--r-- zsh2.1/src/builtin.c
+#   4485 -rw-r--r-- zsh2.1/src/cond.c
+#  33003 -rw-r--r-- zsh2.1/src/exec.c
+#   1198 -rw-r--r-- zsh2.1/src/funcs.h
+#  23323 -rw-r--r-- zsh2.1/src/glob.c
+#  24813 -rw-r--r-- zsh2.1/src/hist.c
+#  12375 -rw-r--r-- zsh2.1/src/init.c
+#  14918 -rw-r--r-- zsh2.1/src/jobs.c
+#  15750 -rw-r--r-- zsh2.1/src/lex.c
+#   4854 -rw-r--r-- zsh2.1/src/loop.c
+#  10626 -rw-r--r-- zsh2.1/src/math.c
+#   5007 -rw-r--r-- zsh2.1/src/mem.c
+#  24528 -rw-r--r-- zsh2.1/src/params.c
+#  15253 -rw-r--r-- zsh2.1/src/subst.c
+#   6824 -rw-r--r-- zsh2.1/src/table.c
+#   8703 -rw-r--r-- zsh2.1/src/text.c
+#  30675 -rw-r--r-- zsh2.1/src/utils.c
+#   7508 -rw-r--r-- zsh2.1/src/watch.c
+#   8481 -rw-r--r-- zsh2.1/src/zle.h
+#  17489 -rw-r--r-- zsh2.1/src/zle_bindings.c
+#  14557 -rw-r--r-- zsh2.1/src/zle_main.c
+#  12102 -rw-r--r-- zsh2.1/src/zle_refresh.c
+#   4954 -rw-r--r-- zsh2.1/src/zle_utils.c
+#  30146 -rw-r--r-- zsh2.1/src/zsh.h
+#   5031 -rw-r--r-- zsh2.1/src/zle_vi.c
+#   1927 -rw-r--r-- zsh2.1/src/ztype.h
+#    309 -rw-r--r-- zsh2.1/src/lex.pro
+#  24239 -rw-r--r-- zsh2.1/src/zle_tricky.c
+#   3753 -rw-r--r-- zsh2.1/src/builtin.pro
+#    235 -rw-r--r-- zsh2.1/src/cond.pro
+#   2109 -rw-r--r-- zsh2.1/src/exec.pro
+#   1511 -rw-r--r-- zsh2.1/src/glob.pro
+#   1737 -rw-r--r-- zsh2.1/src/hist.pro
+#    453 -rw-r--r-- zsh2.1/src/init.pro
+#    789 -rw-r--r-- zsh2.1/src/jobs.pro
+#    206 -rw-r--r-- zsh2.1/src/loop.pro
+#    291 -rw-r--r-- zsh2.1/src/math.pro
+#    510 -rw-r--r-- zsh2.1/src/mem.pro
+#   3148 -rw-r--r-- zsh2.1/src/params.pro
+#    619 -rw-r--r-- zsh2.1/src/subst.pro
+#    889 -rw-r--r-- zsh2.1/src/table.pro
+#    330 -rw-r--r-- zsh2.1/src/text.pro
+#   2983 -rw-r--r-- zsh2.1/src/utils.pro
+#    371 -rw-r--r-- zsh2.1/src/watch.pro
+#      0 -rw-r--r-- zsh2.1/src/zle_bindings.pro
+#    659 -rw-r--r-- zsh2.1/src/zle_main.pro
+#    596 -rw-r--r-- zsh2.1/src/zle_refresh.pro
+#    759 -rw-r--r-- zsh2.1/src/zle_vi.pro
+#   1036 -rw-r--r-- zsh2.1/src/parse.pro
+#   1712 -rw-r--r-- zsh2.1/src/zle_tricky.pro
+#  18604 -rw-r--r-- zsh2.1/src/parse.c
+#    675 -rw-r--r-- zsh2.1/src/zle_utils.pro
+#   1429 -rw-r--r-- zsh2.1/src/signals.h.sample
+#   5546 -rw-r--r-- zsh2.1/src/zle_move.c
+#   9823 -rw-r--r-- zsh2.1/src/zle_misc.c
+#   5509 -rw-r--r-- zsh2.1/src/zle_word.c
+#  10175 -rw-r--r-- zsh2.1/src/zle_hist.c
+#   1119 -rw-r--r-- zsh2.1/src/zle_hist.pro
+#   1332 -rw-r--r-- zsh2.1/src/zle_misc.pro
+#    909 -rw-r--r-- zsh2.1/src/zle_move.pro
+#    658 -rw-r--r-- zsh2.1/src/zle_word.pro
+# 137468 -rw-r--r-- zsh2.1/doc/intro.ps
+#
+if test -r _shar_seq_.tmp; then
+	echo 'Must unpack archives in sequence!'
+	echo Please unpack part `cat _shar_seq_.tmp` next
+	exit 1
+fi
+# ============= zsh2.1/COPYING ==============
+if test ! -d 'zsh2.1'; then
+    echo 'x - creating directory zsh2.1'
+    mkdir 'zsh2.1'
+fi
+if test -f 'zsh2.1/COPYING' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/COPYING (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/COPYING (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/COPYING' &&
+X
+X		    GNU GENERAL PUBLIC LICENSE
+X		     Version 1, February 1989
+X
+X Copyright (C) 1989 Free Software Foundation, Inc.
+X                    675 Mass Ave, Cambridge, MA 02139, USA
+X Everyone is permitted to copy and distribute verbatim copies
+X of this license document, but changing it is not allowed.
+X
+X			    Preamble
+X
+X  The license agreements of most software companies try to keep users
+Xat the mercy of those companies.  By contrast, our General Public
+XLicense is intended to guarantee your freedom to share and change free
+Xsoftware--to make sure the software is free for all its users.  The
+XGeneral Public License applies to the Free Software Foundation's
+Xsoftware and to any other program whose authors commit to using it.
+XYou can use it for your programs, too.
+X
+X  When we speak of free software, we are referring to freedom, not
+Xprice.  Specifically, the General Public License is designed to make
+Xsure that you have the freedom to give away or sell copies of free
+Xsoftware, that you receive source code or can get it if you want it,
+Xthat you can change the software or use pieces of it in new free
+Xprograms; and that you know you can do these things.
+X
+X  To protect your rights, we need to make restrictions that forbid
+Xanyone to deny you these rights or to ask you to surrender the rights.
+XThese restrictions translate to certain responsibilities for you if you
+Xdistribute copies of the software, or if you modify it.
+X
+X  For example, if you distribute copies of a such a program, whether
+Xgratis or for a fee, you must give the recipients all the rights that
+Xyou have.  You must make sure that they, too, receive or can get the
+Xsource code.  And you must tell them their rights.
+X
+X  We protect your rights with two steps: (1) copyright the software, and
+X(2) offer you this license which gives you legal permission to copy,
+Xdistribute and/or modify the software.
+X
+X  Also, for each author's protection and ours, we want to make certain
+Xthat everyone understands that there is no warranty for this free
+Xsoftware.  If the software is modified by someone else and passed on, we
+Xwant its recipients to know that what they have is not the original, so
+Xthat any problems introduced by others will not reflect on the original
+Xauthors' reputations.
+X
+X  The precise terms and conditions for copying, distribution and
+Xmodification follow.
+X
+X		    GNU GENERAL PUBLIC LICENSE
+X   TERMS AND CONDITIONS FOR COPYING, DISTRIBUTION AND MODIFICATION
+X
+X  0. This License Agreement applies to any program or other work which
+Xcontains a notice placed by the copyright holder saying it may be
+Xdistributed under the terms of this General Public License.  The
+X"Program", below, refers to any such program or work, and a "work based
+Xon the Program" means either the Program or any work containing the
+XProgram or a portion of it, either verbatim or with modifications.  Each
+Xlicensee is addressed as "you".
+X
+X  1. You may copy and distribute verbatim copies of the Program's source
+Xcode as you receive it, in any medium, provided that you conspicuously and
+Xappropriately publish on each copy an appropriate copyright notice and
+Xdisclaimer of warranty; keep intact all the notices that refer to this
+XGeneral Public License and to the absence of any warranty; and give any
+Xother recipients of the Program a copy of this General Public License
+Xalong with the Program.  You may charge a fee for the physical act of
+Xtransferring a copy.
+X
+X  2. You may modify your copy or copies of the Program or any portion of
+Xit, and copy and distribute such modifications under the terms of Paragraph
+X1 above, provided that you also do the following:
+X
+X    a) cause the modified files to carry prominent notices stating that
+X    you changed the files and the date of any change; and
+X
+X    b) cause the whole of any work that you distribute or publish, that
+X    in whole or in part contains the Program or any part thereof, either
+X    with or without modifications, to be licensed at no charge to all
+X    third parties under the terms of this General Public License (except
+X    that you may choose to grant warranty protection to some or all
+X    third parties, at your option).
+X
+X    c) If the modified program normally reads commands interactively when
+X    run, you must cause it, when started running for such interactive use
+X    in the simplest and most usual way, to print or display an
+X    announcement including an appropriate copyright notice and a notice
+X    that there is no warranty (or else, saying that you provide a
+X    warranty) and that users may redistribute the program under these
+X    conditions, and telling the user how to view a copy of this General
+X    Public License.
+X
+X    d) You may charge a fee for the physical act of transferring a
+X    copy, and you may at your option offer warranty protection in
+X    exchange for a fee.
+X
+XMere aggregation of another independent work with the Program (or its
+Xderivative) on a volume of a storage or distribution medium does not bring
+Xthe other work under the scope of these terms.
+X
+X  3. You may copy and distribute the Program (or a portion or derivative of
+Xit, under Paragraph 2) in object code or executable form under the terms of
+XParagraphs 1 and 2 above provided that you also do one of the following:
+X
+X    a) accompany it with the complete corresponding machine-readable
+X    source code, which must be distributed under the terms of
+X    Paragraphs 1 and 2 above; or,
+X
+X    b) accompany it with a written offer, valid for at least three
+X    years, to give any third party free (except for a nominal charge
+X    for the cost of distribution) a complete machine-readable copy of the
+X    corresponding source code, to be distributed under the terms of
+X    Paragraphs 1 and 2 above; or,
+X
+X    c) accompany it with the information you received as to where the
+X    corresponding source code may be obtained.  (This alternative is
+X    allowed only for noncommercial distribution and only if you
+X    received the program in object code or executable form alone.)
+X
+XSource code for a work means the preferred form of the work for making
+Xmodifications to it.  For an executable file, complete source code means
+Xall the source code for all modules it contains; but, as a special
+Xexception, it need not include source code for modules which are standard
+Xlibraries that accompany the operating system on which the executable
+Xfile runs, or for standard header files or definitions files that
+Xaccompany that operating system.
+X
+X  4. You may not copy, modify, sublicense, distribute or transfer the
+XProgram except as expressly provided under this General Public License.
+XAny attempt otherwise to copy, modify, sublicense, distribute or transfer
+Xthe Program is void, and will automatically terminate your rights to use
+Xthe Program under this License.  However, parties who have received
+Xcopies, or rights to use copies, from you under this General Public
+XLicense will not have their licenses terminated so long as such parties
+Xremain in full compliance.
+X
+X  5. By copying, distributing or modifying the Program (or any work based
+Xon the Program) you indicate your acceptance of this license to do so,
+Xand all its terms and conditions.
+X
+X  6. Each time you redistribute the Program (or any work based on the
+XProgram), the recipient automatically receives a license from the original
+Xlicensor to copy, distribute or modify the Program subject to these
+Xterms and conditions.  You may not impose any further restrictions on the
+Xrecipients' exercise of the rights granted herein.
+X
+X  7. The Free Software Foundation may publish revised and/or new versions
+Xof the General Public License from time to time.  Such new versions will
+Xbe similar in spirit to the present version, but may differ in detail to
+Xaddress new problems or concerns.
+X
+XEach version is given a distinguishing version number.  If the Program
+Xspecifies a version number of the license which applies to it and "any
+Xlater version", you have the option of following the terms and conditions
+Xeither of that version or of any later version published by the Free
+XSoftware Foundation.  If the Program does not specify a version number of
+Xthe license, you may choose any version ever published by the Free Software
+XFoundation.
+X
+X  8. If you wish to incorporate parts of the Program into other free
+Xprograms whose distribution conditions are different, write to the author
+Xto ask for permission.  For software which is copyrighted by the Free
+XSoftware Foundation, write to the Free Software Foundation; we sometimes
+Xmake exceptions for this.  Our decision will be guided by the two goals
+Xof preserving the free status of all derivatives of our free software and
+Xof promoting the sharing and reuse of software generally.
+X
+X			    NO WARRANTY
+X
+X  9. BECAUSE THE PROGRAM IS LICENSED FREE OF CHARGE, THERE IS NO WARRANTY
+XFOR THE PROGRAM, TO THE EXTENT PERMITTED BY APPLICABLE LAW.  EXCEPT WHEN
+XOTHERWISE STATED IN WRITING THE COPYRIGHT HOLDERS AND/OR OTHER PARTIES
+XPROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED
+XOR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+XMERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE ENTIRE RISK AS
+XTO THE QUALITY AND PERFORMANCE OF THE PROGRAM IS WITH YOU.  SHOULD THE
+XPROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF ALL NECESSARY SERVICING,
+XREPAIR OR CORRECTION.
+X
+X  10. IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+XWILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MAY MODIFY AND/OR
+XREDISTRIBUTE THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES,
+XINCLUDING ANY GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING
+XOUT OF THE USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED
+XTO LOSS OF DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY
+XYOU OR THIRD PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER
+XPROGRAMS), EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE
+XPOSSIBILITY OF SUCH DAMAGES.
+X
+X		     END OF TERMS AND CONDITIONS
+X
+X	Appendix: How to Apply These Terms to Your New Programs
+X
+X  If you develop a new program, and you want it to be of the greatest
+Xpossible use to humanity, the best way to achieve this is to make it
+Xfree software which everyone can redistribute and change under these
+Xterms.
+X
+X  To do so, attach the following notices to the program.  It is safest to
+Xattach them to the start of each source file to most effectively convey
+Xthe exclusion of warranty; and each file should have at least the
+X"copyright" line and a pointer to where the full notice is found.
+X
+X    <one line to give the program's name and a brief idea of what it does.>
+X    Copyright (C) 19yy  <name of author>
+X
+X    This program is free software; you can redistribute it and/or modify
+X    it under the terms of the GNU General Public License as published by
+X    the Free Software Foundation; either version 1, or (at your option)
+X    any later version.
+X
+X    This program is distributed in the hope that it will be useful,
+X    but WITHOUT ANY WARRANTY; without even the implied warranty of
+X    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+X    GNU General Public License for more details.
+X
+X    You should have received a copy of the GNU General Public License
+X    along with this program; if not, write to the Free Software
+X    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+X
+XAlso add information on how to contact you by electronic and paper mail.
+X
+XIf the program is interactive, make it output a short notice like this
+Xwhen it starts in an interactive mode:
+X
+X    Gnomovision version 69, Copyright (C) 19xx name of author
+X    Gnomovision comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+X    This is free software, and you are welcome to redistribute it
+X    under certain conditions; type `show c' for details.
+X
+XThe hypothetical commands `show w' and `show c' should show the
+Xappropriate parts of the General Public License.  Of course, the
+Xcommands you use may be called something other than `show w' and `show
+Xc'; they could even be mouse-clicks or menu items--whatever suits your
+Xprogram.
+X
+XYou should also get your employer (if you work as a programmer) or your
+Xschool, if any, to sign a "copyright disclaimer" for the program, if
+Xnecessary.  Here a sample; alter the names:
+X
+X  Yoyodyne, Inc., hereby disclaims all copyright interest in the
+X  program `Gnomovision' (a program to direct compilers to make passes
+X  at assemblers) written by James Hacker.
+X
+X  <signature of Ty Coon>, 1 April 1989
+X  Ty Coon, President of Vice
+X
+XThat's all there is to it!
+SHAR_EOF
+chmod 0644 zsh2.1/COPYING ||
+echo 'restore of zsh2.1/COPYING failed'
+Wc_c="`wc -c < 'zsh2.1/COPYING'`"
+test 12488 -eq "$Wc_c" ||
+	echo 'zsh2.1/COPYING: original size 12488, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/README ==============
+if test -f 'zsh2.1/README' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/README (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/README (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/README' &&
+Xzsh is free software.  See the file COPYING for copying permission.
+X
+XThis is zsh 2.1.0, written by Paul Falstad (pfalstad@phoenix.princeton.edu).
+X
+XTo get this shell running, cd into the src directory and type
+X"buildzsh".  I tested it on the following machines, where it compiled
+Xjust by running this script:
+X
+XSun SPARCServer 4/490 running SunOS 4.1.1
+XNeXTstation running Mach 2.0
+XDECSystem-5000 running ULTRIX 4.2
+XSun 3/50M running SunOS 4.0
+XIris 4D/20 running IRIX 3.3.1
+XTahoe running BSD 4.3 tahoe
+XHP 9000/855 running HP-UX 8.0
+XHP 9000/370 running HP-UX 7.05
+X
+XIt should be easier to port the shell to different architectures now.
+XThe reason it hasn't been tested on SysV-like machines is that I don't
+Xhave access to any SysV-like machines.  I'd love to have someone port
+Xthe shell to other architectures.
+X
+XTabstops are 3 spaces.  If you're going to look at my code, run it
+Xthough "expand -3" first, or set your tab stops to the same as mine.
+X
+XIf anyone has any questions, suggestions, comments, bugs, flames, or
+Xany other mail of any kind, send it to pfalstad@phoenix.princeton.edu.
+X
+XThanks to the following people for help, ideas, comments, patches, etc.:
+X 
+XDavid Dobkin
+XJim Mattson
+XGoran Larsson
+XBart Schaefer
+XPaul E. Maisano
+XNorbert Kiesel
+XJosh Diamond
+XPeter Moore
+XGeoff Wing
+XKent Dickey
+XJean-Jacques Moreau
+XMichael Brown
+XBruce Anderson
+XCarson Wilson (too bad my email to him bounces)
+XStephen Dum
+XLars E. Thon
+XMichael Brennan
+XXev Gittler
+XJarkko Hietaniemi
+XZbigniew J Tyrlik
+XPierre Racz
+XRick Ohnemus
+XRichard Dean
+XGary D. Kline
+XRobert A. Fabian
+XByron Rakitzis
+XGottfried Necker
+XDan Bernstein
+XVincent Granet
+XJonathan I. Kamens & Bruce Varney
+XDavid Wilson
+XPeter Gray
+XGreg Noel
+XPaul Lew
+XKartik Subbarao
+XMichael Marucheck
+XChristopher Pirazzi
+XSteve Giovanetti
+XKennedy Lemke
+XEmin Gun Sirer
+XKazuo Itoh
+Xlots of other people, I'm sure
+X
+XModification history:
+X
+X0.03-1.0:
+X	- "..../" is now "****/".  I know this isn't backward compatible,
+X	  but I had no choice; the string "..../" was unquotable.
+X	- parser was rewritten and improved
+X	- completion was improved, several bugs fixed (including
+X	  the "$([tab]" bug)
+X	- vi mode editing is improved
+X	- the value of PWD and OLDPWD in the environment now change
+X	- the PROMPT formatting strings %W and %D now print the month
+X	  correctly
+X	- >&2 echo "error message" no longer prints "bad file number"
+X	- ${foo%pat} no longer alters the value of foo
+X	- $_ works
+X	- ALL_EXPORT no longer causes let statements to crash the shell
+X	- continue works
+X	- echo $MAIL no longer dumps core if MAIL is null
+X	- the new tty driver is selected by default
+X	- the s modifier no longer complains if it can't find the string
+X	  to substitute
+X	- list-choices no longer fignores files
+X	- cd is now smarter about symlinks
+X	- negative subscripts other than -1 now work
+X	- $(<filename) works better if filename contains $, ~, or =
+X	- rehash no longer wastes memory
+X	- with name=value assignments, name is checked to see if it is
+X	  a valid identifier
+X	- !1; !2 no longer eats the semicolon
+X	- $foo:h never returns the empty string if foo starts with /
+X	- select crashed with some compilers
+X	- problems with aliases in <(...) constructs have been fixed
+X	- links pointing to nowhere are denoted with an '&' in listtypes
+X	- negative arguments are supported
+X	- the shell does not screw around with the tty so much
+X	- lots of other stuff
+X
+X0.02-0.03:
+X	- two stupid bugs that were introduced in the last patch were fixed:
+X	  - multiple command substitution on a line failed
+X	  - a file descriptor leak caused the shell to crash after a while
+X	- added 'An Introduction to the Z Shell'
+X	- behaves properly when the tty session dies suddenly
+X	- had a serious memory leak on some systems
+X	- the test and [ builtins have been added, although [[...]]
+X	  is more efficient
+X	- in your prompt, %m2 now prints foo.bar, %m3 prints foo.bar.com, etc.
+X	- the -D and -P options to print have been added
+X	- the NULLCMD and ZDOTDIR parameters have been added
+X	- ${*:-foo} works
+X	- "$@" and "$arr[@]" work like ksh
+X	- .zprofile is sourced before .zshrc in login shells
+X	- the CSHJUNKIEQUOTES and PUSHDMINUS options have been added
+X	- REAL_TTY compilation switch added
+X	- aliases beginning with a space cause the history line to be junked
+X	  if HISTIGNORESPACE is set
+X	- echo prints bad options instead of complaining about them
+X	- "set -o" no longer dumps core
+X	- "alias a=alias; date >a" no longer creates a file called "alias"
+X	- "function foo() \n { date }" is now legal (the () and the newline
+X	  are allowed)
+X	- nested brace expressions work properly
+X	- disabled commands stay disabled after a rehash (or after the shell
+X	  finishes sourcing your .zshrc)
+X	- corrected aliases work
+X	- executables in the currect directory are now completed
+X	- in "case foo", "foo" is not interpreted as a directory name with autocd
+X	- aliases were not always interpreted properly after a completion
+X	- bindkey '^?' didn't work
+X	- echo ${HOST:-{bar}} didn't work
+X	- editor update is more efficient in some cases
+X	- menucomplete works even better
+X	- assign to an array element "foo[1]=bar" didn't always work
+X	- doesn't print directories like "~tmp" if HOME=/
+X	- quotes in case statement patterns caused problems
+X	- pressing ^C right after typing "fc" caused the editor to share
+X	  the tty with the shell
+X	- echo $(echo 2) produced no output, but echo $(echo x) worked fine (weird)
+X
+X0.01-0.02:
+X	- added script to convert most csh aliases to zsh aliases or functions
+X	- fc -l (history) now appears in the history itself; HISTNOSTORE
+X	  option added to get old behavior
+X	- the POSIX process group race has been fixed; so 'w | more' should
+X	  no longer hang
+X	- FCEDIT added, to match the documentation
+X	- %{...%} in the prompt added
+X	- execute-named-cmd and execute-last-named-cmd bindings added
+X	- sources ~/.zshenv in all shells, even if not interactive, unless
+X	  -f is given
+X	- ^ and # are no longer `magic' by default; use EXTENDEDGLOB option
+X	  to use them
+X	- now checks for tty sanity before each command
+X	- if the right side of a variable assignment expands to more than
+X	  one word, array assignment is assumed; so foo=*.c now works
+X	- ~foo is no longer expanded in completion
+X	- select now works even if the argument list is not sorted
+X	- menucompletebeep option added
+X	- emacs mode is now 8-bit clean by default; use bindkey -em
+X	  to get your meta key back
+X	- fc -R, fc -W added
+X	- nocorrect added
+X	- lines from history file are now split into words at spaces
+X	- glob-complete, accept-and-menu-complete,
+X	  beginning-of-line-hist, end-of-line-hist bindings added
+X	- insert-last-word bound to M-. in emacs mode by default; now moves
+X	  back through the history if run repeatedly
+X	- J and K now bound to history search in vi mode
+X	- delete-char no longer core dumps on an empty line
+X	- menu-complete works better
+X	- the editor checks the settings of VISUAL and EDITOR to set
+X	  default bindings
+X	- using [[ ... ]] expressions on a symbolic link works as expected
+X	- various problems with globbing were fixed
+X	- xx is now the same as !! if HISTCHARS=x
+X	- added config.h entry for compilers that don't know about void *
+X	- lexical analysis made more efficient
+X	- "if echo $? ; then : ; fi" no longer always prints 0
+X	- removed all enums, '\x7f's from code
+X	- in "case foo in bar) xxx ;; esac", foo and bar are no longer subject
+X	  to command alias expansion
+X	- works on platforms where toupper('A') != 'A'
+X	- \e sequence added to echo
+X	- + options now work with set
+X	- AUTORESUME and AUTOCD work better
+X	- getopts works better (?)
+X	- spell checking works better
+X	- "let 2+3=" no longer crashes the shell
+X	- "foo=bar; echo ${=foo}" no longer crashes the shell
+X	- "zsh -c" or "zsh -o" no longer causes a core dump
+X	- "unset MAIL; echo $MAIL" no longer causes a core dump
+X	- "(xterm&xterm&)&" no longer causes a core dump
+X	- "echo $HOM[tab]" beeps instead of deleting "$HOM"
+X	- incremental history search works better
+X	- the pwd of a fg'd job is now printed _before_ resuming it
+X	- rv=`echo -n foo` no longer puts garbage in $rv
+X	- "=1/*" now works as expected
+X	- ^Z can now be bound to something
+X	- the STTY parameter and the builtin builtin are now documented
+X	- IFS=x; foo=`echo foo` no longer puts a newline in $foo
+X	- $status added for csh compatibility
+X	- arrays are automatically expanded if you say 'foo[1234]=x'
+X	- shell now ignores SIGQUIT (it was commented out before :-)
+X	- the times builtin works on systems where times() returns > 0
+X	- no longer hangs the terminal if you ^S before flow control
+X	  is turned off
+X	- "date ; read foo" now works in interactive shells
+X	- <<-foo is now parsed as <<- foo, not << -foo
+X	- fixed various errors in the documentation
+X
+X0.00-0.01:
+X	- %M and %m now work as documented.
+X	- bad things no longer happen if COLUMNS is set to 0
+X	- SH_WORD_SPLIT and ${=foo} now work
+X	- the default value of WORDCHARS includes more characters
+X	- if the cursor is at the end of the line, vi-cmd-mode
+X	  moves it back one position.
+X	- delete-char now acts more like x in vi.
+X	- a "prompt" parameter has been added, which is equivalent to
+X	  PROMPT and PS1.
+X	- zsh no longer expands symbolic links.  The CHASELINKS option
+X	  has been provided to get the old behavior.
+X	- history searches ignore lines that are the same as the line
+X	  in the buffer.
+X	- you can get a literal ! in your prompt now with \!.
+X	- -z, -n, and != in [[ ... ]] expressions work.
+X	- the shell no longer hangs when inputting "[[ ]\n"
+X	- the "menu-complete" and "menu-expand-or-complete" bindings have
+X	  been added.
+X	- menu-complete no longer beeps.
+X	- reverse-menu-complete no longer dumps core if it gets called before
+X	  a normal completion.
+X	- typeahead lines are no longer thrown away on machines with sgttyb.
+X	- !foo no longer matches lines with 'foo' in them (not at the beginning)
+X	- kill -9 % no longer kills the shell
+X	- no longer sources .zshrc from shell scripts or with -c
+X	- no longer needs limits.h, strtol
+X	- exporting HOSTTYPE, etc. works
+X	- fixed serious bugs related to . in path
+X	- numbers in weird bases now work
+X
+XKnown Bugs
+X	- terminal acts weird under OpenWindows cmdtool
+X	- xterm run in background inherits bad terminal modes
+X	- here documents don't appear in the history, and cannot be
+X	  used inside eval statements
+X
+SHAR_EOF
+chmod 0644 zsh2.1/README ||
+echo 'restore of zsh2.1/README failed'
+Wc_c="`wc -c < 'zsh2.1/README'`"
+test 10214 -eq "$Wc_c" ||
+	echo 'zsh2.1/README: original size 10214, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/dots/zlogin ==============
+if test ! -d 'zsh2.1/dots'; then
+    echo 'x - creating directory zsh2.1/dots'
+    mkdir 'zsh2.1/dots'
+fi
+if test -f 'zsh2.1/dots/zlogin' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/dots/zlogin (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/dots/zlogin (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/dots/zlogin' &&
+X#
+X# my login file for zsh
+X#
+Xclear
+Xcd
+Xstty dec new cr0
+X
+X# nice little thing that figures out my termtype based on where I logged
+X# in from
+X
+X
+X# get the hostname of where I logged in from
+Xsetopt nobanghist
+XFROM=$(who said that | sed 's/^.*(\([^.:!]*\).*).*$/\1/')
+Xunsetopt nobanghist
+X
+Xcase "$FROM" {
+Xlearning*)
+X	FROMTYPE=SUNOS-4.1
+X	stty rows 54 ;;
+Xunix*)
+X	FROM=$(hostname)
+X	FROMTYPE="$(host -t hinfo $FROM | sed 's/^.*HINFO//')" ;;
+X*)
+X	FROMTYPE="$(host -t hinfo $FROM | sed 's/^.*HINFO//')" ;;
+X}
+X
+X# got the type of host from DNS; set up things accordingly
+X
+Xcase "$FROMTYPE" {
+X*CISCO*)
+X	eval $(tset -s vt100-new)
+X	FROM=comserv
+X	export PRINTER=dod; 48; BAUD=1800; ;;
+X*MAC-OS*|*MS-DOS*|*IBM*) eval $(tset -s vt100)
+X		export PRINTER=edwards; FROM=madison;;
+X*SUNOS-4.1*) eval $(tset -s xterm); export DISPLAY=$FROM:0.0; FROM=sun
+X		stty erase ; export PRINTER=ps1 ;;
+X*SGI*) eval $(tset -s iris-ansi) ; export PRINTER=gutenberg
+X		export DISPLAY=$FROM:0.0; FROM=iris; stty erase \^H ;;
+X*NCD*) eval $(tset -s vt100) ; export DISPLAY=$FROM:0.0;;
+X*) eval $(tset -s -Q '?vt100') ;;
+X}
+Xcase "$FROM" in dndod*) export PRINTER=dod;; esac
+X
+Xstty -tabs
+Xumask 022
+Xexport MAIL=/usr/spool/mail/$USER
+XMAILCHECK=60
+Xstty columns 80
+Xmesg y
+Xuptime
+Xfortune
+Xlog
+Xfrom 2>/dev/null
+X< notes
+Xunlimit
+Xlimit core 0
+Xmsgs -fp
+Xpmsgs -q
+SHAR_EOF
+chmod 0644 zsh2.1/dots/zlogin ||
+echo 'restore of zsh2.1/dots/zlogin failed'
+Wc_c="`wc -c < 'zsh2.1/dots/zlogin'`"
+test 1295 -eq "$Wc_c" ||
+	echo 'zsh2.1/dots/zlogin: original size 1295, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/dots/zshrc ==============
+if test -f 'zsh2.1/dots/zshrc' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/dots/zshrc (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/dots/zshrc (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/dots/zshrc' &&
+X#
+X# my rc file for zsh 2.1
+X#
+X
+X# it's actually better to set up the path in .zshenv
+Xpath=(~/scr ~/bin/$HOSTTYPE
+X	~maruchck/scr ~subbarao/bin ~subbarao/bin/$HOSTTYPE
+X	~maruchck/bin ~subbarao/scripts
+X	/usr/princeton/bin /usr/ucb /usr/bin /bin
+X	/usr/hosts /usr/princeton/bin/X11 /./usr/lang /./usr/etc /./etc
+X	~/src/zsh/bin .)
+X
+X# search path for the cd command
+Xcdpath=(~ ~/src/cs320 ~/src)
+X
+X# where to look for function definitions
+X# fpath=(~/func)
+X
+X# useful directory
+Xcsrc=/usr/princeton/common/src
+X
+X# use hard limits, except for a smaller stack and no core dumps
+Xunlimit
+Xlimit stack 8192
+Xlimit core 0
+Xlimit -s
+X
+Xumask 077
+X
+X# define some aliases
+Xalias a=alias
+Xa a.out=./a.out sendmail=/usr/lib/sendmail c=cp 0=vi 09='vi -t' 00=r
+Xa d=dirs en='enscript -2rGh' fm='finger -m' grep=egrep h=history
+Xa hinfo='host -t hinfo' j=jobs l='ls -AF' lock='lock -p -60000'
+Xa lsd='ls -d */' m=make mm=less
+Xa nrable='ls -AFltrd *(^R)' sz='ls -l | sort -n +3 | tail -20'
+Xa sn='sed -n' nw='l -ltr | tail' pd=pushd pop=popd mroe=more
+Xa rable='ls -AFltrd *(R)' strings='strings -' t=cat
+Xa v=mv where='hostname; echo >/dev/null' k9='kill -9' whoami='echo root'
+Xa find='noglob find' bindkey='noglob bindkey' dh='dirs -v'
+Xa mv='nocorrect mv' z=suspend
+X
+X# now you can say "<< foo" to more something
+Xa '<<'=more
+X
+X# global aliases
+Xa -g 'GF'='| fgrep -f ~/.friends' G='| grep' M='| less' cex='/u/pup/centrex'
+Xa -g cpz=cpirazzi gun=egsirer me=pfalstad mjm=maruchck paswd='<(ypcat passwd)'
+Xa -g sub=subbarao 'suk*=sukthnkr' tike=teichbrg
+Xa -g phx=phoenix sms=dendrite.siemens.com CS=dynamic
+X
+X# setenv for csh junkies (including tset)
+Xsetenv() { export $1=$2 }
+X
+X# useful directories
+Xcpz=~cpirazzi gun=~egsirer mjm=~maruchck sub=~subbarao 
+X
+Xexport MANPATH=/usr/man:/usr/princeton/man:/u/cad/man:/usr/lang/man
+X
+X# the rest is for interactive shells only
+Xif [[ ! -o interactive ]]
+Xthen
+X	return
+Xfi
+X
+X# filename completion suffixes to ignore
+Xfignore=(.o .pro .old)
+X
+X# hosts to use for completion
+Xhosts=(uunet.uu.net `hostname` wuarchive.wustl.edu quiche.cs.mcgill.ca)
+X
+X# useful directories
+Xzsh=~/zsh2.00/src
+X: ~zsh ~csrc ~cpz ~gun ~mjm ~sub
+X
+XPROMPT='%l %T %m[%h] '
+X
+X# prompt on the right side of the screen
+XRPROMPT=' %~'
+X
+X# some environment variables
+X!" export MAILCALL='NEW MAIL! '
+Xexport NAME='Paul Falstad'
+Xexport ORGANIZATION='League For Fighting Chartered Accountancy'
+Xexport YOUSAID='In %C you wrote:'
+Xexport ATTRIBUTION='%f wrote:'
+Xexport SHELL=/u/pfalstad/bin/sun4/zsh
+Xexport RNINIT=/u/pfalstad/.rninit
+X
+X# functions to autoload
+X# autoload cx acx mere yu yp randline proto namedir ilogin
+X
+XMAILCHECK=30
+XHISTSIZE=600
+XDIRSTACKSIZE=50
+X
+X# lots of options
+Xsetopt notify globdots correct pushdtohome cdablevars autolist \
+X	sunkeyboardhack correctall autocd recexact longlistjobs mailwarning \
+X	autoresume histignoredups pushdsilent noclobber \
+X	autopushd pushdminus extendedglob rcquotes
+Xunsetopt bgnice
+X
+X# watch for my friends
+Xwatch=($(cat ~/.friends))
+XWATCHFMT='%n %a %l from %m at %t.'
+XLOGCHECK=0
+X
+Xexport LESS=-ainx3
+Xunhash p
+X
+X# some nice bindings
+Xbindkey '^X^Z' universal-argument ' ' magic-space
+Xbindkey '^X^A' vi-find-prev-char-skip
+Xbindkey '^Z' accept-and-hold
+Xbindkey -s '\M-/' \\\\
+Xbindkey -s '\M-=' \|
+SHAR_EOF
+chmod 0644 zsh2.1/dots/zshrc ||
+echo 'restore of zsh2.1/dots/zshrc failed'
+Wc_c="`wc -c < 'zsh2.1/dots/zshrc'`"
+test 3170 -eq "$Wc_c" ||
+	echo 'zsh2.1/dots/zshrc: original size 3170, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/acx ==============
+if test ! -d 'zsh2.1/func'; then
+    echo 'x - creating directory zsh2.1/func'
+    mkdir 'zsh2.1/func'
+fi
+if test -f 'zsh2.1/func/acx' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/acx (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/acx (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/acx' &&
+X#! /bin/sh
+X#
+X# zsh shell function to make its arguments 755
+X# also works as an sh script
+X#
+Xchmod 755 $*
+SHAR_EOF
+chmod 0755 zsh2.1/func/acx ||
+echo 'restore of zsh2.1/func/acx failed'
+Wc_c="`wc -c < 'zsh2.1/func/acx'`"
+test 104 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/acx: original size 104, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/cx ==============
+if test -f 'zsh2.1/func/cx' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/cx (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/cx (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/cx' &&
+X#! /bin/sh
+X#
+X# zsh shell function to make its arguments executable
+X# also works as a sh script
+X#
+Xchmod +x $*
+SHAR_EOF
+chmod 0755 zsh2.1/func/cx ||
+echo 'restore of zsh2.1/func/cx failed'
+Wc_c="`wc -c < 'zsh2.1/func/cx'`"
+test 109 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/cx: original size 109, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/harden ==============
+if test -f 'zsh2.1/func/harden' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/harden (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/harden (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/harden' &&
+X#! /bin/sh
+X# harden a link (convert it to a singly linked file)
+Xcp $1 $1.foo
+Xrm $1
+Xmv $1.foo $1
+X
+SHAR_EOF
+chmod 0755 zsh2.1/func/harden ||
+echo 'restore of zsh2.1/func/harden failed'
+Wc_c="`wc -c < 'zsh2.1/func/harden'`"
+test 97 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/harden: original size 97, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/mere ==============
+if test -f 'zsh2.1/func/mere' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/mere (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/mere (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/mere' &&
+X#! /bin/sh
+X# read a man page in the current directory
+Xnroff -man -Tman $1 | less -s
+SHAR_EOF
+chmod 0755 zsh2.1/func/mere ||
+echo 'restore of zsh2.1/func/mere failed'
+Wc_c="`wc -c < 'zsh2.1/func/mere'`"
+test 84 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/mere: original size 84, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/namedir ==============
+if test -f 'zsh2.1/func/namedir' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/namedir (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/namedir (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/namedir' &&
+X# give a name to a directory
+X
+X$1=~+
+X: ~$1
+X
+X# for example, if we say: namedir foo
+X# where the current directory is /usr/princeton/common/src/news/nntp/inews
+X# this will do:
+X#
+X# foo=/usr/princeton/common/src/news/nntp/inews
+X# : ~foo
+X#
+X# The : ~foo just evaluates ~foo, which declares foo as a named directory.
+X# The first time a parameter is used with tilde expansion, it is declared
+X# as the name of a named dir.
+SHAR_EOF
+chmod 0755 zsh2.1/func/namedir ||
+echo 'restore of zsh2.1/func/namedir failed'
+Wc_c="`wc -c < 'zsh2.1/func/namedir'`"
+test 412 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/namedir: original size 412, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/proto ==============
+if test -f 'zsh2.1/func/proto' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/proto (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/proto (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/proto' &&
+X#! /bin/sh
+X# generate prototypes, if your style is the same as mine
+Xfor i
+Xdo
+X	rm $i:r.pro 2>/dev/null
+X	grep -v '[{};:#]' $i | grep '^[A-Za-z]' |
+X		grep -v static | sed 's/$/;/' >! $i:r.pro
+Xdone
+SHAR_EOF
+chmod 0755 zsh2.1/func/proto ||
+echo 'restore of zsh2.1/func/proto failed'
+Wc_c="`wc -c < 'zsh2.1/func/proto'`"
+test 194 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/proto: original size 194, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/randline ==============
+if test -f 'zsh2.1/func/randline' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/randline (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/randline (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/randline' &&
+X# get a random line from a file
+Xinteger z=$(wc -l <$1)
+Xsed -n $[RANDOM%z+1]p $1
+SHAR_EOF
+chmod 0755 zsh2.1/func/randline ||
+echo 'restore of zsh2.1/func/randline failed'
+Wc_c="`wc -c < 'zsh2.1/func/randline'`"
+test 80 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/randline: original size 80, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/yp ==============
+if test -f 'zsh2.1/func/yp' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/yp (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/yp (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/yp' &&
+X#! /bin/sh
+Xypmatch $1 passwd
+SHAR_EOF
+chmod 0755 zsh2.1/func/yp ||
+echo 'restore of zsh2.1/func/yp failed'
+Wc_c="`wc -c < 'zsh2.1/func/yp'`"
+test 29 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/yp: original size 29, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/func/yu ==============
+if test -f 'zsh2.1/func/yu' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/func/yu (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/func/yu (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/func/yu' &&
+X#! /bin/sh
+Xypmatch $1 passwd.byuid
+SHAR_EOF
+chmod 0755 zsh2.1/func/yu ||
+echo 'restore of zsh2.1/func/yu failed'
+Wc_c="`wc -c < 'zsh2.1/func/yu'`"
+test 35 -eq "$Wc_c" ||
+	echo 'zsh2.1/func/yu: original size 35, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/man/man1/zsh.1 ==============
+if test ! -d 'zsh2.1/man'; then
+    echo 'x - creating directory zsh2.1/man'
+    mkdir 'zsh2.1/man'
+fi
+if test ! -d 'zsh2.1/man/man1'; then
+    echo 'x - creating directory zsh2.1/man/man1'
+    mkdir 'zsh2.1/man/man1'
+fi
+if test -f 'zsh2.1/man/man1/zsh.1' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/man/man1/zsh.1 (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/man/man1/zsh.1 (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/man/man1/zsh.1' &&
+X.\"
+X.TH ZSH 1 "1991 Oct 17"
+X.SH NAME
+Xzsh \- the Z shell
+X.SH SYNOPSIS
+X\fBzsh\fP [ \(+-\fIoptions\fP ] [ \(+-\fBo\fP \fIoption\fP ] ...  [ \-\fBc\fP \fIstring\fP ] [ \fIarg\fP ... ]
+X.SH "SHELL GRAMMAR"
+XA \fIsimple command\fP is a sequence of optional parameter
+Xassignments followed by blank-separated words,
+Xwith optional redirections interspersed.
+XThe first word is the command to be executed, and the remaining
+Xwords, if any, are arguments to the command.
+XIf a command name is given, the parameter assignments modify
+Xthe environment of the command when it is executed.
+XThe value of a simple command is its exit status,
+Xor 128 plus the signal number if terminated by a signal.
+X.PP
+XIf a simple command is preceded by the word \fBexec\fP,
+Xit is executed in the parent shell without forking.
+XIf preceded by \fBcommand\fP, the command word is taken
+Xto be the name of an external command, rather than a
+Xshell function or builtin.
+XIf preceded by \fBnoglob\fP, filename generation is not performed
+Xon any of the words.  If preceded by a \-, the command
+Xis executed with a \- prepended to its \fBargv[0]\fP string.
+XIf preceded by \fBnocorrect\fP, spelling correction is not
+Xdone on any of the words.
+X.PP
+XA \fIpipeline\fP is a sequence of one or more commands
+Xseparated by \fB|\fP or \fB|&\fP.  \fB|&\fP is shorthand
+Xfor \fB2>&1 |\fP.  The standard output of each command is
+Xconnected to the standard input of the next command in the
+Xpipeline.
+X.PP
+XThe value of a pipeline is the value of the last command.
+XIf a pipeline is preceded by a \fB!\fP, the value
+Xof that pipeline is the logical NOT of the value of the last
+Xcommand.
+X.PP
+XIf a pipeline is preceded by \fBcoproc\fP, it is
+Xexecuted as a coprocess; a two-way pipe is established
+Xbetween it and the parent shell.  The shell can read from or write to
+Xthe coprocess by means of the \fB>&p\fP and \fB<&p\fP
+Xredirection operators.
+X.PP
+XA \fIsublist\fP is a sequence of one or more pipelines
+Xseparated by \fB&&\fP or \fB|\||\fP.  If two pipelines
+Xare separated by \fB&&\fP, the second pipeline is executed
+Xonly if the first is successful (returns a zero value).
+XIf two pipelines are separated by \fB|\||\fP, the second is executed
+Xonly if the first is unsuccessful (returns a nonzero value).
+X.PP
+XA \fIlist\fP is a sequence of one or more sublists
+Xseparated by, and optionally terminated by, \fB;\fP, \fB&\fP,
+Xor a newline.
+XNormally the shell waits for each list to finish before executing
+Xthe next one.
+XIf a list is terminated by a \fB&\fP, the shell executes
+Xit in the background, and does not wait for it to finish.
+X.PP
+XA \fIcomplex command\fP is one of the following:
+X.PP
+X.RS
+X.PD 0
+X.TP
+X\fBfor\fP \fIname\fP [ \fBin\fP \fIword\fP ... ]
+X.TP
+X\fBdo\fP \fIlist\fP
+X.TP
+X\fBdone\fP
+X.PD
+XExpand the list of \fIword\fPs, and set the parameter
+X\fIname\fP to each of them in turn, executing
+X\fIlist\fP each time.  If the \fBin\fP \fIword\fP is omitted,
+Xuse the positional parameters instead of the \fIword\fPs.
+X.TP
+X\fBfor\fP \fIname\fP [ \fBin\fP \fIword\fP ... ] ; \fIsublist\fP
+XThis is a shorthand for \fBfor\fP.
+XThough it may cause confusion, it is included for convenience;
+Xits use in scripts is discouraged,
+Xunless \fIsublist\fP is a command of the form { \fIlist\fP }.
+X.PP
+X.PD 0
+X.TP
+X\fBforeach\fP \fIname\fP \fB(\fP \fIword\fP ... \fB)\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fBend\fP
+X.PD
+XAnother form of \fBfor\fP.
+X.PP
+X.PD 0
+X.TP
+X\fBfor\fP \fIname\fP \fBin\fP \fIword\fP ...
+X.TP
+X\fB{\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fB}\fP
+X.PD
+XAnother form of \fBfor\fP.
+X.PP
+X.PD 0
+X.TP
+X\fBfor\fP \fIname\fP \fB(\fP \fIword\fP ... \fB) {\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fB}\fP
+X.PD
+XAnother form of \fBfor\fP.
+X.PP
+X.PD 0
+X.TP
+X\fBfor\fP \fIname\fP \fB(\fP \fIword\fP ... \fB) \fIsublist\fP
+X.PD
+XAnother form of \fBfor\fP.
+X.PP
+X.PD 0
+X.TP
+X\fBselect\fP \fIname\fP [ \fBin\fP \fIword\fP ... ]
+X.TP
+X\fBdo\fP \fIlist\fP
+X.TP
+X\fBdone\fP
+X.PD
+XPrint the set of \fIword\fPs, each preceded by a number.
+XIf the \fBin\fP \fIword\fP is omitted, use the positional parameters.
+XThe \fBPROMPT3\fP prompt is printed and a line is read from standard
+Xinput.  If this line consists of the number of one of the listed
+X\fIword\fPs, then the parameter \fIname\fP
+Xis set to the \fIword\fP corresponding to this number.
+XIf this line is empty, the selection list is printed again.
+XOtherwise, the value of the parameter \fIname\fP is set to null.
+XThe contents of the line read from standard input is saved
+Xin the parameter \fBREPLY\fP.  \fIlist\fP is executed
+Xfor each selection until a break or end-of-file is encountered.
+X.TP
+X\fBselect\fP \fIname\fP [ \fBin\fP \fIword\fP ] ; \fIsublist\fP
+XA short form of \fBselect\fP.
+X.TP
+X\fBcase\fP \fIword\fP \fBin\fP [ \fIpattern\fP ) \fIlist\fP ;; ] ...  \fBesac\fP
+XExecute the \fIlist\fP associated with the first \fIpattern\fP
+Xthat matches \fIword\fP, if any.  The form of the patterns
+Xis the same as that used for filename generation.  See
+X\fIFilename Generation\fP below.
+X.TP
+X\fBcase\fP \fIword\fP \fB{\fP [ \fIpattern\fP ) \fIlist\fP ;; ] ...  \fB}\fP
+XAnother form of \fBcase\fP.
+X.TP
+X.PD 0
+X\fBif\fP \fIlist\fP
+X.TP
+X\fBthen\fP \fIlist\fP
+X.TP
+X[ \fBelif\fP \fIlist\fP ; \fBthen\fP \fIlist\fP ] ...
+X.TP
+X[ \fBelse\fP \fIlist\fP ]
+X.TP
+X\fBfi\fP
+X.PD
+XThe \fBif\fP \fIlist\fP is executed, and,
+Xif it returns a zero exit status,
+Xthe \fBthen\fP \fIlist\fP is executed.
+XOtherwise, the \fBelif\fP \fIlist\fP is
+Xexecuted and, if its value is zero,
+Xthe \fBthen\fP \fIlist\fP is executed.
+XIf each \fBelif\fP \fIlist\fP returns
+Xnonzero, the \fBelse\fP \fIlist\fP is executed.
+X.TP
+X\fBif (\fP \fIlist\fP \fB)\fP \fIsublist\fP
+XA short form of \fBif\fP.
+X.PP
+X.PD 0
+X.TP
+X\fBif\fP \fB(\fP \fIlist\fP \fB) {\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fB} elif (\fP \fIlist\fP \fB) {\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fB} ... else (\fP \fIlist\fP \fB) {\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fB}\fP
+X.PD
+XAn alternate form of \fBif\fP.
+X.TP
+X.PD 0
+X\fBwhile\fP \fIlist\fP
+X.TP
+X\fBdo\fP \fIlist\fP
+X.TP
+X\fBdone\fP
+X.PD
+XExecute the \fBdo\fP \fIlist\fP as long as the \fBwhile\fP \fIlist\fP
+Xreturns a zero exit status.
+X.PP
+X.PD 0
+X.TP
+X\fBwhile (\fP \fIlist\fP \fB) {\fP
+X.TP
+X\fIlist\fP
+X.TP
+X\fB}\fP
+X.PD
+XAn alternate form of \fBwhile\fP.
+X.TP
+X.PD 0
+X\fBuntil\fP \fIlist\fP
+X.TP
+X\fBdo\fP \fIlist\fP
+X.TP
+X\fBdone\fP
+X.PD
+XExecute the \fBdo\fP \fIlist\fP as long as \fBuntil\fP \fIlist\fP
+Xreturns a nonzero exit status.
+X.TP
+X.PD 0
+X\fBrepeat\fP \fIword\fP
+X.TP
+X\fBdo\fP \fIlist\fP
+X.TP
+X\fBdone\fP
+X.PD
+X\fIword\fP is expanded and treated as an arithmetic expression,
+Xwhich must evaluate to a number \fIn\fP.
+X\fIlist\fP is then executed \fBn\fP times.
+X.TP
+X\fBrepeat\fP \fIword\fP \fIsublist\fP
+XThis is a short form of \fBrepeat\fP.
+X.TP
+X( \fIlist\fP )
+XExecute \fIlist\fP in a subshell.
+X.TP
+X{ \fIlist\fP }
+XExecute \fIlist\fP.
+X.TP
+X.PD 0
+X\fBfunction\fP \fIword\fP [ (\|) ] ... { \fIlist\fP }
+X.TP
+X\fIword\fP ... (\|) { \fIlist\fP }
+X.TP
+X\fIword\fP ... (\|) \fIsublist\fP
+X.PD
+XDefine a function which is referenced by any one of \fIword\fP.
+XNormally, only one \fIword\fP is provided; multiple \fIword\fPs
+Xare usually only useful for setting traps.
+XThe body of the function is the \fIlist\fP between
+Xthe { and }.
+XSee \fBFUNCTIONS\fP below.
+X.TP
+X\fBtime\fP \fIpipeline\fP
+XThe \fIpipeline\fP is executed, and timing statistics are
+Xreported on the standard error in the form specified
+Xby the \fBTIMEFMT\fP parameter.
+X.TP
+X[[ \fIexp\fP ]]
+XEvaluates the conditional expression \fIexp\fP
+Xand return a zero exit status if it is true.
+XSee \fBConditional Expressions\fP below for a description
+Xof \fIexp\fP.
+X.SH "RESERVED WORDS"
+XThe following words are recognized as reserved words when used 
+Xas the first word of a command
+SHAR_EOF
+true || echo 'restore of zsh2.1/man/man1/zsh.1 failed'
+fi
+echo 'End of zsh2.1.0 part 1'
+echo 'File zsh2.1/man/man1/zsh.1 is continued in part 2'
+echo 2 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

@@ -1,0 +1,1944 @@
+Path: funic!news.funet.fi!sunic!seunet!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i004:  zsh2.1 - The Z shell, Part04/19
+Message-ID: <1991Oct24.190755.25578@sparky.imd.sterling.com>
+Date: 24 Oct 91 19:07:55 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 1930
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: 51292069e24941ade188a03166809717
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 4
+Archive-name: zsh2.1/part04
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.04 (part 4 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/man/man1/zsh.1 continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 4; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/man/man1/zsh.1'
+else
+echo 'x - continuing file zsh2.1/man/man1/zsh.1'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/man/man1/zsh.1' &&
+Xafter each command.
+XIf \fIsig\fP is \fB0\fP or \fBEXIT\fP
+Xand the \fBtrap\fP statement is executed inside the body of a function,
+Xthen the command \fIarg\fP is executed after the function completes.
+XIf \fIsig\fP is \fB0\fP or \fBEXIT\fP
+Xand the \fBtrap\fP statement is not executed inside the body of a function,
+Xthen the command \fIarg\fP is executed when the shell terminates.
+XThe \fBtrap\fP command with no arguments prints a list of commands
+Xassociated with each signal.
+X.TP
+X\fBtrue\fP
+XDo nothing and return an exit code of 0.
+X.TP
+X\fBtype\fP
+XSame as \fBwhence\fP \-\fBv\fP.
+X.TP
+X\fBtypeset\fP [ \(+-\fBLRZfilrtux [\fIn\fP]] [ \fIname\fP[=\fIvalue\fP] ] ...
+XSet attributes and values for shell parameters.
+XWhen invoked inside a function, if \fIname\fP is not already
+Xdefined, a new parameter is created which will be unset when the
+Xfunction completes.
+XThe following attributes are valid:
+X.RS
+X.PD 0
+X.TP
+X\-\fBL\fP
+XLeft justify and remove leading blanks from \fIvalue\fP.
+XIf \fIn\fP is nonzero, it defines the width of the field;
+Xotherwise it is determined by the width of the value of the first
+Xassignment.
+XWhen the parameter is printed, it is filled on the right with
+Xblanks or truncated if necessary to fit the field.
+XLeading zeros are removed if the \-\fBZ\fP flag is also set.
+X.TP
+X\-\fBR\fP
+XRight justify and fill with leading blanks.  If \fIn\fP is nonzero
+Xif defines the width of the field;
+Xotherwise it is determined by the width of the value of the first
+Xassignment.
+XWhen the parameter is printed, the field is left filled with
+Xblanks or truncated from the end.
+X.TP
+X\-\fBZ\fP
+XRight justify and fill with leading zeros if the first non-blank
+Xcharacter is a digit and the \-\fBL\fP flag has not been set.
+XIf \fIn\fP is nonzero it defines the width of the field;
+Xotherwise it is determined by the width of the value of the
+Xfirst assignment.
+X.TP
+X\-\fBf\fP
+XThe names refer to functions rather than parameters.  No assignments
+Xcan be made, and the only other valid flags are \-\fBt\fP
+Xand \-\fBu\fP.  The flag \-\fBt\fP turns on execution tracing for this
+Xfunction.  The flag \-\fBu\fP causes this function to be marked
+Xundefined.  The \fBfpath\fP parameter will be searched to find the
+Xfunction definition when the function is first referenced.
+X.TP
+X\-\fBi\fP
+XUse an internal integer representation.  If \fBi\fP is nonzero
+Xit defines the output arithmetic base, otherwise it is determined by the first
+Xassignment.
+X.TP
+X\-\fBl\fP
+XConvert to lower case.
+X.TP
+X\-\fBr\fP
+XThe given \fIname\fPs are marked readonly.
+X.TP
+X\-\fBt\fP
+XTags the named parameters.  Tags have no special meaning to the shell.
+X.TP
+X\-\fBu\fP
+XConvert to upper case.
+X.TP
+X\-\fBx\fP
+XMark for automatic export to the environment of subsequently
+Xexecuted commands.
+X.RE
+X.PD
+X.PP
+XUsing + rather than \- causes these flags to be turned off.
+XIf no arguments are given but flags are specified,
+Xa list of named parameters which have these flags set is printed.
+XUsing + instead of \- keeps their values from being printed.
+XIf no arguments or options are given, the names and attributes
+Xof all parameters are printed.
+X.TP
+X\fBulimit\fP [ \-\fBHSacdfmnt\fP ] [ \fIlimit\fP ]
+XSet or display a resource limit.  The value of limit can be a number
+Xin the unit specified below or the value \fBunlimited\fP.
+XThe \fBH\fP and \fBS\fP flags specify whether the hard limit
+Xor the soft limit for the given resource is set.
+X.RS
+X.PD 0
+X.TP
+X\-\fBa\fP
+XLists all of the current resource limits.
+X.TP
+X\-\fBc\fP
+XThe number of 512-byte blocks on the size of core dumps.
+X.TP
+X\-\fBd\fP
+XThe number of K-bytes on the size of the data segment.
+X.TP
+X\-\fBf\fP
+XThe number of 512-byte blocks on the size of files written.
+X.TP
+X\-\fBm\fP
+XThe number of K-bytes on the size of physical memory.
+X.TP
+X\-\fBn\fP
+XThe number of file descriptors.
+X.TP
+X\-\fBs\fP
+XThe number of K-bytes on the size of the stack.
+X.TP
+X\-\fBt\fP
+XThe number of CPU seconds to be used.
+X.RE
+X.PD
+X.TP
+X\fBumask\fP [ \fImask\fP ]
+XThe umask is set to \fImask\fP.  \fImask\fP can be either
+Xan octal number or a symbolic value as described in \fBchmod\fP(1).
+XIf \fImask\fP is omitted, the current value is printed.
+X.TP
+X\fBunalias\fP \fIname\fP ...
+XThe alias definition, if any, for each \fIname\fP is removed.
+X.TP
+X\fBunfunction\fP \fIname\fP ...
+XThe function definition, if any, for each \fIname\fP is removed.
+X.TP
+X\fBunhash\fP \fIname\fP ...
+XThe entry in the command hash table, if any, for each \fIname\fP
+Xis removed.
+X.TP
+X\fBunlimit\fP [ \-\fBh\fP ] \fIresource\fP ...
+XThe resource limit for each \fIresource\fP is set to the hard limit.
+XIf the \-\fBh\fP flag is given and the shell is running as root,
+Xthe hard resource limit for each \fIresource\fP is removed.
+X.TP
+X\fBunset\fP \fIname\fP ...
+XEach named parameter is unset.
+X.TP
+X\fBunsetopt\fP [ \(+-\fIoptions\fP ] [ \fIname\fP ... ]
+XUnset the options for the shell.  All options specified either
+Xwith flags or by name are unset.
+X.TP
+X\fBvared\fP \fIname\fP
+XThe value of the parameter \fIname\fP is loaded into the edit
+Xbuffer, and the line editor is invoked.  When the editor exits,
+X\fIname\fP is set to the string value returned by the editor.
+X.TP
+X\fBwait\fP [ \fIjob\fP ... ]
+XWait for the specified \fIjob\fPs.  If \fIjob\fP is not given
+Xthen all currently active child processes are waited for.
+XThe exit status from this command is that of the process waited for.
+X.TP
+X\fBwhence\fP [ \-\fBpv\fP ] \fIname\fP ...
+XFor each name, indicate how it would be interpreted if used
+Xas a command name.  The \-\fBv\fP flag produces a more verbose
+Xreport.  The \-\fBp\fP flag does a path search for \fIname\fP
+Xeven if it is a shell function, alias, or reserved word.
+X.TP
+X\fBwhich\fP
+XSame as \fBwhence\fP.
+X.RE
+X.SH INVOCATION
+XIf the \fBNO_RCS\fP option is unset, commands are read
+Xfrom $ZDOTDIR/.zshenv first.
+X(If \fBZDOTDIR\fP is unset, \fBHOME\fP is used instead).
+XThen, if the shell is interactive and
+Xthe \fBNO_RCS\fP option is unset, commands are read
+Xfrom /etc/zshrc and $ZDOTDIR/.zshrc, in that order, if either file
+Xexists.
+XIf the first character of argument zero passed to the shell
+Xis \-, then the shell is assumed to be a login shell, and commands
+Xare read from /etc/zprofile and $ZDOTDIR/.zprofile before .zshrc is read,
+Xthen /etc/zlogin and $ZDOTDIR/.zlogin after .zshrc is read.
+XIf the \fBNO_RCS\fP option is set, only /etc/zshrc
+X/etc/zlogin, and /etc/zprofile may be read.
+XIf the \-\fBs\fP flag is not present and an argument is given,
+Xthe first argument is taken to be the pathname of a script to
+Xexecute.  The remaining arguments are assigned to the positional
+Xparameters.  The following flags are interpreted by the shell
+Xwhen invoked:
+X.TP
+X.PD 0
+X\-\fBc\fP \fIstring\fP
+XRead commands from \fIstring\fP.
+X.TP
+X\-\fBs\fP
+XRead command from the standard input.
+X.TP
+X\-\fBi\fP
+XIf this flag is present or the shell input and output
+Xare attached to a terminal, this shell is interactive.
+X.PD
+X.SH "SEE ALSO"
+Xsh(1),
+Xcsh(1),
+Xtcsh(1),
+Xitcsh(1),
+Xrc(1),
+Xbash(1),
+Xash(1),
+Xksh(1),
+Xclam(1).
+X.SH FILES
+X$ZDOTDIR/.zshenv
+X.br
+X$ZDOTDIR/.zshrc
+X.br
+X$ZDOTDIR/.zlogin
+X.br
+X$ZDOTDIR/.zlogout
+X.br
+X$ZDOTDIR/.zprofile
+X.br
+X/tmp/zsh*
+X.br
+X/etc/zprofile
+X.br
+X/etc/zshrc
+X.br
+X/etc/zlogin
+X.SH AUTHOR
+XPaul Falstad (pfalstad@phoenix.princeton.edu)
+X.SH "UNDOCUMENTED FEATURES"
+XNone known, but many suspected.
+XPlease mail the author if you find any.
+SHAR_EOF
+echo 'File zsh2.1/man/man1/zsh.1 is complete' &&
+chmod 0644 zsh2.1/man/man1/zsh.1 ||
+echo 'restore of zsh2.1/man/man1/zsh.1 failed'
+Wc_c="`wc -c < 'zsh2.1/man/man1/zsh.1'`"
+test 107626 -eq "$Wc_c" ||
+	echo 'zsh2.1/man/man1/zsh.1: original size 107626, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/scripts/aproto ==============
+if test ! -d 'zsh2.1/scripts'; then
+    echo 'x - creating directory zsh2.1/scripts'
+    mkdir 'zsh2.1/scripts'
+fi
+if test -f 'zsh2.1/scripts/aproto' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/scripts/aproto (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/scripts/aproto (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/scripts/aproto' &&
+X#! /bin/sh
+Xfproto builtin.c >builtin.pro
+Xfproto cond.c >cond.pro
+Xfproto exec.c >exec.pro
+Xfproto glob.c >glob.pro
+Xfproto hist.c >hist.pro
+Xfproto init.c >init.pro
+Xfproto jobs.c >jobs.pro
+Xfproto lex.c >lex.pro
+Xfproto loop.c >loop.pro
+Xfproto math.c >math.pro
+Xfproto mem.c >mem.pro
+Xfproto params.c >params.pro
+Xfproto subst.c >subst.pro
+Xfproto table.c >table.pro
+Xfproto text.c >text.pro
+Xfproto utils.c >utils.pro
+Xfproto watch.c >watch.pro
+Xfproto parse.c >parse.pro
+Xfproto zle_hist.c >zle_hist.pro
+Xfproto zle_main.c >zle_main.pro
+Xfproto zle_misc.c >zle_misc.pro
+Xfproto zle_move.c >zle_move.pro
+Xfproto zle_refresh.c >zle_refresh.pro
+Xfproto zle_tricky.c >zle_tricky.pro
+Xfproto zle_utils.c >zle_utils.pro
+Xfproto zle_vi.c >zle_vi.pro
+Xfproto zle_word.c >zle_word.pro
+SHAR_EOF
+chmod 0755 zsh2.1/scripts/aproto ||
+echo 'restore of zsh2.1/scripts/aproto failed'
+Wc_c="`wc -c < 'zsh2.1/scripts/aproto'`"
+test 755 -eq "$Wc_c" ||
+	echo 'zsh2.1/scripts/aproto: original size 755, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/scripts/fproto ==============
+if test -f 'zsh2.1/scripts/fproto' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/scripts/fproto (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/scripts/fproto (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/scripts/fproto' &&
+X#! /bin/sh
+X# prototype generator
+Xsed -n '/\/\*\*\/$/{N;s/^\([^(]*\).*\/\*\*\/.\(.*\)/\1 DCLPROTO((\2))/p;}' $1 | sed -e 's/;/,/g' -e 's/,))$/));/' -e 's/(({))$/((void));/'
+X
+SHAR_EOF
+chmod 0755 zsh2.1/scripts/fproto ||
+echo 'restore of zsh2.1/scripts/fproto failed'
+Wc_c="`wc -c < 'zsh2.1/scripts/fproto'`"
+test 173 -eq "$Wc_c" ||
+	echo 'zsh2.1/scripts/fproto: original size 173, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/scripts/c2z ==============
+if test -f 'zsh2.1/scripts/c2z' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/scripts/c2z (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/scripts/c2z (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/scripts/c2z' &&
+X#! /bin/sh
+X#
+X# c2z - environment conversion tool
+X# Contributed by Bart Schaefer
+X# (Tweaked a bit by Paul Falstad)
+X#
+X# This is a quick script to convert csh aliases to zsh aliases/functions.
+X# It also converts the csh environment and local variables to zsh.  c2z
+X# uses the csh to parse its own dot-files, then processes csh output to
+X# convert the csh settings to zsh.
+X#
+X# When run as a zsh fuction, c2z runs csh as if it were an interactive
+X# shell whenever the parent zsh is interactive.  When run as a shell
+X# script, the -i switch can be used to force this behavior.
+X#
+X# The -l (login) switch causes csh to run as if it were a login shell.
+X# This is done "properly" if c2z is used as a zsh function, otherwise
+X# it's faked by explicitly sourcing .login.  Use with caution if your
+X# .login initializes an X server or does other one-time-only startup
+X# procedures.
+X#
+X# usage:
+X#	c2z [-i] [-l]
+X#
+X# You can use this script in your .zshrc or .zlogin files to load your
+X# regular csh environment into zsh; for example, in .zlogin:
+X#
+X#	. =(c2z -l)
+X#
+X# This is not perfect, but it gets most common aliases and variables.
+X# It's also rather time-consuming to do this every time you log in.
+X# However, if you're moving from csh to zsh for the first time, this
+X# can get you started with a familiar environment right away.
+X#
+X# In case your mailer eats tabs, $T is set to expand to a tab.
+X#
+XT="`echo x | tr x '\011'`"
+X
+X# If we're zsh, we can run "- csh" to get the complete environment.
+X#
+XMINUS=""
+XLOGIN=""
+XINTERACT=""
+Xcase "$VERSION" in
+Xzsh*)
+X    case $1 in
+X    -l*) MINUS="-" ;;
+X    -i*) INTERACT="-i" ;;
+X    esac
+X    if [[ -o INTERACTIVE ]]; then INTERACT="-i"; fi
+X    setopt nobanghist
+X    ;;
+X*)
+X    case $1 in
+X    -l*) LOGIN="source ~/.login" ;;
+X    -i*) INTERACT="-i" ;;
+X    esac
+X    ;;
+Xesac
+X
+X( eval $MINUS csh $INTERACT ) <<EOF 2>&1 >/dev/null
+X$LOGIN
+Xalias >! /tmp/cz$$.a
+Xsetenv >! /tmp/cz$$.e
+Xset >! /tmp/cz$$.v
+XEOF
+X
+X# save stdin
+Xexec 9<&0
+X
+X# First convert aliases
+Xexec < /tmp/cz$$.a
+X
+X# Taken straight from ctoz except for $T and "alias --"
+Xsed -e 's/'"$T"'(\(.*\))/'"$T"'\1/' >/tmp/cz$$.1
+Xgrep ! /tmp/cz$$.1 >/tmp/cz$$.2
+Xgrep -v ! /tmp/cz$$.1 >/tmp/cz$$.3
+Xsed -e "s/'/'"\\\\"''"/g \
+X    -e 's/^\([^'"$T"']*\)'"$T"'\(.*\)$/alias -- \1='"'\2'/" \
+X    /tmp/cz$$.3
+Xsed -e 's/![:#]*/$/g' \
+X    -e 's/^\([^'"$T"']*\)'"$T"'\(.*\)$/\1 () { \2 }/' \
+X    /tmp/cz$$.2
+X
+X# Next, convert environment variables
+Xexec < /tmp/cz$$.e
+X
+X# Would be nice to deal with embedded newlines, e.g. in TERMCAP, but ...
+Xsed -e '/^SHLVL/d' \
+X    -e "s/'/'"\\\\"''"/g \
+X    -e "s/^\([A-Za-z0-9_]*=\)/export \1'/" \
+X    -e "s/$/'/"
+X
+X# Finally, convert local variables
+Xexec < /tmp/cz$$.v
+X
+Xsed -e 's/'"$T"'/=/' \
+X    -e "s/'/'"\\\\"''"/g \
+X    -e '/^[A-Za-z0-9_]*=[^(]/{
+X	s/=/='"'/"'
+X	s/$/'"'/"'
+X	}' |
+Xsed -e '/^argv=/d' -e '/^cwd=/d' -e '/^filec=/d' -e '/^status=/d' \
+X	 -e '/^histchars=/s//HISTCHARS=/' \
+X	 -e '/^history=/s//HISTSIZE=/' \
+X	 -e '/^home=/s//HOME=/' \
+X	 -e '/^ignoreeof=/s/.*/setopt ignoreeof/' \
+X	 -e '/^noclobber=/s/.*/setopt noclobber/' \
+X	 -e '/^notify=/d' \
+X	 -e '/^showdots=/s/.*/setopt globdots/' \
+X    -e '/^savehist=/s//HISTFILE=\~\/.zhistory SAVEHIST=/' \
+X	 -e '/^autolist=/s/.*/setopt autolist/' \
+X	 -e '/^correct=[cmd]*/s//setopt autocorrect/' \
+X	 -e '/^who=/s//WATCHFMT=/'
+X
+X
+Xexec 0<&9
+X
+Xrm /tmp/cz$$.?
+Xexit
+SHAR_EOF
+chmod 0755 zsh2.1/scripts/c2z ||
+echo 'restore of zsh2.1/scripts/c2z failed'
+Wc_c="`wc -c < 'zsh2.1/scripts/c2z'`"
+test 3299 -eq "$Wc_c" ||
+	echo 'zsh2.1/scripts/c2z: original size 3299, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/buildzsh ==============
+if test ! -d 'zsh2.1/src'; then
+    echo 'x - creating directory zsh2.1/src'
+    mkdir 'zsh2.1/src'
+fi
+if test -f 'zsh2.1/src/buildzsh' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/buildzsh (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/buildzsh (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/buildzsh' &&
+X#! /bin/sh
+Xecho
+Xecho 'Building config.h...' | tr -d '\012'
+Xexec >config.h
+Xcat <<'foo'
+X/* this file is created automatically by buildzsh */
+X
+X/* define this if you are sysvish */
+Xfoo
+Xif test -f /usr/include/sys/resource.h
+Xthen echo '/* #define SYSV */'
+Xelse echo '#define SYSV'
+Xfi
+Xecho
+Xif grep TCGETS /usr/include/sys/termios.h >/dev/null 2>&1
+Xthen echo '#define TERMIOS
+X/* #define TTY_NEEDS_DRAINING */
+X/* #define CLOBBERS_TYPEAHEAD */'
+Xelse
+Xif grep sgttyb /usr/include/sys/ioctl.h >/dev/null 2>&1
+Xthen echo '/* #define TERMIO */'
+Xelse echo '#define TERMIO'
+Xfi
+Xecho '#define TTY_NEEDS_DRAINING
+X#define CLOBBERS_TYPEAHEAD'
+Xfi
+Xecho
+Xecho '/* define this if you have a host field in utmp */'
+Xif grep ut_host /usr/include/utmp.h >/dev/null
+Xthen echo '#define UTMP_HOST'
+Xelse echo '/* #define UTMP_HOST */'
+Xfi
+Xecho
+Xecho '/* define this if you have WAITPID */'
+X# this next line should read "sed 's/_^H//g'"
+X# there should be a _(backspace) there
+Xif man 2 wait 2>/dev/null | sed 's/_//g' | grep waitpid >/dev/null
+Xthen echo '#define WAITPID'
+Xelse echo '/* #define WAITPID */'
+Xfi
+Xecho
+Xecho '/* define this if you have SELECT */'
+Xif grep FD_SET /usr/include/sys/types.h >/dev/null
+Xthen echo '#define HAS_SELECT'
+Xelse echo '/* #define HAS_SELECT */'
+Xfi
+Xecho
+Xecho '/* define this if your signal handlers return void */'
+Xif grep SIG_DFL /usr/include/signal.h /usr/include/sys/signal.h |
+X	grep void >/dev/null
+Xthen echo '#define SIGVOID'
+Xelse echo '/* #define SIGVOID */'
+Xfi
+Xcat <<'foo'
+X#ifdef sgi
+X#undef SIGVOID
+X#endif
+Xfoo
+Xecho
+Xecho '/* define this if signal handlers need to be reset each time */'
+Xif grep SIGTSTP /usr/include/signal.h /usr/include/sys/signal.h >/dev/null
+Xthen echo '/* #define RESETHANDNEEDED */'
+Xelse echo '#define RESETHANDNEEDED'
+Xfi
+Xecho
+Xcat <<'foo'
+X#ifdef SIGVOID
+X#define HANDTYPE void
+X#else
+X#define HANDTYPE int
+X#define INTHANDTYPE
+X#endif
+X
+X/* a string corresponding to the host type */
+Xfoo
+Xecho '#define HOSTTYPE "' | tr -d '\012'
+X( tcsh -fc 'echo $HOSTTYPE' || arch || echo unknown ) 2>/dev/null |
+X	tr -d '\012'
+Xecho '"'
+Xecho
+Xecho '/* the default editor for the fc builtin */'
+Xecho '#define DEFFCEDIT "vi"'
+Xecho
+Xif grep UTMP_FILE /usr/include/utmp.h >/dev/null
+Xthen :
+Xelse 
+Xecho '/* the path of wtmp */'
+Xecho '#define WTMP_FILE "' | tr -d '\012'
+Xif test -f /etc/wtmp
+Xthen echo /etc/wtmp
+Xelif test -f /usr/etc/wtmp
+Xthen echo /usr/etc/wtmp
+Xelif test -f /var/adm/wtmp
+Xthen echo /var/adm/wtmp
+Xelif test -f /usr/adm/wtmp
+Xthen echo /usr/adm/wtmp
+Xelse echo /dev/null
+Xfi | tr -d '\012'
+Xecho '"
+X
+X/* the path of utmp */
+X#define UTMP_FILE "/etc/utmp"
+X'
+Xfi
+Xcat <<'foo'
+X/* default prefix for temporary files */
+X#define DEFTMPPREFIX "/tmp/zsh"
+X
+X/* define if you prefer "suspended" to "stopped" */
+X#define USE_SUSPENDED
+X
+X/* the file to source whenever zsh is run; if undefined, don't source
+X	anything */
+X#define GLOBALZSHRC "/etc/zshrc"
+X
+X/* the file to source whenever zsh is run as a login shell; if
+X	undefined, don't source anything */
+X#define GLOBALZLOGIN "/etc/zlogin"
+X
+X/* the file to source whenever zsh is run as a login shell, before
+X	zshrc is read; if undefined, don't source anything */
+X#define GLOBALZPROFILE "/etc/zprofile"
+X
+X/* the default HISTSIZE */
+X#define DEFAULT_HISTSIZE 128
+X
+X/* define if you like interactive comments */
+X/*#define INTERACTIVE_COMMENTS*/
+X
+X#define _BSD_SIGNALS   /* this could be an iris, you never know */
+X#define _BSD           /* this could be HP-UX, you never know */
+X
+X/* if your compiler doesn't like void *, change this to char *
+X	and ignore all the warnings.
+X*/
+X
+Xtypedef void *vptr;
+X
+X#define JOB_CONTROL
+Xfoo
+Xexec 1>&2
+Xecho done
+Xecho 'Building signals.h...' | tr -d '\012'
+Xecho `csh -fc 'kill -l'` | tr ' ' '\012' >signals.h
+Xlct=`wc -l < signals.h`
+Xcp signals.h signams.h
+X(
+Xecho '/* this file is created automatically by buildzsh */
+X/* if all this is wrong, blame csh ;-) */
+X
+X#define SIGCOUNT '"$lct"'
+X
+X#ifdef GLOBALS
+X
+Xchar *sigmsg[SIGCOUNT+2] = {
+X	"done",'
+Xsed -e 's/^/SIG/' -e '/SIGHUP/s//hangup/
+X/SIGINT/s//interrupt/
+X/SIGQUIT/s//quit/
+X/SIGILL/s//illegal instruction/
+X/SIGTRAP/s//trace trap/
+X/SIGIOT/s//IOT instruction/
+X/SIGABRT/s//abort/
+X/SIGEMT/s//EMT instruction/
+X/SIGFPE/s//floating point exception/
+X/SIGKILL/s//killed/
+X/SIGBUS/s//bus error/
+X/SIGSEGV/s//segmentation fault/
+X/SIGSYS/s//bad system call/
+X/SIGPIPE/s//broken pipe/
+X/SIGTERM/s//terminated/
+X/SIGPWR/s//power fail/
+X/SIGVTALRM/s//virtual time alarm/
+X/SIGCONT/s//continued/
+X/SIGXCPU/s//cpu limit exceeded/
+X/SIGXFSZ/s//filesize limit exceeded/' -e 's/.*/	"&",/' signals.h
+Xecho '	NULL
+X};
+X
+Xchar *sigs[SIGCOUNT+4] = {
+X	"EXIT",' ) >sigtmp.h
+Xmv sigtmp.h signals.h
+Xif grep SIGSTOP signals.h >/dev/null
+Xthen ed signals.h <<'foo' >/dev/null 2>&1
+X/SIGSTOP/c
+X#ifdef USE_SUSPENDED
+X	"suspended (signal)",
+X#else
+X	"stopped (signal)",
+X#endif
+X.
+X/SIGTSTP/c
+X#ifdef USE_SUSPENDED
+X	"suspended",
+X#else
+X	"stopped",
+X#endif
+X.
+X/SIGTTIN/c
+X#ifdef USE_SUSPENDED
+X	"suspended (tty input)",
+X#else
+X	"stopped (tty input)",
+X#endif
+X.
+X/SIGTTOU/c
+X#ifdef USE_SUSPENDED
+X	"suspended (tty output)",
+X#else
+X	"stopped (tty output)",
+X#endif
+X.
+Xw
+Xq
+Xfoo
+Xfi
+X(sed 's/.*/	"&",/' signams.h
+Xecho '	"ERR",
+X	"DEBUG",
+X	NULL
+X};
+X
+X#else
+X
+Xextern char *sigs[SIGCOUNT+4],*sigmsg[SIGCOUNT+2];
+X
+X#endif') >>signals.h
+Xrm signams.h
+Xecho done
+Xecho 'Building Makefile...' | tr -d '\012'
+Xexec >Makefile
+Xcat <<'foo'
+X#! /bin/make -f
+X#
+X# Makefile - rather obvious isn't it
+X#
+X# This file is part of zsh, the Z shell.
+X#
+X# zsh is free software; no one can prevent you from reading the source
+X# code, or giving it to someone else.
+X# 
+X# This file is copyrighted under the GNU General Public License, which
+X# can be found in the file called COPYING.
+X# 
+X# Copyright (C) 1990, 1991 Paul Falstad
+X#
+X# zsh is distributed in the hope that it will be useful, but
+X# WITHOUT ANY WARRANTY.  No author or distributor accepts
+X# responsibility to anyone for the consequences of using it or for
+X# whether it serves any particular purpose or works at all, unless he
+X# says so in writing.  Refer to the GNU General Public License
+X# for full details.
+X# 
+X# Everyone is granted permission to copy, modify and redistribute
+X# zsh, but only under the conditions described in the GNU General Public
+X# License.   A copy of this license is supposed to have been given to you
+X# along with zsh so you can know your rights and responsibilities.
+X# It should be in a file named COPYING.
+X# 
+X# Among other things, the copyright notice and this notice must be
+X# preserved on all copies.
+X#
+X
+XOBJS=builtin.o cond.o exec.o glob.o hist.o init.o jobs.o lex.o loop.o \
+Xmath.o mem.o params.o parse.o subst.o table.o text.o utils.o watch.o \
+Xzle_bindings.o zle_hist.o zle_main.o zle_misc.o zle_move.o zle_refresh.o \
+Xzle_tricky.o zle_utils.o zle_vi.o zle_word.o
+X
+XBINDIR=/usr/local/bin
+XMANDIR=/usr/local/man/man1
+X
+X# debugging flags
+X#CFLAGS=-g -Wreturn-type -Wunused -Wpointer-arith -DQDEBUG
+X#CC=gcc -traditional
+X
+XCC=cc
+Xfoo
+Xif test -f /usr/include/ndir.h -a ! -f /usr/lib/libBSD.a
+Xthen echo 'CFLAGS= -O -Aa'
+Xelse echo 'CFLAGS= -O'
+Xfi
+Xif test -f /usr/lib/libbsd.a
+Xthen
+Xif grep '^\+' /etc/passwd >/dev/null
+Xthen echo 'LIBS= -lcurses -lbsd -lc_s'
+Xelse echo 'LIBS= -lcurses -lbsd'
+Xfi
+Xelif test -f /usr/lib/libcposix.a
+Xthen echo 'LIBS= -lcposix -ltermcap'
+Xelif test -f /usr/lib/libBSD.a
+Xthen echo 'LIBS= -ltermcap -lBSD'
+Xelif test -f /usr/lib/libtermcap.a
+Xthen echo 'LIBS= -ltermcap'
+Xelse echo 'LIBS= -lcurses'
+Xfi
+Xcat <<'foo'
+X
+XZSHPATH=zsh
+X
+X.c.o:
+X	$(CC) $(CFLAGS) -c $<
+X
+Xall: $(ZSHPATH)
+X
+X$(ZSHPATH): $(OBJS)
+X	$(CC) -o $(ZSHPATH) $(OBJS) $(LIBS) $(LFLAGS)
+X	
+Xtags: /tmp
+X	ctags *.[cy]
+X
+X# I hate this next line
+X$(OBJS): config.h zsh.h zle.h signals.h ztype.h funcs.h
+X
+Xclean:
+X	rm -f *.o zsh core 
+X
+Xcleanall:
+X	rm -f *.o zsh core Makefile signals.h config.h
+X
+Xinstall: zsh
+X	install -s -m 755 zsh $(BINDIR)
+X	install -m 444 ../man/man1/zsh.1 $(MANDIR)
+Xfoo
+Xexec 1>&2
+Xcat <<'foo'
+Xdone
+X
+XYou may want to look at the files I just created (config.h, Makefile,
+Xand signals.h) to make sure they are correct.  Or you may just want
+Xto go ahead and try running make now to see what happens.
+X
+Xfoo
+Xecho 'Shall I execute make now?' | tr -d '\012' 
+Xread reply
+Xecho
+Xcase "$reply" in
+X[yY]*) exec make ;;
+Xesac
+X
+SHAR_EOF
+chmod 0755 zsh2.1/src/buildzsh ||
+echo 'restore of zsh2.1/src/buildzsh failed'
+Wc_c="`wc -c < 'zsh2.1/src/buildzsh'`"
+test 8053 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/buildzsh: original size 8053, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/builtin.c ==============
+if test -f 'zsh2.1/src/builtin.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/builtin.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/builtin.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/builtin.c' &&
+X/*
+X
+X	builtin.c - builtin commands
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X#include <sys/errno.h>
+X#include <sys/times.h>
+X
+X#define makecond() allocnode(N_COND)
+X
+X/* builtin flags */
+X
+X#define BINF_PLUSOPTS		1		/* +xyz legal */
+X#define BINF_R					2		/* this is r (fc -e -) */
+X#define BINF_PRINTOPTS		4
+X#define BINF_SETOPTS			8
+X#define BINF_FCOPTS		  16
+X#define BINF_TYPEOPT      32
+X#define BINF_TYPEOPTS	  (BINF_TYPEOPT|BINF_PLUSOPTS)
+X#define BINF_ECHOPTS      64
+X
+X/* builtin funcs */
+X
+X#define BIN_TYPESET 0
+X#define BIN_BG 1
+X#define BIN_FG 2
+X#define BIN_JOBS 3
+X#define BIN_WAIT 4
+X#define BIN_DISOWN 5
+X#define BIN_BREAK 6
+X#define BIN_CONTINUE 7
+X#define BIN_EXIT 8
+X#define BIN_RETURN 9
+X#define BIN_SHIFT 10
+X#define BIN_CD 11
+X#define BIN_POPD 12
+X#define BIN_PUSHD 13
+X#define BIN_PRINT 14
+X#define BIN_EVAL 15
+X#define BIN_SCHED 16
+X#define BIN_FC 17
+X#define BIN_PUSHLINE 18
+X#define BIN_LOGOUT 19
+X#define BIN_BUILTIN 20
+X#define BIN_TEST 21
+X#define BIN_BRACKET 22
+X
+Xstruct bincmd {
+X	char *name;
+X	int (*handlerfunc) DCLPROTO((char *,char **,char *,int));
+X	int minargs;		/* min # of args */
+X	int maxargs;		/* max # of args, or -1 for no limit */
+X	int flags;			/* BINF_flags (see above) */
+X	int funcid;			/* xbins (see above) for overloaded handlerfuncs */
+X	char *optstr;		/* string of legal options */
+X	char *defopts;		/* options set by default for overloaded handlerfuncs */
+X	};
+X
+X/* structure for foo=bar assignments */
+X
+Xstruct asgment {
+X	struct asgment *next;
+X	char *name,*value;
+X	};
+X
+Xstatic char *auxdata;
+Xstatic int auxlen;
+Xstatic int showflag = 0,showflag2 = 0;
+X
+Xstruct bincmd builtins[] = {
+X	"[",bin_test,0,-1,0,BIN_BRACKET,NULL,NULL,
+X	".",bin_dot,1,-1,0,0,NULL,NULL,
+X	":",bin_colon,0,-1,0,0,NULL,NULL,
+X	"alias",bin_alias,0,-1,0,0,"ga",NULL,
+X	"autoload",bin_typeset,0,-1,BINF_TYPEOPTS,0,"tx","fu",
+X	"bg",bin_fg,0,-1,0,BIN_BG,NULL,NULL,
+X	"bindkey",bin_bindkey,0,-1,0,0,"asvemdrl",NULL,
+X	"break",bin_break,0,1,0,BIN_BREAK,NULL,NULL,
+X	"builtin",NULL,0,0,0,BIN_BUILTIN,NULL,NULL,
+X	"bye",bin_break,0,1,0,BIN_EXIT,NULL,NULL,
+X	"cd",bin_cd,0,2,0,BIN_CD,NULL,NULL,
+X	"chdir",bin_cd,0,2,0,BIN_CD,NULL,NULL,
+X	"continue",bin_break,0,1,0,BIN_CONTINUE,NULL,NULL,
+X	"declare",bin_typeset,0,-1,BINF_TYPEOPTS,0,"LRZfilrtux",NULL,
+X	"dirs",bin_dirs,0,-1,0,0,"v",NULL,
+X	"disable",bin_unhash,1,-1,0,0,NULL,NULL,
+X	"disown",bin_fg,1,-1,0,BIN_DISOWN,NULL,NULL,
+X	"echo",bin_print,0,-1,BINF_PRINTOPTS|BINF_ECHOPTS,BIN_PRINT,"n","-",
+X	"echotc",bin_echotc,1,-1,0,0,NULL,NULL,
+X	"enable",bin_enable,1,-1,0,0,NULL,NULL,
+X	"eval",bin_eval,0,-1,0,BIN_EVAL,NULL,NULL,
+X	"exit",bin_break,0,1,0,BIN_EXIT,NULL,NULL,
+X	"export",bin_typeset,0,-1,BINF_TYPEOPTS,0,"LRZfilrtu","x",
+X	"false",bin_let,0,0,0,0,NULL,NULL,
+X	"fc",bin_fc,0,-1,BINF_FCOPTS,BIN_FC,"nlreRW",NULL,
+X	"fg",bin_fg,0,-1,0,BIN_FG,NULL,NULL,
+X	"functions",bin_typeset,0,-1,BINF_TYPEOPTS,0,"tu","f",
+X	"getln",bin_read,0,-1,0,0,NULL,"zr",
+X	"getopts",bin_getopts,2,-1,0,0,NULL,NULL,
+X	"hash",bin_hash,2,2,0,0,"r",NULL,
+X	"history",bin_fc,0,-1,0,BIN_FC,"nr","l",
+X	"integer",bin_typeset,0,-1,BINF_TYPEOPTS,0,"LRZlrtux","i",
+X	"jobs",bin_fg,0,-1,0,BIN_JOBS,"lpZ",NULL,
+X	"kill",bin_kill,0,-1,0,0,NULL,NULL,
+X	"let",bin_let,1,-1,0,0,NULL,NULL,
+X	"limit",bin_limit,0,-1,0,0,"sh",NULL,
+X	"local",bin_typeset,0,-1,BINF_TYPEOPTS,0,"LRZfilrtux",NULL,
+X	"log",bin_log,0,0,0,0,NULL,NULL,
+X	"logout",bin_break,0,1,0,BIN_LOGOUT,NULL,NULL,
+X	"popd",bin_cd,0,2,0,BIN_POPD,NULL,NULL,
+X	"print",bin_print,0,-1,BINF_PRINTOPTS,BIN_PRINT,"RDPnrslz0-",NULL,
+X	"pushd",bin_cd,0,2,0,BIN_PUSHD,NULL,NULL,
+X	"pushln",bin_print,0,-1,BINF_PRINTOPTS,BIN_PRINT,NULL,"-nz",
+X	"pwd",bin_pwd,0,0,0,0,NULL,NULL,
+X	"r",bin_fc,0,-1,BINF_R,BIN_FC,"nrl",NULL,
+X	"read",bin_read,0,-1,0,0,"rz",NULL,
+X	"readonly",bin_typeset,0,-1,BINF_TYPEOPTS,0,"LRZfiltux","r",
+X	"rehash",bin_rehash,0,0,0,0,NULL,NULL,
+X	"return",bin_break,0,1,0,BIN_RETURN,NULL,NULL,
+X	"sched",bin_sched,0,-1,0,0,NULL,NULL,
+X	"set",bin_set,0,-1,BINF_SETOPTS|BINF_PLUSOPTS,0,"0123456789ABCDEFGHIJKLMNOPQRSTUWXYZaefghijklnosuvwxy",NULL,
+X	"setopt",bin_setopt,0,-1,BINF_PLUSOPTS,0,"0123456789BCDEFGHIJKLMNOPQRSTUWXYZaefghijklmnosuvwxy",NULL,
+X	"shift",bin_break,0,1,0,BIN_SHIFT,NULL,NULL,
+X	"source",bin_dot,1,-1,0,0,NULL,NULL,
+X	"suspend",bin_suspend,0,0,0,0,"f",NULL,
+X	"test",bin_test,0,-1,0,BIN_TEST,NULL,NULL,
+X	"times",bin_times,0,0,0,0,NULL,NULL,
+X	"trap",bin_trap,0,-1,0,0,NULL,NULL,
+X	"true",bin_colon,0,0,0,0,NULL,NULL,
+X	"type",bin_whence,0,-1,0,0,"p","v",
+X	"typeset",bin_typeset,0,-1,BINF_TYPEOPTS,0,"LRZfilrtux",NULL,
+X	"ulimit",bin_ulimit,0,1,0,0,"HSacdfmnt",NULL,
+X	"umask",bin_umask,0,1,0,0,NULL,NULL,
+X	"unalias",bin_unalias,1,-1,0,0,NULL,NULL,
+X	"unfunction",bin_unhash,1,-1,0,0,NULL,NULL,
+X	"unhash",bin_unhash,1,-1,0,0,NULL,NULL,
+X	"unlimit",bin_unlimit,0,-1,0,0,"h",NULL,
+X	"unset",bin_unset,1,-1,0,0,NULL,NULL,
+X	"unsetopt",bin_setopt,0,-1,BINF_PLUSOPTS,1,"0123456789BCDEFGHIJKLMNOPQRSTUWXYZaefghijklmnosuvwxy",NULL,
+X	"vared",bin_vared,1,1,0,0,NULL,NULL,
+X	"wait",bin_fg,0,-1,0,BIN_WAIT,NULL,NULL,
+X	"whence",bin_whence,0,-1,0,0,"pv",NULL,
+X	"which",bin_whence,0,-1,0,0,"pv",NULL,
+X	NULL,NULL,0,0,0,0,NULL,NULL
+X	};
+X
+X/* print options */
+X
+Xstatic void prtopt()
+X{
+Xstruct option *opp;
+X
+X	if (isset(KSHOPTIONPRINT)) {
+X		printf("Current option settings\n");
+X		for (opp = optns; opp->name; opp++)
+X			printf("%-20s%s\n", opp->name,
+X				(opts[opp->id] == OPT_SET) ? "on" : "off");
+X	} else
+X		for (opp = optns; opp->name; opp++)
+X			if (opts[opp->id] == OPT_SET)
+X				puts(opp->name);
+X}
+X
+X/* add builtins to the command hash table */
+X
+Xvoid addbuiltins() /**/
+X{
+Xstruct cmdnam *c;
+Xstruct bincmd *b;
+Xint t0;
+X
+X	for (t0 = 0, b = builtins; b->name; b++,t0++)
+X		{
+X		c = (Cmdnam) zcalloc(sizeof *c);
+X		c->type = BUILTIN;
+X		c->u.binnum = t0;
+X		addhperm(b->name,c,cmdnamtab,freecmdnam);
+X		}
+X}
+X
+X/* enable */
+X
+Xint bin_enable(name,argv,ops,whocares) /**/
+Xchar *name;char **argv;char *ops;int whocares;
+X{
+Xstruct cmdnam *c;
+Xstruct bincmd *b;
+Xint t0,ret = 0;
+X
+X	for (; *argv; argv++)
+X		{
+X		for (t0 = 0, b = builtins; b->name; b++,t0++)
+X			if (!strcmp(*argv,b->name))
+X				break;
+X		if (!b->name)
+X			{
+X			zerrnam(name,"no such builtin: %s",*argv,0);
+X			ret = 1;
+X			}
+X		else
+X			{
+X			c = (Cmdnam) zcalloc(sizeof *c);
+X			c->type = BUILTIN;
+X			c->u.binnum = t0;
+X			addhperm(b->name,c,cmdnamtab,freecmdnam);
+X			}
+X		}
+X	return ret;
+X}
+X
+X/* :, true */
+X
+Xint bin_colon(name,argv,ops,whocares) /**/
+Xchar *name;char **argv;char *ops;int whocares;
+X{
+X	return 0;
+X}
+X
+X/* break, bye, continue, exit, logout, return, shift */
+X
+Xint bin_break(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xint num = -1;
+X
+X	if (*argv)
+X		num = matheval(*argv);
+X	if ((func == BIN_BREAK || func == BIN_CONTINUE) && !loops)
+X		{
+X		if (func == BIN_CONTINUE)
+X			zerrnam(name,"not in loop",NULL,0);
+X		return 1;
+X		}
+X	switch (func)
+X		{
+X		case BIN_CONTINUE:
+X			contflag = 1;
+X		case BIN_BREAK:
+X			breaks = (num == -1) ? 1 : num;
+X			break;
+X		case BIN_LOGOUT:
+X			if (!islogin)
+X				{
+X				zerrnam(name,"not login shell",NULL,0);
+X				return 1;
+X				}
+X		case BIN_EXIT:
+X			zexit((num == -1) ? lastval : num);
+X			break;
+X		case BIN_RETURN:
+X			retflag = 1;
+X			return lastval = (num == -1) ? lastval : num;
+X		case BIN_SHIFT:
+X			{
+X			char **s;
+X
+X			if (num == -1)
+X				num = 1;
+X			if (num > arrlen(pparams))
+X				num = arrlen(pparams);
+X			permalloc();
+X			s = arrdup(pparams+num);
+X			heapalloc();
+X			freearray(pparams);
+X			pparams = s;
+X			break;
+X			}
+X		}
+X	return 0;
+X}
+X
+X/* bg, disown, fg, jobs, wait */
+X
+Xint bin_fg(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xint job,lng,firstjob = -1,retval = 0;
+X
+X	if (ops['Z']) { if (*argv) strcpy(hackzero,*argv); return 0; }
+X	lng = (ops['l']) ? 1 : (ops['p']) ? 2 : 0;
+X	if ((func == BIN_FG || func == BIN_BG) && !jobbing)
+X		{
+X		zerrnam(name,"no job control in this shell.",NULL,0);
+X		return 1;
+X		}
+X	if (!(jobtab[curjob].stat & STAT_INUSE))
+X		{
+X		curjob = prevjob; setprevjob();
+X		if (!(jobtab[curjob].stat & STAT_INUSE))
+X			curjob = prevjob; setprevjob();
+X		}
+X	if (func == BIN_JOBS)
+X		stopmsg = 2;
+X	if (!*argv)
+X		if (func == BIN_FG || func == BIN_BG)
+X			{
+X			if (curjob == -1 || curjob == thisjob)
+X				{
+X				zerrnam(name,"no current job",NULL,0);
+X				return 1;
+X				}
+X			firstjob = curjob;
+X			}
+X		else if (func == BIN_JOBS)
+X			{
+X			for (job = 0; job != MAXJOB; job++)
+X				if (job != thisjob && jobtab[job].stat)
+X					printjob(job+jobtab,lng);
+X			return 0;
+X			}
+X		else
+X			{
+X			for (job = 0; job != MAXJOB; job++)
+X				if (job != thisjob && jobtab[job].stat)
+X					waitjob(job);
+X			return lastval;
+X			}
+X	for (; (firstjob != -1) || *argv; ( void ) (*argv && argv++))
+X		{
+X		int stopped,ocj = thisjob;
+X
+X		job = (*argv) ? getjob(*argv,name) : firstjob;
+X		firstjob = -1;
+X		if (job == -1)
+X			break;
+X		if (!(jobtab[job].stat & STAT_INUSE))
+X			{
+X			zerrnam(name,"no such job: %d",0,job);
+X			return 1;
+X			}
+X		switch (func)
+X			{
+X			case BIN_FG:
+X			case BIN_BG:
+X				if (stopped = (jobtab[job].stat & STAT_STOPPED))
+X					makerunning(jobtab+job);
+X				else if (func == BIN_BG)
+X					{
+X					zerrnam(name,"job already in background",NULL,0);
+X					thisjob = ocj;
+X					return 1;
+X					}
+X				if (curjob == job)
+X					{
+X					curjob = prevjob;
+X					prevjob = (func == BIN_BG) ? -1 : job;
+X					}
+X				if (prevjob == job)
+X					prevjob = -1;
+X				if (prevjob == -1)
+X					setprevjob();
+X				if (curjob == -1)
+X					{
+X					curjob = prevjob;
+X					setprevjob();
+X					}
+X				printjob(jobtab+job,(stopped) ? -1 : 0);
+X				if (func == BIN_FG)
+X					{
+X					thisjob = job;
+X					if (strcmp(jobtab[job].cwd,cwd))
+X						{
+X						printf("(pwd : ");
+X						printdir(jobtab[job].cwd);
+X						printf(")\n");
+X						}
+X					fflush(stdout);
+X					attachtty(jobtab[job].gleader);
+X					}
+X				if (stopped)
+X					kill(-jobtab[job].gleader,SIGCONT);
+X				if (func == BIN_FG)
+X					waitjobs();
+X				break;
+X			case BIN_JOBS:
+X				printjob(job+jobtab,lng);
+X				break;
+X			case BIN_WAIT:
+X				waitjob(job);
+X				retval = lastval;
+X				break;
+X			case BIN_DISOWN:
+X				{
+X				static struct job zero;
+X				jobtab[job] = zero;
+X				break;
+X				}
+X			}
+X		thisjob = ocj;
+X		}
+X	return retval;
+X}
+X
+X/* false, let */
+X
+Xint bin_let(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xlong val = 0;
+X
+X	while (*argv)
+X		val = matheval(*argv++);
+X	return !val;
+X}
+X
+X/* print the directory stack */
+X
+Xstatic void pdstack()
+X{
+XLknode node;
+X
+X	printdir(cwd);
+X	for (node = firstnode(dirstack); node; incnode(node))
+X		{
+X		putchar(' ');
+X		printdir(getdata(node));
+X		}
+X	putchar('\n');
+X}
+X
+X/* exit the shell */
+X
+Xint zexit(val) /**/
+Xint val;
+X{
+X	if (isset(MONITOR))
+X		if (!stopmsg)
+X			{
+X			checkjobs();
+X			if (stopmsg)
+X				{
+X				stopmsg = 2;
+X				return 1;
+X				}
+X			}
+X		else
+X			killrunjobs();
+X	savehistfile(getsparam("HISTFILE"),0);
+X	if (islogin && unset(NORCS))
+X		sourcehome(".zlogout");
+X	if (sigtrapped[SIGEXIT])
+X		dotrap(SIGEXIT);
+X	exit(val); return 0;
+X}
+X
+X/* identify an option name */
+X
+Xint optlookup(s) /**/
+Xchar *s;
+X{
+Xchar *t;
+Xstruct option *o;
+X
+X	t = s = strdup(s);
+X	while (*t)
+X		if (*t == '_')
+X			chuck(t);
+X		else
+X			{
+X			*t = tulower(*t);
+X			t++;
+X			}
+X	for (o = optns; o->name; o++)
+X		if (!strcmp(o->name,s))
+X			return o->id;
+X	return -1;
+X}
+X
+X/* setopt, unsetopt */
+X
+Xint bin_setopt(nam,args,ops,isun) /**/
+Xchar *nam;char **args;char *ops;int isun;
+X{
+Xstruct option *opp;
+Xint c;
+X
+X	if (!ops['@'] && !*args)
+X		{
+X		if (!isun)
+X			prtopt();
+X		return 0;
+X		}
+X	for (opp = optns; opp->name; opp++)
+X		if (ops[opp->id] == 1+isun)
+X			opts[opp->id] = OPT_SET;
+X		else if (ops[opp->id] == 2-isun)
+X			opts[opp->id] = OPT_UNSET;
+X	while (*args)
+X		{
+X		c = optlookup(*args++);
+X		if (c != -1)
+X			{
+X			if (c == INTERACTIVE || c == MONITOR)
+X				zerrnam(nam,"can't change that option",NULL,0);
+X			else
+X				opts[c] = (isun) ? OPT_UNSET : OPT_SET;
+X			}
+X		else
+X			{
+X			zerrnam(nam,"no such option: %s",args[-1],0);
+X			return 1;
+X			}
+X		}
+X	return 0;
+X}
+X
+X/* execute func on each member of the hash table ht */
+X
+Xvoid listhtable(ht,func) /**/
+XHashtab ht;HFunc func;
+X{
+Xint t0;
+Xstruct hashnode *hn;
+X
+X	for (t0 = ht->hsize-1; t0 >= 0; t0--)
+X		for (hn = ht->nodes[t0]; hn; hn = hn->next)
+X			func(hn->nam,hn->dat);
+X}
+X
+X/* print a shell function (used with listhtable) */
+X
+Xvoid pshfunc(s,cc) /**/
+Xchar *s;Cmdnam cc;
+X{
+Xchar *t;
+X
+X	if (cc->type != SHFUNC)
+X		return;
+X	if (showflag && (cc->flags & showflag2) != showflag2)
+X		return;
+X	if (cc->flags & PMFLAG_u)
+X		printf("undefined ");
+X	if (cc->flags & PMFLAG_t)
+X		printf("traced ");
+X	if (!cc->u.list || !showflag)
+X		{
+X		printf("%s ()\n",s);
+X		return;
+X		}
+X	t = gettext((vptr) (cc->u.list),1);
+X	printf("%s () {\n\t%s\n}\n",s,t);
+X	free(t);
+X}
+X
+Xvoid niceprint(s) /**/
+Xchar *s;
+X{
+X	niceprintf(s,stdout);
+X}
+X
+Xvoid niceprintf(s,f) /**/
+Xchar *s;FILE *f;
+X{
+X	for (; *s; s++)
+X		{
+X		if (*s >= 32 && *s <= 126)
+X			fputc(*s,f);
+X		else if (*s == '\n')
+X			{
+X			putc('\\',f);
+X			putc('n',f);
+X			}
+X		else
+X			{
+X			putc('^',f);
+X			fputc(*s | 0x40,f);
+X			}
+X		}
+X}
+X
+Xint bin_umask(nam,args,ops,func) /**/
+Xchar *nam;char **args;char *ops;int func;
+X{
+Xint um;
+Xchar *s = *args;
+X
+X	um = umask(0);
+X	umask(um);
+X	if (!s)
+X		{
+X		printf("%03o\n",um);
+X		return 0;
+X		}
+X	if (idigit(*s))
+X		{
+X		um = zstrtol(s,&s,8);
+X		if (*s)
+X			{
+X			zerrnam(nam,"bad umask",NULL,0);
+X			return 1;
+X			}
+X		}
+X	else
+X		{
+X		int whomask,op,mask;
+X
+X		for (;;)
+X			{
+X			if (*s == 'u')
+X				s++, whomask = 0100;
+X			else if (*s == 'g')
+X				s++, whomask = 0010;
+X			else if (*s == 'o')
+X				s++, whomask = 0001;
+X			else
+X				whomask = 0111;
+X			op = *s++;
+X			if (!(op == '+' || op == '-' || op == '='))
+X				{
+X				zerrnam(nam,"bad symbolic mode operator: %c",NULL,op);
+X				return 1;
+X				}
+X			mask = whomask;
+X			if (*s == 'r')
+X				mask *= 04;
+X			else if (*s == 'w')
+X				mask *= 02;
+X			else if (*s != 'x')
+X				{
+X				zerrnam(nam,"bad symbolic mode permission: %c",NULL,*s);
+X				return 1;
+X				}
+X			if (op == '+')
+X				um |= mask;
+X			else if (op == '-')
+X				um &= ~mask;
+X			else /* op == '=' */
+X				um = (um & ~(whomask*07)) | mask;
+X			if (*++s == ',')
+X				s++;
+X			else
+X				break;
+X			}
+X		if (*s)
+X			{
+X			zerrnam(nam,"bad character in symbolic mode: %c",NULL,*s);
+X			return 1;
+X			}
+X		}
+X	umask(um);
+X	return 0;
+X}
+X
+X/* type, whence, which */
+X
+Xint bin_whence(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xstruct cmdnam *chn;
+Xstruct alias *a;
+Xint retval = 0,v = ops['v'];
+Xchar *cnam;
+X
+X	for (; *argv; argv++)
+X		{
+X		if (!ops['p'] && (a = (Alias) gethnode(*argv,aliastab)) && a->cmd)
+X			{
+X			if (a->cmd < 0)
+X				printf((v) ? "%s is a reserved word\n" : "%s\n",*argv);
+X			else if (!v)
+X				puts(a->text);
+X			else if (a->cmd)
+X				printf("%s is an alias for %s\n",*argv,a->text);
+X			else
+X				printf("%s is a global alias for %s\n",*argv,a->text);
+X			retval = 0;
+X			}
+X		else if (!ops['p'] && (chn = (Cmdnam) gethnode(*argv,cmdnamtab)) &&
+X				(chn->type == SHFUNC || chn->type == BUILTIN))
+X			{
+X			if (chn->type == SHFUNC)
+X				printf((v) ? "%s is a function\n" : "%s\n",*argv);
+X			else
+X				printf((v) ? "%s is a shell builtin\n" : "%s\n",*argv);
+X			retval = 0;
+X			}
+X		else if (!(cnam = findcmd(*argv)))
+X			{
+X			if (v)
+X				printf("%s not found\n",*argv);
+X			retval = 1;
+X			}
+X		else
+X			{
+X			if (v)
+X				printf("%s is %s\n",*argv,cnam);
+X			else
+X				puts(cnam);
+X			retval = 0;
+X			}
+X		}
+X	return retval;
+X}
+X
+X/* cd, chdir, pushd, popd */
+X
+Xint bin_cd(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xchar *dest;
+X
+X	if (func == BIN_CD && isset(AUTOPUSHD))
+X		func = BIN_PUSHD;
+X	dest = cd_get_dest(nam,argv,ops,func);
+X	if (!dest) return 1;
+X	dest = cd_do_chdir(nam,dest);
+X	if (!dest) return 1;
+X	cd_new_pwd(func,dest);
+X	return 0;
+X}
+X
+Xchar *cd_get_dest(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xchar *dest;
+X
+X	if (!argv[0])
+X		if (func == BIN_CD || (func == BIN_PUSHD && isset(PUSHDTOHOME)
+X				|| !full(dirstack)))
+X			dest = ztrdup(home);
+X		else
+X			dest = getnode(dirstack);
+X	else if (!argv[1]) {
+X		Lknode n;
+X		int dd;
+X
+X		if (argv[0][1] && argv[0][0] == (isset(PUSHDMINUS) ? '-' : '+')) {
+X			dd = atoi(argv[0]+1)-1;
+X			if (dd < 0) {
+X				zerrnam(nam,"bad directory specification",NULL,0);
+X				return NULL;
+X			}
+X			for (n = firstnode(dirstack); n && dd; dd--, incnode(n));
+X			if (!n) {
+X				zerrnam(nam,"no such entry in dir stack",NULL,0);
+X				return NULL;
+X			}
+X			dest = remnode(dirstack,n);
+X		} else if (argv[0][1] && argv[0][0] == (isset(PUSHDMINUS) ? '+' : '-')) {
+X			dd = atoi(argv[0]+1);
+X			for (n = lastnode(dirstack); n != (Lknode) dirstack && dd;
+X					dd--, n = prevnode(n));
+X			if (n == (Lknode) dirstack) {
+X				zerrnam(nam,"no such entry in dir stack",NULL,0);
+X				return NULL;
+X			}
+X			dest = remnode(dirstack,n);
+X		} else
+X			dest = ztrdup(strcmp(argv[0],"-") ? argv[0] : oldpwd);
+X	} else {
+X		char *u;
+X		int len1,len2,len3;
+X
+X		if (!(u = ztrstr(cwd,argv[0]))) {
+X			zerrnam(nam,"string not in pwd: %s",argv[1],0);
+X			return NULL;
+X		}
+X		len1 = strlen(argv[0]);
+X		len2 = strlen(argv[1]);
+X		len3 = u-cwd;
+X		dest = zalloc(len3+len2+strlen(u+len1)+1);
+X		strncpy(dest,cwd,len3);
+X		strcpy(dest+len3,argv[1]);
+X		strcat(dest,u+len1);
+X	}
+X	return dest;
+X}
+X
+Xchar *cd_do_chdir(nam,dest) /**/
+Xchar *nam; char *dest;
+X{
+Xstatic char buf[MAXPATHLEN], buf2[MAXPATHLEN];
+Xstruct stat sbuf, tbuf;
+Xint origerr, val, t0;
+X
+X	if (*dest == '/') {
+X		convertwd(dest,buf);
+X		free(dest);
+X		val = chdir(buf);
+X		if (val == -1) {
+X			zerrnam(nam,"%e: %s",dest,errno);
+X			free(dest);
+X			return NULL;
+X		}
+X		return buf;
+X	}
+X	for (t0 = -1;; t0++) {
+X		if (t0 == -1) {
+X			sprintf(buf2,"%s/%s",cwd,dest);
+X			strcpy(buf,dest);
+X		} else {
+X			if (!cdpath[t0]) break;
+X			sprintf(buf2,"%s/%s",cdpath[t0],dest);
+X			if (!strncmp(buf2,"../",3))
+X				sprintf(buf2,"%s/%s/%s",cwd,cdpath[t0],dest);
+X		}
+X		convertwd(buf2,buf);
+X		val = chdir(dest);
+X		if (t0 == -1) origerr = errno;
+X		if (val != -1) {
+X			if (stat(buf,&sbuf) == -1)
+X				if (errno == ENOENT) continue;
+X				else break;
+X			if (stat(".",&tbuf) == -1) break;
+X			if (sbuf.st_dev == tbuf.st_dev && sbuf.st_ino == tbuf.st_ino)
+X				break;
+X			chdir(buf);
+X			break;
+X		} else {
+X			val = chdir(buf);
+X			if (val != -1) break;
+X		}
+X	}
+X	if (t0 > -1 && !cdpath[t0]) {
+X		char *s;
+X		if (isset(CDABLEVARS) &&
+X				(s = getsparam(dest)) && *s == '/' && chdir(s) != -1)
+X			strcpy(buf,s);
+X		else {
+X			zerrnam(nam,"%e: %s",dest,origerr);
+X			free(dest);
+X			return NULL;
+X		}
+X	}
+X	free(dest);
+X	if (t0 > -1) {
+X		printdir(buf);
+X		putchar('\n');
+X	}
+X	return buf;
+X}
+X
+Xvoid cd_new_pwd(func,s) /**/
+Xint func; char *s;
+X{
+XParam pm;
+XList l;
+X
+X	oldpwd = cwd;
+X	if (isset(CHASELINKS))
+X		cwd = findcwd(s);
+X	else
+X		cwd = ztrdup(s);
+X	if ((pm = gethnode("PWD", paramtab)) &&
+X		 (pm->flags & PMFLAG_x) && pm->env)
+X		pm->env = replenv(pm->env,cwd);
+X	if ((pm = gethnode("OLDPWD", paramtab)) &&
+X		 (pm->flags & PMFLAG_x) && pm->env)
+X		pm->env = replenv(pm->env,oldpwd);
+X	if (func == BIN_PUSHD) {
+X		permalloc();
+X		pushnode(dirstack,oldpwd);
+X		heapalloc();
+X	}
+X	if (unset(PUSHDSILENT) && func != BIN_CD && isset(INTERACTIVE))
+X		pdstack();
+X	if (l = getshfunc("chpwd"))
+X		newrunlist(l);
+X	if (dirstacksize != -1 && countnodes(dirstack) >= dirstacksize) {
+X		if (dirstacksize < 2)
+X			dirstacksize = 2;
+X		else
+X			free(remnode(dirstack,lastnode(dirstack)));
+X	}
+X}
+X
+Xvoid convertwd(s,t) /**/
+Xchar *s; char *t;
+X{
+Xchar *u,*start;
+X
+X	*t++ = '/';
+X	start = t;
+X	for (;;) {
+X		while (*s == '/') s++;
+X		for (u = s; *u && *u != '/'; u++);
+X		if (!strncmp(s,".",u-s)) {
+X			;
+X		} else if (!strncmp(s,"..",u-s)) {
+X			while (t != start && *--t != '/');
+X		} else {
+X			if (t != start) *t++ = '/';
+X			struncpy(&t,s,u-s);
+X		}
+X		if (!*u) break;
+X		s = u;
+X	}
+X	*t = '\0';
+X}
+X
+Xint bin_rehash(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+X	newcmdnamtab();
+X	return 0;
+X}
+X
+Xint bin_hash(name,argv,ops,func) /**/
+Xchar *name;char **argv;char *ops;int func;
+X{
+Xstruct cmdnam *chn;
+X
+X	chn = (Cmdnam) zcalloc(sizeof *chn);
+X	chn->type = EXCMD_PREDOT;
+X	chn->u.nam = ztrdup(argv[1]);
+X	addhnode(ztrdup(argv[0]),chn,cmdnamtab,freecmdnam);
+X	return 0;
+X}
+X
+X/* != 0 if s is a prefix of t */
+X
+Xint prefix(s,t) /**/
+Xchar *s;char *t;
+X{
+X	while (*s && *t && *s == *t) s++,t++;
+X	return (!*s);
+X}
+X
+X/* convert %%, %1, %foo, %?bar? to a job number */
+X
+Xint getjob(s,prog) /**/
+Xchar *s;char *prog;
+X{
+Xint t0,retval;
+X
+X	if (*s != '%')
+X		goto jump;
+X	s++;
+X	if (*s == '%' || *s == '+' || !*s)
+X		{
+X		if (curjob == -1)
+X			{
+X			zerrnam(prog,"no current job",NULL,0);
+X			retval = -1; goto done;
+X			}
+X		retval = curjob; goto done;
+X		}
+X	if (*s == '-')
+X		{
+X		if (prevjob == -1)
+X			{
+X			zerrnam(prog,"no previous job",NULL,0);
+X			retval = -1; goto done;
+X			}
+X		retval = prevjob; goto done;
+X		}
+X	if (idigit(*s))
+X		{
+X		t0 = atoi(s);
+X		if (t0 && t0 < MAXJOB && jobtab[t0].stat && t0 != thisjob)
+X			{ retval = t0; goto done; }
+X		zerrnam(prog,"no such job",NULL,0);
+X		retval = -1; goto done;
+X		}
+X	if (*s == '?')
+X		{
+X		struct process *pn;
+X
+X		for (t0 = MAXJOB-1; t0 >= 0; t0--)
+X			if (jobtab[t0].stat && t0 != thisjob)
+X				for (pn = jobtab[t0].procs; pn; pn = pn->next)
+X					if (ztrstr(pn->text,s+1))
+X						{ retval = t0; goto done; }
+X		zerrnam(prog,"job not found: %s",s,0);
+X		retval = -1; goto done;
+X		}
+Xjump:
+X	if ((t0 = findjobnam(s)) != -1)
+X		{ retval = t0; goto done; }
+X	zerrnam(prog,"job not found: %s",s,0);
+X	retval = -1;
+Xdone:
+X	return retval;
+X}
+X
+X/* find a job named s */
+X
+Xint findjobnam(s) /**/
+Xchar *s;
+X{
+Xint t0;
+X
+X	for (t0 = MAXJOB-1; t0 >= 0; t0--)
+X		if (jobtab[t0].stat && jobtab[t0].procs && t0 != thisjob && 
+X				jobtab[t0].procs->text && prefix(s,jobtab[t0].procs->text))
+X			return t0;
+X	return -1;
+X}
+X
+Xint bin_kill(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+Xint sig = SIGTERM;
+X
+X	if (*argv && **argv == '-')
+X		{
+X		if (idigit((*argv)[1]))
+X			sig = atoi(*argv+1);
+X		else
+X			{
+X			if ((*argv)[1] == 'l' && (*argv)[2] == '\0')
+X				{
+X				printf("%s",sigs[1]);
+X				for (sig = 2; sig != SIGCOUNT; sig++)
+X					printf(" %s",sigs[sig]);
+X				putchar('\n');
+X				return 0;
+X				}
+X			for (sig = 0; sig != SIGCOUNT; sig++)
+X				if (!strcmp(sigs[sig],*argv+1))
+X					break;
+X			if (sig == SIGCOUNT)
+X				{
+X				zerrnam(nam,"unknown signal: SIG%s",*argv+1,0);
+X				zerrnam(nam,"type kill -l for a List of signals",NULL,0);
+X				return 1;
+X				}
+X			}
+X		argv++;
+X		}
+X	while (*argv)
+X		{
+X		if (**argv == '%')
+X			{
+X			int p = getjob(*argv,"kill");
+X
+X			if (p == -1)
+X				return 1;
+X			if (killjb(jobtab+p,sig) == -1)
+X				{
+X				zerrnam("kill","kill failed: %e",NULL,errno);
+X				return 1;
+X				}
+X			if (jobtab[p].stat & STAT_STOPPED)
+X				{
+X				if (sig == SIGCONT)
+X					jobtab[p].stat &= ~STAT_STOPPED;
+X				if (sig != SIGKILL && sig != SIGCONT && sig != SIGTSTP
+X						&& sig != SIGTTOU && sig != SIGTTIN && sig != SIGSTOP)
+X					killjb(jobtab+p,SIGCONT);
+X				}
+X			}
+X		else
+X			if (kill(atoi(*argv),sig) == -1)
+X				{
+X				zerrnam("kill","kill failed: %e",NULL,errno);
+X				return 1;
+X				}
+X		argv++;
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/builtin.c failed'
+fi
+echo 'End of zsh2.1.0 part 4'
+echo 'File zsh2.1/src/builtin.c is continued in part 5'
+echo 5 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.

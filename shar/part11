@@ -1,0 +1,1973 @@
+Path: funic!fuug!mcsun!uunet!sparky!kent
+From: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Newsgroups: comp.sources.misc
+Subject: v24i011:  zsh2.1 - The Z shell, Part11/19
+Message-ID: <1991Oct26.014900.19444@sparky.imd.sterling.com>
+Date: 26 Oct 91 01:49:00 GMT
+References: <csm-v24i001=zsh2.1.140401@sparky.IMD.Sterling.COM>
+Sender: kent@sparky.imd.sterling.com (Kent Landfield)
+Followup-To: comp.sources.d
+Organization: Sterling Software, IMD
+Lines: 1959
+Approved: kent@sparky.imd.sterling.com
+X-Md4-Signature: aa72aea0dc9080f5596b02ad177ca6ce
+
+Submitted-by: pfalstad@phoenix.Princeton.EDU (Paul Falstad)
+Posting-number: Volume 24, Issue 11
+Archive-name: zsh2.1/part11
+Environment: BSD
+Supersedes: zsh2.00: Volume 18, Issue 84-98
+
+#!/bin/sh
+# this is zshar.11 (part 11 of zsh2.1.0)
+# do not concatenate these parts, unpack them in order with /bin/sh
+# file zsh2.1/src/utils.c continued
+#
+if test ! -r _shar_seq_.tmp; then
+	echo 'Please unpack part 1 first!'
+	exit 1
+fi
+(read Scheck
+ if test "$Scheck" != 11; then
+	echo Please unpack part "$Scheck" next!
+	exit 1
+ else
+	exit 0
+ fi
+) < _shar_seq_.tmp || exit 1
+if test ! -f _shar_wnt_.tmp; then
+	echo 'x - still skipping zsh2.1/src/utils.c'
+else
+echo 'x - continuing file zsh2.1/src/utils.c'
+sed 's/^X//' << 'SHAR_EOF' >> 'zsh2.1/src/utils.c' &&
+XLklist l;VFunc func;
+X{
+XLklist ret;
+XLknode node;
+X
+X	ret = newlist();
+X	for (node = firstnode(l); node; incnode(node))
+X		addnode(ret,func(getdata(node)));
+X	return ret;
+X}
+X
+Xchar **mkarray(s) /**/
+Xchar *s;
+X{
+Xchar **t = (char **) zalloc((s) ? (2*sizeof s) : (sizeof s));
+X
+X	if (*t = s)
+X		t[1] = NULL;
+X	return t;
+X}
+X
+Xvoid feep() /**/
+X{
+X	if (unset(NOBEEP))
+X		write(2,"\07",1);
+X}
+X
+Xvoid freearray(s) /**/
+Xchar **s;
+X{
+Xchar **t = s;
+X
+X	while (*s)
+X		free(*s++);
+X	free(t);
+X}
+X
+Xint equalsplit(s,t) /**/
+Xchar *s;char **t;
+X{
+X	for (; *s && *s != '='; s++);
+X	if (*s == '=')
+X		{
+X		*s++ = '\0';
+X		*t = s;
+X		return 1;
+X		}
+X	return 0;
+X}
+X
+X/* see if the right side of a list is trivial */
+X
+Xvoid simplifyright(l) /**/
+XList l;
+X{
+XCmd c;
+X
+X	if (!l->right)
+X		return;
+X	if (l->right->right || l->right->left->right ||
+X			l->right->left->left->right)
+X		return;
+X	c = l->left->left->left;
+X	if (c->type != SIMPLE || full(c->args) || full(c->redir)
+X			|| full(c->vars))
+X		return;
+X	l->right = NULL;
+X	return;
+X}
+X
+X/* initialize the ztypes table */
+X
+Xvoid inittyptab() /**/
+X{
+Xint t0;
+Xchar *s;
+X
+X	for (t0 = 0; t0 != 256; t0++)
+X		typtab[t0] = 0;
+X	for (t0 = 0; t0 != 32; t0++)
+X		typtab[t0] = typtab[t0+128] = ICNTRL;
+X	typtab[127] = ICNTRL;
+X	for (t0 = '0'; t0 <= '9'; t0++)
+X		typtab[t0] = IDIGIT|IALNUM|IWORD|IIDENT|IUSER;
+X	for (t0 = 'a'; t0 <= 'z'; t0++)
+X		typtab[t0] = typtab[t0-'a'+'A'] = IALPHA|IALNUM|IIDENT|IUSER|IWORD;
+X	for (t0 = 0240; t0 != 0400; t0++)
+X		typtab[t0] = IALPHA|IALNUM|IIDENT|IUSER|IWORD;
+X	typtab['_'] = IIDENT|IUSER;
+X	typtab['-'] = IUSER;
+X	typtab[' '] |= IBLANK|INBLANK;
+X	typtab['\t'] |= IBLANK|INBLANK;
+X	typtab['\n'] |= INBLANK;
+X	for (t0 = (int) (unsigned char) ALPOP; t0 <= (int) (unsigned char) Nularg;
+X			t0++)
+X		typtab[t0] |= ITOK;
+X	for (s = ifs; *s; s++)
+X		typtab[(int) (unsigned char) *s] |=
+X			(*s == '\n') ? ISEP|INBLANK : ISEP|IBLANK|INBLANK;
+X	for (s = wordchars; *s; s++)
+X		typtab[(int) (unsigned char) *s] |= IWORD;
+X	for (s = SPECCHARS; *s; s++)
+X		typtab[(int) (unsigned char) *s] |= ISPECIAL;
+X}
+X
+Xchar **arrdup(s) /**/
+Xchar **s;
+X{
+Xchar **x,**y;
+X
+X	y = x = (char **) ncalloc(sizeof(char *)*(arrlen(s)+1));
+X	while (*x++ = strdup(*s++));
+X	return y;
+X}
+X
+X/* next few functions stolen (with changes) from Kernighan & Pike */
+X/* "The UNIX Programming Environment" (w/o permission) */
+X
+Xchar *spname (oldname) /**/
+Xchar *oldname;
+X{
+X	char *p,guess[MAXPATHLEN+1],best[MAXPATHLEN+1];
+X	static char newname[MAXPATHLEN+1];
+X	char *new = newname, *old = oldname;
+X
+X	for (;;)
+X	{
+X		while (*old == '/')
+X			*new++ = *old++;
+X		*new = '\0';
+X		if (*old == '\0')
+X			return newname;
+X		p = guess;
+X		for (; *old != '/' && *old != '\0'; old++)
+X			if (p < guess+MAXPATHLEN)
+X				*p++ = *old;
+X		*p = '\0';
+X		if (mindist(newname,guess,best) >= 3)
+X			return oldname;
+X		for (p = best; *new = *p++; )
+X			new++;
+X	}
+X}
+X
+Xint mindist(dir,guess,best) /**/
+Xchar *dir;char *guess;char *best;
+X{
+X	int d,nd;
+X	DIR *dd;
+X	struct direct *de;
+X
+X	if (dir[0] == '\0')
+X		dir = ".";
+X	d = 100;
+X	if (!(dd = opendir(dir)))
+X		return d;
+X	while (de = readdir(dd))
+X	{
+X		nd = spdist(de->d_name,guess,strlen(guess)/4+1);
+X		if (nd <= d)
+X			{
+X			strcpy(best,de->d_name);
+X			d = nd;
+X			if (d == 0)
+X				break;
+X			}
+X	}
+X	closedir(dd);
+X	return d;
+X}
+X
+Xint spdist(s,t,thresh) /**/
+Xchar *s;char *t;int thresh;
+X{
+Xchar *p,*q;
+Xchar *keymap =
+X"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\
+X\t1234567890-=\t\
+X\tqwertyuiop[]\t\
+X\tasdfghjkl;'\n\t\
+X\tzxcvbnm,./\t\t\t\
+X\n\n\n\n\n\n\n\n\n\n\n\n\n\n\
+X\t!@#$%^&*()_+\t\
+X\tQWERTYUIOP{}\t\
+X\tASDFGHJKL:\"\n\t\
+X\tZXCVBNM<>?\n\n\t\
+X\n\n\n\n\n\n\n\n\n\n\n\n\n\n";
+X
+X	if (!strcmp(s,t))
+X		return 0;
+X	/* any number of upper/lower mistakes allowed (dist = 1) */
+X	for (p = s, q = t; *p && tulower(*p) == tulower(*q); p++,q++);
+X	if (!*p && !*q)
+X		return 1;
+X	if (!thresh)
+X		return 200;
+X	for (p = s, q = t; *p && *q; p++,q++)
+X		if (*p == *q) continue;	/* don't consider "aa" transposed, ash */
+X		else if (p[1] == q[0] && q[1] == p[0])  /* transpositions */
+X			return spdist(p+2,q+2,thresh-1)+1;
+X		else if (p[1] == q[0])	/* missing letter */
+X			return spdist(p+1,q+0,thresh-1)+2;
+X		else if (p[0] == q[1])	/* missing letter */
+X			return spdist(p+0,q+1,thresh-1)+2;
+X		else if (*p != *q)
+X			break;
+X	if ((!*p && strlen(q) == 1) || (!*q && strlen(p) == 1))
+X		return 2;
+X	for (p = s, q = t; *p && *q; p++,q++)
+X		if (p[0] != q[0] && p[1] == q[1])
+X			{
+X			int t0;
+X			char *z;
+X
+X			/* mistyped letter */
+X
+X			if (!(z = strchr(keymap,p[0])) || *z == '\n' || *z == '\t')
+X				return spdist(p+1,q+1,thresh-1)+1;
+X			t0 = z-keymap;
+X			if (*q == keymap[t0-15] || *q == keymap[t0-14] ||
+X					*q == keymap[t0-13] ||
+X					*q == keymap[t0-1] || *q == keymap[t0+1] ||
+X					*q == keymap[t0+13] || *q == keymap[t0+14] ||
+X					*q == keymap[t0+15])
+X				return spdist(p+1,q+1,thresh-1)+2;
+X			return 200;
+X			}
+X		else if (*p != *q)
+X			break;
+X	return 200;
+X}
+X
+Xchar *zgetenv(s) /**/
+Xchar *s;
+X{
+Xchar **av,*p,*q;
+X
+X	for (av = environ; *av; av++)
+X		{
+X		for (p = *av, q = s; *p && *p != '=' && *q && *p == *q; p++,q++);
+X		if (*p == '=' && !*q)
+X			return p+1;
+X		}
+X	return NULL;
+X}
+X
+Xint tulower(c) /**/
+Xint c;
+X{
+X	return (c >= 'A' && c <= 'Z') ? c-'A'+'a' : c;
+X}
+X
+Xint tuupper(c) /**/
+Xint c;
+X{
+X	return (c >= 'a' && c <= 'z') ? c-'a'+'A' : c;
+X}
+X
+X#ifdef SYSV
+X#include <sys/utsname.h>
+X
+Xint gethostname(nameptr, maxlength)
+Xchar *nameptr;
+Xint maxlength;
+X{
+Xstruct utsname *name;
+Xint result;
+X
+X	result = uname(name);
+X	if (result >= 0) {
+X		strcpy(nameptr,name->sysname);
+X		return 0;
+X	} else return -1;
+X}
+X#endif
+SHAR_EOF
+echo 'File zsh2.1/src/utils.c is complete' &&
+chmod 0644 zsh2.1/src/utils.c ||
+echo 'restore of zsh2.1/src/utils.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/utils.c'`"
+test 30675 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/utils.c: original size 30675, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/watch.c ==============
+if test -f 'zsh2.1/src/watch.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/watch.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/watch.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/watch.c' &&
+X/*
+X
+X	watch.c - login/logout watching
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#include "zsh.h"
+X#include <utmp.h>
+X
+Xstatic int wtabsz;
+Xstruct utmp *wtab;
+X
+X/* get the time of login/logout for WATCH */
+X
+Xtime_t getlogtime(u,inout) /**/
+Xstruct utmp *u;int inout;
+X{
+XFILE *in;
+Xstruct utmp uu;
+Xint first = 1;
+X
+X	if (inout)
+X		return u->ut_time;
+X	if (!(in = fopen(WTMP_FILE,"r")))
+X		return time(NULL);
+X	fseek(in,0,2);
+X	do
+X		{
+X		if (fseek(in,((first) ? -1 : -2)*sizeof(struct utmp),1))
+X			{
+X			fclose(in);
+X			return time(NULL);
+X			}
+X		first = 0;
+X		if (!fread(&uu,sizeof(struct utmp),1,in))
+X			{
+X			fclose(in);
+X			return time(NULL);
+X			}
+X		if (uu.ut_time < lastwatch)
+X			{
+X			fclose(in);
+X			return time(NULL);
+X			}
+X		}
+X	while (memcmp(&uu,u,sizeof(struct utmp)));
+X	do
+X		if (!fread(&uu,sizeof(struct utmp),1,in))
+X			{
+X			fclose(in);
+X			return time(NULL);
+X			}
+X	while (strncmp(uu.ut_line,u->ut_line,8));
+X	fclose(in);
+X	return uu.ut_time;
+X}
+X
+X/* print a login/logout event */
+X
+Xvoid watchlog2(inout,u,fmt) /**/
+Xint inout;struct utmp *u;char *fmt;
+X{
+Xchar *p,buf[40],*bf;
+Xint i;
+Xtime_t timet;
+Xstruct tm *tm = NULL;
+X
+X	while (*fmt)
+X		if (*fmt != '%')
+X			putchar(*fmt++);
+X		else
+X			{
+X			fmt++;
+X			switch(*fmt++)
+X				{
+X				case 'n':
+X					printf("%.*s",8,u->ut_name);
+X					break;
+X				case 'a':
+X					printf("%s",(!inout) ? "logged off" : "logged on");
+X					break;
+X				case 'l':
+X					if (u->ut_line[0] == 't')
+X						printf("%.*s",5,u->ut_line+3);
+X					else
+X						printf("%.*s",8,u->ut_line);
+X					break;
+X#ifdef UTMP_HOST
+X				case 'm':
+X					for (p = u->ut_host,i = 16; i && *p;i--,p++)
+X						{
+X						if (*p == '.' && !idigit(p[1]))
+X							break;
+X						putchar(*p);
+X						}
+X					break;
+X				case 'M':
+X					printf("%.*s",16,u->ut_host);
+X					break;
+X#endif
+X				case 't':
+X				case '@':
+X					timet = getlogtime(u,inout);
+X					tm = localtime(&timet);
+X					ztrftime(buf,40,"%l:%M%p",tm);
+X					printf("%s",(*buf == ' ') ? buf+1 : buf);
+X					break;
+X				case 'T':
+X					timet = getlogtime(u,inout);
+X					tm = localtime(&timet);
+X					ztrftime(buf,40,"%k:%M",tm);
+X					printf("%s",buf);
+X					break;
+X				case 'w':
+X					timet = getlogtime(u,inout);
+X					tm = localtime(&timet);
+X					ztrftime(buf,40,"%a %e",tm);
+X					printf("%s",buf);
+X					break;
+X				case 'W':
+X					timet = getlogtime(u,inout);
+X					tm = localtime(&timet);
+X					ztrftime(buf,40,"%m/%d/%y",tm);
+X					printf("%s",buf);
+X					break;
+X				case 'D':
+X					timet = getlogtime(u,inout);
+X					tm = localtime(&timet);
+X					ztrftime(buf,40,"%y-%m-%d",tm);
+X					printf("%s",buf);
+X					break;
+X				case '%':
+X					putchar('%');
+X					break;
+X				case 'S':
+X					bf = buf;
+X					if (tgetstr("so",&bf))
+X						fputs(buf,stdout);
+X					break;
+X				case 's':
+X					bf = buf;
+X					if (tgetstr("se",&bf))
+X						fputs(buf,stdout);
+X					break;
+X				case 'B':
+X					bf = buf;
+X					if (tgetstr("md",&bf))
+X						fputs(buf,stdout);
+X					break;
+X				case 'b':
+X					bf = buf;
+X					if (tgetstr("me",&bf))
+X						fputs(buf,stdout);
+X					break;
+X				case 'U':
+X					bf = buf;
+X					if (tgetstr("us",&bf))
+X						fputs(buf,stdout);
+X					break;
+X				case 'u':
+X					bf = buf;
+X					if (tgetstr("ue",&bf))
+X						fputs(buf,stdout);
+X					break;
+X				default:
+X					putchar('%');
+X					putchar(fmt[-1]);
+X					break;
+X				}
+X			}
+X	putchar('\n');
+X}
+X
+X/* check the List for login/logouts */
+X
+Xvoid watchlog(inout,u,w,fmt) /**/
+Xint inout;struct utmp *u;char **w;char *fmt;
+X{
+Xchar *v,*vv,sav;
+Xint bad;
+X
+X	if (*w && !strcmp(*w,"all"))
+X		{
+X		watchlog2(inout,u,fmt);
+X		return;
+X		}
+X	for (; *w; w++)
+X		{
+X		bad = 0;
+X		v = *w;
+X		if (*v != '@' && *v != '%')
+X			{
+X			for (vv = v; *vv && *vv != '@' && *vv != '%'; vv++);
+X			sav = *vv;
+X			*vv = '\0';
+X			if (strncmp(u->ut_name,v,8))
+X				bad = 1;
+X			*vv = sav;
+X			v = vv;
+X			}
+X		for (;;)
+X			if (*v == '%')
+X				{
+X				for (vv = ++v; *vv && *vv != '@'; vv++);
+X				sav = *vv;
+X				*vv = '\0';
+X				if (strncmp(u->ut_line,v,8))
+X					bad = 1;
+X				*vv = sav;
+X				v = vv;
+X				}
+X#ifdef UTMP_HOST
+X			else if (*v == '@')
+X				{
+X				for (vv = ++v; *vv && *vv != '%'; vv++);
+X				sav = *vv;
+X				*vv = '\0';
+X				if (strncmp(u->ut_host,v,strlen(v)))
+X					bad = 1;
+X				*vv = sav;
+X				v = vv;
+X				}
+X#endif
+X			else
+X				break;
+X		if (!bad)
+X			{
+X			watchlog2(inout,u,fmt);
+X			return;
+X			}
+X		}
+X}
+X
+X/* compare 2 utmp entries */
+X
+Xint ucmp(u,v) /**/
+Xstruct utmp *u;struct utmp *v;
+X{
+X	if (u->ut_time == v->ut_time)
+X		return strncmp(u->ut_line,v->ut_line,8);
+X	return u->ut_time - v->ut_time;
+X}
+X
+X/* initialize the user List */
+X
+Xvoid readwtab() /**/
+X{
+Xstruct utmp *uptr;
+Xint wtabmax = 32;
+XFILE *in;
+X
+X	wtabsz = 0;
+X	uptr = wtab = (struct utmp *) zalloc(wtabmax*sizeof(struct utmp));
+X	in = fopen(UTMP_FILE,"r");
+X	while (fread(uptr,sizeof(struct utmp),1,in))
+X#ifdef USER_PROCESS
+X		if (uptr->ut_type == USER_PROCESS)
+X#else
+X		if (uptr->ut_name[0])
+X#endif
+X			{
+X			uptr++;
+X			if (++wtabsz == wtabmax)
+X				uptr = (wtab = (struct utmp *) realloc((vptr) wtab,(wtabmax*=2)*
+X					sizeof(struct utmp)))+wtabsz;
+X			}
+X	fclose(in);
+X	if (wtabsz)
+X		qsort(wtab,wtabsz,sizeof(struct utmp),ucmp);
+X}
+X
+X/* check for login/logout events; executed before each prompt
+X	if WATCH is set */
+X
+Xvoid dowatch() /**/
+X{
+Xchar **s = watch;
+Xchar *fmt = (watchfmt) ? watchfmt : DEFWATCHFMT;
+XFILE *in;
+Xint utabsz = 0,utabmax = wtabsz+4,uct,wct;
+Xstruct utmp *utab,*uptr,*wptr;
+X
+X	holdintr();
+X	if (!fmt)
+X		fmt = "%n has %a %l from %m.";
+X	if (!wtab)
+X		{
+X		readwtab();
+X		noholdintr();
+X		return;
+X		}
+X	uptr = utab = (struct utmp *) zalloc(utabmax*sizeof(struct utmp));
+X	if (!(in = fopen(UTMP_FILE,"r")))
+X		{
+X		free(utab);
+X		return;
+X		}
+X	while (fread(uptr,sizeof *uptr,1,in))
+X#ifdef USER_PROCESS
+X		if (uptr->ut_type == USER_PROCESS)
+X#else
+X		if (uptr->ut_name[0])
+X#endif
+X			{
+X			uptr++;
+X			if (++utabsz == utabmax)
+X				uptr = (utab = (struct utmp *) realloc((vptr) utab,(utabmax*=2)*
+X					sizeof(struct utmp)))+utabsz;
+X			}
+X	fclose(in);
+X	noholdintr();
+X	if (errflag)
+X		{
+X		free(utab);
+X		return;
+X		}
+X	if (utabsz)
+X		qsort(utab,utabsz,sizeof(struct utmp),ucmp);
+X
+X	wct = wtabsz; uct = utabsz;
+X	uptr = utab; wptr = wtab;
+X	if (errflag)
+X		{
+X		free(utab);
+X		return;
+X		}
+X	while ((uct || wct) && !errflag)
+X		if (!uct || (wct && ucmp(uptr,wptr) > 0))
+X			wct--,watchlog(0,wptr++,s,fmt);
+X		else if (!wct || (uct && ucmp(uptr,wptr) < 0))
+X			uct--,watchlog(1,uptr++,s,fmt);
+X		else
+X			uptr++,wptr++,wct--,uct--;
+X	free(wtab);
+X	wtab = utab;
+X	wtabsz = utabsz;
+X	fflush(stdout);
+X}
+X
+Xint bin_log(nam,argv,ops,func) /**/
+Xchar *nam;char **argv;char *ops;int func;
+X{
+X	if (!watch)
+X		return 1;
+X	if (wtab)
+X		free(wtab);
+X	wtab = (struct utmp *) zalloc(1);
+X	wtabsz = 0;
+X	dowatch();
+X	return 0;
+X}
+X
+SHAR_EOF
+chmod 0644 zsh2.1/src/watch.c ||
+echo 'restore of zsh2.1/src/watch.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/watch.c'`"
+test 7508 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/watch.c: original size 7508, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle.h ==============
+if test -f 'zsh2.1/src/zle.h' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle.h (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle.h (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle.h' &&
+X/*
+X
+X	zle.h - header file for line editor
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#ifdef ZLEGLOBALS
+X#define ZLEXTERN
+X#else
+X#define ZLEXTERN extern
+X#endif
+X
+X#ifdef ZLE
+X
+X/* cursor position */
+XZLEXTERN int cs;
+X
+X/* line length */
+XZLEXTERN int ll;
+X
+X/* size of line buffer */
+XZLEXTERN int linesz;
+X
+X/* location of mark */
+XZLEXTERN int mark;
+X
+X/* last character pressed */
+XZLEXTERN int c;
+X
+X/* the z_ binding id for this key */
+XZLEXTERN int bindk;
+X
+X/* command argument */
+XZLEXTERN int mult;
+X
+X/* insert mode/overwrite mode flag */
+XZLEXTERN int insmode;
+X
+X/* cost of last update */
+XZLEXTERN int cost;
+X
+X/* flags associated with last command */
+XZLEXTERN int lastcmd;
+X
+X/* column position before last LINEMOVE movement */
+XZLEXTERN int lastcol;
+X
+X/* != 0 if we're getting a vi range */
+XZLEXTERN int virangeflag;
+X
+X#endif
+X
+X/* last named command done */
+XZLEXTERN int lastnamed;
+X
+X/* != 0 if we're done editing */
+XZLEXTERN int done;
+X
+X/* length of prompt on screen */
+XZLEXTERN int pptlen;
+X
+X/* current history line number */
+XZLEXTERN int histline;
+X
+XZLEXTERN int eofsent;
+X
+X/* != 0 if we need to call resetvideo() */
+XZLEXTERN int resetneeded;
+X
+X/* != 0 if the line editor is active */
+XZLEXTERN int zleactive;
+X
+X/* the line buffer */
+XZLEXTERN char *line;
+X
+X/* the cut buffer */
+XZLEXTERN char *cutbuf;
+X
+X/* prompt and rprompt */
+XZLEXTERN char *pmpt, *pmpt2;
+X
+X/* the last line in the history (the current one) */
+XZLEXTERN char *curhistline;
+X
+X/* the status line */
+XZLEXTERN char *statusline;
+X
+X/*
+X	the current history line and cursor position for the top line
+X	on the buffer stack
+X*/
+X
+XZLEXTERN int stackhist,stackcs;
+X
+X/* != 0 if we are in the middle of a menu completion */
+XZLEXTERN int menucmp;
+X
+X/* != 0 if we are making undo records */
+XZLEXTERN int undoing;
+X
+X/* last vi change buffer */
+XZLEXTERN int vichgbufsz,vichgbufptr,vichgflag;
+XZLEXTERN char *vichgbuf;
+X
+XZLEXTERN int viinsbegin;
+X
+Xtypedef void bindfunc DCLPROTO((void));
+Xtypedef bindfunc *F;
+X
+Xstruct key {
+X	int func;			/* function code for this key */
+X	char *str;			/* string corresponding to this key,
+X								if func = z_sequenceleadin				 */
+X	int len;				/* length of string */
+X	};
+Xstruct zlecmd {
+X	char *name;			/* name of function */
+X	F func;				/* handler function */
+X	int flags;
+X	};
+X
+X/* undo event */
+X
+Xstruct undoent {
+X	int pref;		/* number of initial chars unchanged */
+X	int suff;		/* number of trailing chars unchanged */
+X	int len;			/* length of changed chars */
+X	int cs;			/* cursor pos before change */
+X	char *change;	/* NOT null terminated */
+X	};
+X
+X#define UNDOCT 64
+X
+Xstruct undoent undos[UNDOCT];
+X
+X/* the line before last mod (for undo purposes) */
+XZLEXTERN char *lastline;
+X
+X/* buffer specified with "x */
+XZLEXTERN int vibufspec;
+X
+XZLEXTERN int undoct,lastcs;
+X
+XZLEXTERN char *visrchstr;
+XZLEXTERN int visrchsense;
+X
+X#define ZLE_MOVEMENT  	 1
+X#define ZLE_MENUCMP  	 2
+X#define ZLE_UNDO      	 4
+X#define ZLE_YANK     	 8
+X#define ZLE_LINEMOVE 	 16
+X#define ZLE_ARG      	 32
+X#define ZLE_NAMEDBUFFER 128
+X#define ZLE_KILL        (64|ZLE_NAMEDBUFFER)
+X#define ZLE_HISTSEARCH  256
+X#define ZLE_NEGARG      512
+X
+Xtypedef struct key *Key;
+X
+XZLEXTERN int *bindtab;
+Xextern int emacsbind[256];
+XZLEXTERN int altbindtab[256],mainbindtab[256];
+Xextern int viinsbind[],vicmdbind[];
+XZLEXTERN int vimarkcs[27],vimarkline[27];
+X
+X#define KRINGCT 8
+XZLEXTERN char *kring[KRINGCT];
+XZLEXTERN int kringnum;
+XZLEXTERN char *vibuf[35];
+X
+XZLEXTERN int zrecall;
+X
+X#define z_acceptandhold 0
+X#define z_acceptandinfernexthistory 1
+X#define z_acceptandmenucomplete 2
+X#define z_acceptline 3
+X#define z_acceptlineanddownhistory 4
+X#define z_backwardchar 5
+X#define z_backwarddeletechar 6
+X#define z_backwarddeleteword 7
+X#define z_backwardkillline 8
+X#define z_backwardkillword 9
+X#define z_backwardword 10
+X#define z_beginningofbufferorhistory 11
+X#define z_beginningofhistory 12
+X#define z_beginningofline 13
+X#define z_beginningoflinehist 14
+X#define z_capitalizeword 15
+X#define z_clearscreen 16
+X#define z_completeword 17
+X#define z_copyprevword 18
+X#define z_copyregionaskill 19
+X#define z_deletechar 20
+X#define z_deletecharorlist 21
+X#define z_deleteword 22
+X#define z_digitargument 23
+X#define z_downcaseword 24
+X#define z_downhistory 25
+X#define z_downlineorhistory 26
+X#define z_endofbufferorhistory 27
+X#define z_endofhistory 28
+X#define z_endofline 29
+X#define z_endoflinehist 30
+X#define z_exchangepointandmark 31
+X#define z_executelastnamedcmd 32
+X#define z_executenamedcmd 33
+X#define z_expandhistory 34
+X#define z_expandorcomplete 35
+X#define z_expandword 36
+X#define z_forwardchar 37
+X#define z_forwardword 38
+X#define z_getline 39
+X#define z_gosmacstransposechars 40
+X#define z_historyincrementalsearchbackward 41
+X#define z_historyincrementalsearchforward 42
+X#define z_historysearchbackward 43
+X#define z_historysearchforward 44
+X#define z_infernexthistory 45
+X#define z_insertlastword 46
+X#define z_killbuffer 47
+X#define z_killline 48
+X#define z_killregion 49
+X#define z_killwholeline 50
+X#define z_listchoices 51
+X#define z_listexpand 52
+X#define z_magicspace 53
+X#define z_menucompleteword 54
+X#define z_menuexpandorcomplete 55
+X#define z_overwritemode 56
+X#define z_pushline 57
+X#define z_quotedinsert 58
+X#define z_quoteline 59
+X#define z_quoteregion 60
+X#define z_redisplay 61
+X#define z_reversemenucomplete 62
+X#define z_runhelp 63
+X#define z_selfinsert 64
+X#define z_selfinsertunmeta 65
+X#define z_sendbreak 66
+X#define z_sendstring 67
+X#define z_sequenceleadin 68
+X#define z_setmarkcommand 69
+X#define z_spellword 70
+X#define z_toggleliteralhistory 71
+X#define z_transposechars 72
+X#define z_transposewords 73
+X#define z_undefinedkey 74
+X#define z_undo 75
+X#define z_universalargument 76
+X#define z_upcaseword 77
+X#define z_uphistory 78
+X#define z_uplineorhistory 79
+X#define z_viaddeol 80
+X#define z_viaddnext 81
+X#define z_vibackwardblankword 82
+X#define z_vibackwardchar 83
+X#define z_vibackwarddeletechar 84
+X#define z_vibeginningofline 85
+X#define z_vicapslockpanic 86
+X#define z_vichange 87
+X#define z_vichangeeol 88
+X#define z_vichangewholeline 89
+X#define z_vicmdmode 90
+X#define z_videlete 91
+X#define z_videletechar 92
+X#define z_vidigitorbeginningofline 93
+X#define z_viendofline 94
+X#define z_vifetchhistory 95
+X#define z_vifindnextchar 96
+X#define z_vifindnextcharskip 97
+X#define z_vifindprevchar 98
+X#define z_vifindprevcharskip 99
+X#define z_vifirstnonblank 100
+X#define z_viforwardblankword 101
+X#define z_viforwardblankwordend 102
+X#define z_viforwardchar 103
+X#define z_viforwardwordend 104
+X#define z_vigotocolumn 105
+X#define z_vigotomark 106
+X#define z_vigotomarkline 107
+X#define z_vihistorysearchbackward 108
+X#define z_vihistorysearchforward 109
+X#define z_viindent 110
+X#define z_viinsert 111
+X#define z_viinsertbol 112
+X#define z_vijoin 113
+X#define z_vimatchbracket 114
+X#define z_viopenlineabove 115
+X#define z_viopenlinebelow 116
+X#define z_vioperswapcases 117
+X#define z_viputafter 118
+X#define z_virepeatchange 119
+X#define z_virepeatfind 120
+X#define z_virepeatsearch 121
+X#define z_vireplace 122
+X#define z_vireplacechars 123
+X#define z_virevrepeatfind 124
+X#define z_virevrepeatsearch 125
+X#define z_visetbuffer 126
+X#define z_visetmark 127
+X#define z_visubstitute 128
+X#define z_viswapcase 129
+X#define z_viundochange 130
+X#define z_viunindent 131
+X#define z_viyank 132
+X#define z_viyankeol 133
+X#define z_whichcommand 134
+X#define z_yank 135
+X#define z_yankpop 136
+X#define z_emacsbackwardword 137
+X#define z_emacsforwardword 138
+X#define z_killword 139
+X#define z_vikillline 140
+X#define z_vibackwardkillword 141
+X#define z_expandcmdpath 142
+X#define z_negargument 143
+X#define ZLECMDCOUNT 144
+X
+Xextern struct zlecmd zlecmds[];
+X
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle.h ||
+echo 'restore of zsh2.1/src/zle.h failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle.h'`"
+test 8481 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle.h: original size 8481, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_bindings.c ==============
+if test -f 'zsh2.1/src/zle_bindings.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_bindings.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_bindings.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_bindings.c' &&
+X/*
+X
+X	zle_bindings.c - commands and keymaps
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#define ZLE
+X#include "zsh.h"
+X
+X
+Xstruct zlecmd zlecmds[] = {
+X"accept-and-hold",acceptandhold,0,
+X"accept-and-infer-next-history",acceptandinfernexthistory,0,
+X"accept-and-menu-complete", acceptandmenucomplete, ZLE_MENUCMP,
+X"accept-line",acceptline,0,
+X"accept-line-and-down-history",acceptlineanddownhistory,0,
+X"backward-char",backwardchar,ZLE_MOVEMENT,
+X"backward-delete-char",backwarddeletechar,0,
+X"backward-delete-word",backwarddeleteword,0,
+X"backward-kill-line",backwardkillline,ZLE_KILL,
+X"backward-kill-word",backwardkillword,ZLE_KILL,
+X"backward-word",backwardword,ZLE_MOVEMENT,
+X"beginning-of-buffer-or-history",beginningofbufferorhistory,ZLE_MOVEMENT,
+X"beginning-of-history",beginningofhistory,0,
+X"beginning-of-line",beginningofline,ZLE_MOVEMENT,
+X"beginning-of-line-hist",beginningoflinehist,ZLE_MOVEMENT,
+X"capitalize-word",capitalizeword,0,
+X"clear-screen",clearscreen,0,
+X"complete-word",completeword,ZLE_MENUCMP,
+X"copy-prev-word",copyprevword,0,
+X"copy-region-as-kill",copyregionaskill,ZLE_KILL,
+X"delete-char",deletechar,0,
+X"delete-char-or-list",deletecharorlist,ZLE_MENUCMP,
+X"delete-word",deleteword,0,
+X"digit-argument",digitargument,ZLE_ARG,
+X"down-case-word",downcaseword,0,
+X"down-history",downhistory,0,
+X"down-line-or-history",downlineorhistory,ZLE_MOVEMENT|ZLE_LINEMOVE,
+X"end-of-buffer-or-history",endofbufferorhistory,ZLE_MOVEMENT,
+X"end-of-history",endofhistory,0,
+X"end-of-line",endofline,ZLE_MOVEMENT,
+X"end-of-line-hist",endoflinehist,ZLE_MOVEMENT,
+X"exchange-point-and-mark",exchangepointandmark,ZLE_MOVEMENT,
+X"execute-last-named-cmd",NULL,0,
+X"execute-named-cmd",NULL,0,
+X"expand-history",expandhistory,0,
+X"expand-or-complete",expandorcomplete,ZLE_MENUCMP,
+X"expand-word",expandword,0,
+X"forward-char",forwardchar,ZLE_MOVEMENT,
+X"forward-word",forwardword,ZLE_MOVEMENT,
+X"get-line",getline,0,
+X"gosmacs-transpose-chars",gosmacstransposechars,0,
+X"history-incremental-search-backward",historyincrementalsearchbackward,0,
+X"history-incremental-search-forward",historyincrementalsearchforward,0,
+X"history-search-backward",historysearchbackward,ZLE_HISTSEARCH,
+X"history-search-forward",historysearchforward,ZLE_HISTSEARCH,
+X"infer-next-history",infernexthistory,0,
+X"insert-last-word",insertlastword,0,
+X"kill-buffer",killbuffer,ZLE_KILL,
+X"kill-line",killline,ZLE_KILL,
+X"kill-region",killregion,ZLE_KILL,
+X"kill-whole-line",killwholeline,ZLE_KILL,
+X"list-choices",listchoices,0,
+X"list-expand",listexpand,ZLE_MENUCMP,
+X"magic-space",magicspace,0,
+X"menu-complete",menucompleteword,ZLE_MENUCMP,
+X"menu-expand-or-complete",menuexpandorcomplete,ZLE_MENUCMP,
+X"overwrite-mode",overwritemode,0,
+X"push-line",pushline,0,
+X"quoted-insert",quotedinsert,0,
+X"quote-line",quoteline,0,
+X"quote-region",quoteregion,0,
+X"redisplay",redisplay,0,
+X"reverse-menu-complete",reversemenucomplete,ZLE_MENUCMP,
+X"run-help",processcmd,0,
+X"self-insert",selfinsert,0,
+X"self-insert-unmeta",selfinsertunmeta,0,
+X"send-break",sendbreak,0,
+X"send-string",sendstring,0,
+X"",NULL,0,
+X"set-mark-command",setmarkcommand,0,
+X"spell-word",spellword,0,
+X"toggle-literal-history",toggleliteralhistory,0,
+X"transpose-chars",transposechars,0,
+X"transpose-words",transposewords,0,
+X"undefined-key",undefinedkey,0,
+X"undo",undo,ZLE_UNDO,
+X"universal-argument",universalargument,ZLE_ARG,
+X"up-case-word",upcaseword,0,
+X"up-history",uphistory,0,
+X"up-line-or-history",uplineorhistory,ZLE_LINEMOVE|ZLE_MOVEMENT,
+X"vi-add-eol",viaddeol,0,
+X"vi-add-next",viaddnext,0,
+X"vi-backward-blank-word",vibackwardblankword,ZLE_MOVEMENT,
+X"vi-backward-char",vibackwardchar,ZLE_MOVEMENT,
+X"vi-backward-delete-char",vibackwarddeletechar,ZLE_KILL,
+X"vi-beginning-of-line",vibeginningofline,ZLE_MOVEMENT,
+X"vi-caps-lock-panic",vicapslockpanic,0,
+X"vi-change",vichange,0,
+X"vi-change-eol",vichangeeol,0,
+X"vi-change-whole-line",vichangewholeline,0,
+X"vi-cmd-mode",vicmdmode,0,
+X"vi-delete",videlete,ZLE_KILL,
+X"vi-delete-char",videletechar,ZLE_KILL,
+X"vi-digit-or-beginning-of-line",NULL,0,
+X"vi-end-of-line",viendofline,ZLE_MOVEMENT,
+X"vi-fetch-history",vifetchhistory,0,
+X"vi-find-next-char",vifindnextchar,ZLE_MOVEMENT,
+X"vi-find-next-char-skip",vifindnextcharskip,ZLE_MOVEMENT,
+X"vi-find-prev-char",vifindprevchar,ZLE_MOVEMENT,
+X"vi-find-prev-char-skip",vifindprevcharskip,ZLE_MOVEMENT,
+X"vi-first-non-blank",vifirstnonblank,ZLE_MOVEMENT,
+X"vi-forward-blank-word",viforwardblankword,ZLE_MOVEMENT,
+X"vi-forward-blank-word-end",viforwardblankwordend,ZLE_MOVEMENT,
+X"vi-forward-char",viforwardchar,ZLE_MOVEMENT,
+X"vi-forward-word-end",viforwardwordend,ZLE_MOVEMENT,
+X"vi-goto-column",vigotocolumn,ZLE_MOVEMENT,
+X"vi-goto-mark",vigotomark,ZLE_MOVEMENT,
+X"vi-goto-mark-line",vigotomarkline,ZLE_MOVEMENT,
+X"vi-history-search-backward",vihistorysearchbackward,0,
+X"vi-history-search-forward",vihistorysearchforward,0,
+X"vi-indent",viindent,0,
+X"vi-insert",viinsert,0,
+X"vi-insert-bol",viinsertbol,0,
+X"vi-join",vijoin,0,
+X"vi-match-bracket",vimatchbracket,ZLE_MOVEMENT,
+X"vi-open-line-above",viopenlineabove,0,
+X"vi-open-line-below",viopenlinebelow,0,
+X"vi-oper-swap-case",vioperswapcase,0,
+X"vi-put-after",viputafter,ZLE_YANK,
+X"vi-repeat-change",virepeatchange,0,
+X"vi-repeat-find",virepeatfind,ZLE_MOVEMENT,
+X"vi-repeat-search",virepeatsearch,ZLE_MOVEMENT,
+X"vi-replace",vireplace,0,
+X"vi-replace-chars",vireplacechars,0,
+X"vi-rev-repeat-find",virevrepeatfind,ZLE_MOVEMENT,
+X"vi-rev-repeat-search",virevrepeatsearch,ZLE_MOVEMENT,
+X"vi-set-buffer",visetbuffer,0,
+X"vi-set-mark",visetmark,0,
+X"vi-substitute",visubstitute,0,
+X"vi-swap-case",viswapcase,0,
+X"vi-undo-change",undo,0,
+X"vi-unindent",viunindent,0,
+X"vi-yank",viyank,0,
+X"vi-yank-eol",viyankeol,0,
+X"which-command",processcmd,0,
+X"yank",yank,ZLE_YANK|ZLE_NAMEDBUFFER,
+X"yank-pop",yankpop,ZLE_YANK,
+X"emacs-forward-word",emacsforwardword,ZLE_MOVEMENT,
+X"emacs-backward-word",emacsbackwardword,ZLE_MOVEMENT,
+X"kill-word",killword,ZLE_KILL,
+X"vi-kill-line",vikillline,0,
+X"vi-backward-delete-word",vibackwardkillword,0,
+X"expand-cmd-path",expandcmdpath,0,
+X"neg-argument",negargument,ZLE_NEGARG,
+X"",NULL,0
+X};
+X
+Xint emacsbind[256] = {
+X/* ^@ */ z_setmarkcommand,
+X/* ^A */ z_beginningofline,
+X/* ^B */ z_backwardchar,
+X/* ^C */ z_sendbreak,
+X/* ^D */ z_deletecharorlist,
+X/* ^E */ z_endofline,
+X/* ^F */ z_forwardchar,
+X/* ^G */ z_undefinedkey,
+X/* ^H */ z_backwarddeletechar,
+X/* ^I */ z_expandorcomplete,
+X/* ^J */ z_acceptline,
+X/* ^K */ z_killline,
+X/* ^L */ z_clearscreen,
+X/* ^M */ z_acceptline,
+X/* ^N */ z_downlineorhistory,
+X/* ^O */ z_acceptlineanddownhistory,
+X/* ^P */ z_uplineorhistory,
+X/* ^Q */ z_pushline,
+X/* ^R */ z_historyincrementalsearchbackward,
+X/* ^S */ z_historyincrementalsearchforward,
+X/* ^T */ z_transposechars,
+X/* ^U */ z_killwholeline,
+X/* ^V */ z_quotedinsert,
+X/* ^W */ z_backwardkillword,
+X/* ^X */ z_sequenceleadin,
+X/* ^Y */ z_yank,
+X/* ^Z */ z_undefinedkey,
+X/* ^[ */ z_sequenceleadin,
+X/* ^\ */ z_undefinedkey,
+X/* ^] */ z_undefinedkey,
+X/* ^^ */ z_undefinedkey,
+X/* ^_ */ z_undo,
+X/*   */ z_selfinsert,
+X/* ! */ z_selfinsert,
+X/* " */ z_selfinsert,
+X/* # */ z_selfinsert,
+X/* $ */ z_selfinsert,
+X/* % */ z_selfinsert,
+X/* & */ z_selfinsert,
+X/* ' */ z_selfinsert,
+X/* ( */ z_selfinsert,
+X/* ) */ z_selfinsert,
+X/* * */ z_selfinsert,
+X/* + */ z_selfinsert,
+X/* , */ z_selfinsert,
+X/* - */ z_selfinsert,
+X/* . */ z_selfinsert,
+X/* / */ z_selfinsert,
+X/* 0 */ z_selfinsert,
+X/* 1 */ z_selfinsert,
+X/* 2 */ z_selfinsert,
+X/* 3 */ z_selfinsert,
+X/* 4 */ z_selfinsert,
+X/* 5 */ z_selfinsert,
+X/* 6 */ z_selfinsert,
+X/* 7 */ z_selfinsert,
+X/* 8 */ z_selfinsert,
+X/* 9 */ z_selfinsert,
+X/* : */ z_selfinsert,
+X/* ; */ z_selfinsert,
+X/* < */ z_selfinsert,
+X/* = */ z_selfinsert,
+X/* > */ z_selfinsert,
+X/* ? */ z_selfinsert,
+X/* @ */ z_selfinsert,
+X/* A */ z_selfinsert,
+X/* B */ z_selfinsert,
+X/* C */ z_selfinsert,
+X/* D */ z_selfinsert,
+X/* E */ z_selfinsert,
+X/* F */ z_selfinsert,
+X/* G */ z_selfinsert,
+X/* H */ z_selfinsert,
+X/* I */ z_selfinsert,
+X/* J */ z_selfinsert,
+X/* K */ z_selfinsert,
+X/* L */ z_selfinsert,
+X/* M */ z_selfinsert,
+X/* N */ z_selfinsert,
+X/* O */ z_selfinsert,
+X/* P */ z_selfinsert,
+X/* Q */ z_selfinsert,
+X/* R */ z_selfinsert,
+X/* S */ z_selfinsert,
+X/* T */ z_selfinsert,
+X/* U */ z_selfinsert,
+X/* V */ z_selfinsert,
+X/* W */ z_selfinsert,
+X/* X */ z_selfinsert,
+X/* Y */ z_selfinsert,
+X/* Z */ z_selfinsert,
+X/* [ */ z_selfinsert,
+X/* \ */ z_selfinsert,
+X/* ] */ z_selfinsert,
+X/* ^ */ z_selfinsert,
+X/* _ */ z_selfinsert,
+X/* ` */ z_selfinsert,
+X/* a */ z_selfinsert,
+X/* b */ z_selfinsert,
+X/* c */ z_selfinsert,
+X/* d */ z_selfinsert,
+X/* e */ z_selfinsert,
+X/* f */ z_selfinsert,
+X/* g */ z_selfinsert,
+X/* h */ z_selfinsert,
+X/* i */ z_selfinsert,
+X/* j */ z_selfinsert,
+X/* k */ z_selfinsert,
+X/* l */ z_selfinsert,
+X/* m */ z_selfinsert,
+X/* n */ z_selfinsert,
+X/* o */ z_selfinsert,
+X/* p */ z_selfinsert,
+X/* q */ z_selfinsert,
+X/* r */ z_selfinsert,
+X/* s */ z_selfinsert,
+X/* t */ z_selfinsert,
+X/* u */ z_selfinsert,
+X/* v */ z_selfinsert,
+X/* w */ z_selfinsert,
+X/* x */ z_selfinsert,
+X/* y */ z_selfinsert,
+X/* z */ z_selfinsert,
+X/* { */ z_selfinsert,
+X/* | */ z_selfinsert,
+X/* } */ z_selfinsert,
+X/* ~ */ z_selfinsert,
+X/* ^? */ z_backwarddeletechar,
+X/* M-^@ */ z_undefinedkey,
+X/* M-^A */ z_undefinedkey,
+X/* M-^B */ z_undefinedkey,
+X/* M-^C */ z_undefinedkey,
+X/* M-^D */ z_listchoices,
+X/* M-^E */ z_undefinedkey,
+X/* M-^F */ z_undefinedkey,
+X/* M-^G */ z_undefinedkey,
+X/* M-^H */ z_backwardkillword,
+X/* M-^I */ z_selfinsertunmeta,
+X/* M-^J */ z_selfinsertunmeta,
+X/* M-^K */ z_undefinedkey,
+X/* M-^L */ z_clearscreen,
+X/* M-^M */ z_selfinsertunmeta,
+X/* M-^N */ z_undefinedkey,
+X/* M-^O */ z_undefinedkey,
+X/* M-^P */ z_undefinedkey,
+X/* M-^Q */ z_undefinedkey,
+X/* M-^R */ z_undefinedkey,
+X/* M-^S */ z_undefinedkey,
+X/* M-^T */ z_undefinedkey,
+X/* M-^U */ z_undefinedkey,
+X/* M-^V */ z_undefinedkey,
+X/* M-^W */ z_undefinedkey,
+X/* M-^X */ z_undefinedkey,
+X/* M-^Y */ z_undefinedkey,
+X/* M-^Z */ z_undefinedkey,
+X/* M-^[ */ z_undefinedkey,
+X/* M-^\ */ z_undefinedkey,
+X/* M-^] */ z_undefinedkey,
+X/* M-^^ */ z_undefinedkey,
+X/* M-^_ */ z_copyprevword,
+X/* M-  */ z_expandhistory,
+X/* M-! */ z_expandhistory,
+X/* M-" */ z_quoteregion,
+X/* M-# */ z_undefinedkey,
+X/* M-$ */ z_spellword,
+X/* M-% */ z_undefinedkey,
+X/* M-& */ z_undefinedkey,
+X/* M-' */ z_quoteline,
+X/* M-( */ z_undefinedkey,
+X/* M-) */ z_undefinedkey,
+X/* M-* */ z_undefinedkey,
+X/* M-+ */ z_undefinedkey,
+X/* M-, */ z_undefinedkey,
+X/* M-- */ z_negargument,
+X/* M-. */ z_insertlastword,
+X/* M-/ */ z_undefinedkey,
+X/* M-0 */ z_digitargument,
+X/* M-1 */ z_digitargument,
+X/* M-2 */ z_digitargument,
+X/* M-3 */ z_digitargument,
+X/* M-4 */ z_digitargument,
+X/* M-5 */ z_digitargument,
+X/* M-6 */ z_digitargument,
+X/* M-7 */ z_digitargument,
+X/* M-8 */ z_digitargument,
+X/* M-9 */ z_digitargument,
+X/* M-: */ z_undefinedkey,
+X/* M-; */ z_undefinedkey,
+X/* M-< */ z_beginningofbufferorhistory,
+X/* M-= */ z_undefinedkey,
+X/* M-> */ z_endofbufferorhistory,
+X/* M-? */ z_whichcommand,
+X/* M-@ */ z_undefinedkey,
+X/* M-A */ z_acceptandhold,
+X/* M-B */ z_backwardword,
+X/* M-C */ z_capitalizeword,
+X/* M-D */ z_deleteword,
+X/* M-E */ z_undefinedkey,
+X/* M-F */ z_forwardword,
+X/* M-G */ z_getline,
+X/* M-H */ z_runhelp,
+X/* M-I */ z_undefinedkey,
+X/* M-J */ z_undefinedkey,
+X/* M-K */ z_undefinedkey,
+X/* M-L */ z_downcaseword,
+X/* M-M */ z_undefinedkey,
+X/* M-N */ z_historysearchforward,
+X/* M-O */ z_undefinedkey,
+X/* M-P */ z_historysearchbackward,
+X/* M-Q */ z_pushline,
+X/* M-R */ z_toggleliteralhistory,
+X/* M-S */ z_spellword,
+X/* M-T */ z_transposewords,
+X/* M-U */ z_upcaseword,
+X/* M-V */ z_undefinedkey,
+X/* M-W */ z_copyregionaskill,
+X/* M-X */ z_undefinedkey,
+X/* M-Y */ z_undefinedkey,
+X/* M-Z */ z_undefinedkey,
+X/* M-[ */ z_sequenceleadin,
+X/* M-\ */ z_undefinedkey,
+X/* M-] */ z_undefinedkey,
+X/* M-^ */ z_undefinedkey,
+X/* M-_ */ z_insertlastword,
+X/* M-` */ z_undefinedkey,
+X/* M-a */ z_acceptandhold,
+X/* M-b */ z_backwardword,
+X/* M-c */ z_capitalizeword,
+X/* M-d */ z_deleteword,
+X/* M-e */ z_undefinedkey,
+X/* M-f */ z_forwardword,
+X/* M-g */ z_getline,
+X/* M-h */ z_runhelp,
+X/* M-i */ z_undefinedkey,
+X/* M-j */ z_undefinedkey,
+X/* M-k */ z_undefinedkey,
+X/* M-l */ z_downcaseword,
+X/* M-m */ z_undefinedkey,
+X/* M-n */ z_historysearchforward,
+X/* M-o */ z_undefinedkey,
+X/* M-p */ z_historysearchbackward,
+X/* M-q */ z_pushline,
+X/* M-r */ z_toggleliteralhistory,
+X/* M-s */ z_spellword,
+X/* M-t */ z_transposewords,
+X/* M-u */ z_upcaseword,
+X/* M-v */ z_undefinedkey,
+X/* M-w */ z_copyregionaskill,
+X/* M-x */ z_executenamedcmd,
+X/* M-y */ z_yankpop,
+X/* M-z */ z_executelastnamedcmd,
+X/* M-{ */ z_undefinedkey,
+X/* M-| */ z_vigotocolumn,
+X/* M-} */ z_undefinedkey,
+X/* M-~ */ z_undefinedkey,
+X/* M-^? */ z_backwardkillword,
+X};
+X
+Xint viinsbind[32] = {
+X/* ^@ */ z_undefinedkey,
+X/* ^A */ z_selfinsert,
+X/* ^B */ z_selfinsert,
+X/* ^C */ z_sendbreak,
+X/* ^D */ z_listchoices,
+X/* ^E */ z_selfinsert,
+X/* ^F */ z_selfinsert,
+X/* ^G */ z_selfinsert,
+X/* ^H */ z_vibackwarddeletechar,
+X/* ^I */ z_expandorcomplete,
+X/* ^J */ z_acceptline,
+X/* ^K */ z_killline,
+X/* ^L */ z_clearscreen,
+X/* ^M */ z_acceptline,
+X/* ^N */ z_selfinsert,
+X/* ^O */ z_selfinsert,
+X/* ^P */ z_selfinsert,
+X/* ^Q */ z_selfinsert,
+X/* ^R */ z_redisplay,
+X/* ^S */ z_selfinsert,
+X/* ^T */ z_selfinsert,
+X/* ^U */ z_vikillline,
+X/* ^V */ z_quotedinsert,
+X/* ^W */ z_vibackwardkillword,
+X/* ^X */ z_selfinsert,
+X/* ^Y */ z_selfinsert,
+X/* ^Z */ z_selfinsert,
+X/* ^[ */ z_vicmdmode,
+X/* ^\ */ z_selfinsert,
+X/* ^] */ z_selfinsert,
+X/* ^^ */ z_selfinsert,
+X/* ^_ */ z_selfinsert,
+X};
+X
+Xint vicmdbind[128] = {
+X/* ^@ */ z_undefinedkey,
+X/* ^A */ z_beginningofline,
+X/* ^B */ z_undefinedkey,
+X/* ^C */ z_sendbreak,
+X/* ^D */ z_listchoices,
+X/* ^E */ z_endofline,
+X/* ^F */ z_undefinedkey,
+X/* ^G */ z_listexpand,
+X/* ^H */ z_backwarddeletechar,
+X/* ^I */ z_completeword,
+X/* ^J */ z_acceptline,
+X/* ^K */ z_killline,
+X/* ^L */ z_clearscreen,
+X/* ^M */ z_acceptline,
+X/* ^N */ z_downhistory,
+X/* ^O */ z_undefinedkey,
+X/* ^P */ z_uphistory,
+X/* ^Q */ z_undefinedkey,
+X/* ^R */ z_redisplay,
+X/* ^S */ z_undefinedkey,
+X/* ^T */ z_undefinedkey,
+X/* ^U */ z_killbuffer,
+X/* ^V */ z_undefinedkey,
+X/* ^W */ z_backwardkillword,
+X/* ^X */ z_expandorcomplete,
+X/* ^Y */ z_undefinedkey,
+X/* ^Z */ z_undefinedkey,
+X/* ^[ */ z_sequenceleadin,
+X/* ^\ */ z_undefinedkey,
+X/* ^] */ z_undefinedkey,
+X/* ^^ */ z_undefinedkey,
+X/* ^_ */ z_undefinedkey,
+X/*   */ z_viforwardchar,
+X/* ! */ z_undefinedkey,
+X/* " */ z_visetbuffer,
+X/* # */ z_undefinedkey,
+X/* $ */ z_viendofline,
+X/* % */ z_vimatchbracket,
+X/* & */ z_undefinedkey,
+X/* ' */ z_vigotomarkline,
+X/* ( */ z_undefinedkey,
+X/* ) */ z_undefinedkey,
+X/* * */ z_undefinedkey,
+X/* + */ z_downlineorhistory,
+X/* , */ z_virevrepeatfind,
+X/* - */ z_uplineorhistory,
+X/* . */ z_virepeatchange,
+X/* / */ z_vihistorysearchbackward,
+X/* 0 */ z_vidigitorbeginningofline,
+X/* 1 */ z_digitargument,
+X/* 2 */ z_digitargument,
+X/* 3 */ z_digitargument,
+X/* 4 */ z_digitargument,
+X/* 5 */ z_digitargument,
+X/* 6 */ z_digitargument,
+X/* 7 */ z_digitargument,
+X/* 8 */ z_digitargument,
+X/* 9 */ z_digitargument,
+X/* : */ z_undefinedkey,
+X/* ; */ z_virepeatfind,
+X/* < */ z_viunindent,
+X/* = */ z_listchoices,
+X/* > */ z_viindent,
+X/* ? */ z_vihistorysearchforward,
+X/* @ */ z_undefinedkey,
+X/* A */ z_viaddeol,
+X/* B */ z_vibackwardblankword,
+X/* C */ z_vichangeeol,
+X/* D */ z_killline,
+X/* E */ z_viforwardblankwordend,
+X/* F */ z_vifindprevchar,
+X/* G */ z_vifetchhistory,
+X/* H */ z_vicapslockpanic,
+X/* I */ z_viinsertbol,
+X/* J */ z_historysearchforward,
+X/* K */ z_historysearchbackward,
+X/* L */ z_undefinedkey,
+X/* M */ z_undefinedkey,
+X/* N */ z_virevrepeatsearch,
+X/* O */ z_viopenlineabove,
+X/* P */ z_yank,
+X/* Q */ z_undefinedkey,
+X/* R */ z_vireplace,
+X/* S */ z_vichangewholeline,
+X/* T */ z_vifindprevcharskip,
+X/* U */ z_undefinedkey,
+X/* V */ z_undefinedkey,
+X/* W */ z_viforwardblankword,
+X/* X */ z_vibackwarddeletechar,
+X/* Y */ z_viyankeol,
+X/* Z */ z_undefinedkey,
+X/* [ */ z_undefinedkey,
+X/* \ */ z_completeword,
+X/* ] */ z_undefinedkey,
+X/* ^ */ z_vifirstnonblank,
+X/* _ */ z_undefinedkey,
+X/* ` */ z_vigotomark,
+X/* a */ z_viaddnext,
+X/* b */ z_backwardword,
+X/* c */ z_vichange,
+X/* d */ z_videlete,
+X/* e */ z_viforwardwordend,
+X/* f */ z_vifindnextchar,
+X/* g */ z_undefinedkey,
+X/* h */ z_vibackwardchar,
+X/* i */ z_viinsert,
+X/* j */ z_downlineorhistory,
+X/* k */ z_uplineorhistory,
+X/* l */ z_viforwardchar,
+X/* m */ z_visetmark,
+X/* n */ z_virepeatsearch,
+X/* o */ z_viopenlinebelow,
+X/* p */ z_viputafter,
+X/* q */ z_undefinedkey,
+X/* r */ z_vireplacechars,
+X/* s */ z_vichangewholeline,
+X/* t */ z_vifindnextcharskip,
+X/* u */ z_undo,
+X/* v */ z_undefinedkey,
+X/* w */ z_forwardword,
+X/* x */ z_videletechar,
+X/* y */ z_viyank,
+X/* z */ z_undefinedkey,
+X/* { */ z_undefinedkey,
+X/* | */ z_vigotocolumn,
+X/* } */ z_undefinedkey,
+X/* ~ */ z_viswapcase,
+X/* ^? */ z_backwarddeletechar,
+X};
+X
+SHAR_EOF
+chmod 0644 zsh2.1/src/zle_bindings.c ||
+echo 'restore of zsh2.1/src/zle_bindings.c failed'
+Wc_c="`wc -c < 'zsh2.1/src/zle_bindings.c'`"
+test 17489 -eq "$Wc_c" ||
+	echo 'zsh2.1/src/zle_bindings.c: original size 17489, current size' "$Wc_c"
+rm -f _shar_wnt_.tmp
+fi
+# ============= zsh2.1/src/zle_main.c ==============
+if test -f 'zsh2.1/src/zle_main.c' -a X"$1" != X"-c"; then
+	echo 'x - skipping zsh2.1/src/zle_main.c (File already exists)'
+	rm -f _shar_wnt_.tmp
+else
+> _shar_wnt_.tmp
+echo 'x - extracting zsh2.1/src/zle_main.c (Text)'
+sed 's/^X//' << 'SHAR_EOF' > 'zsh2.1/src/zle_main.c' &&
+X/*
+X
+X	zle_main.c - main routines for line editor
+X
+X	This file is part of zsh, the Z shell.
+X
+X	zsh is free software; no one can prevent you from reading the source
+X   code, or giving it to someone else.
+X
+X   This file is copyrighted under the GNU General Public License, which
+X   can be found in the file called COPYING.
+X
+X   Copyright (C) 1990, 1991 Paul Falstad
+X
+X   zsh is distributed in the hope that it will be useful, but
+X   WITHOUT ANY WARRANTY.  No author or distributor accepts
+X   responsibility to anyone for the consequences of using it or for
+X   whether it serves any particular purpose or works at all, unless he
+X   says so in writing.  Refer to the GNU General Public License
+X   for full details.
+X
+X   Everyone is granted permission to copy, modify and redistribute
+X   zsh, but only under the conditions described in the GNU General Public
+X   License.   A copy of this license is supposed to have been given to you
+X   along with zsh so you can know your rights and responsibilities.
+X   It should be in a file named COPYING.
+X
+X   Among other things, the copyright notice and this notice must be
+X   preserved on all copies.
+X
+X*/
+X
+X#define ZLEGLOBALS
+X#define ZLE
+X#include "zsh.h"
+X#include <sys/types.h>
+X#include <sys/ioctl.h>
+X#include <sys/errno.h>
+X
+Xstatic Key cky;
+X
+X/* set up terminal */
+X
+Xvoid setterm() /**/
+X{
+Xstruct ttyinfo ti;
+Xlong val;
+X
+X#ifdef CLOBBERS_TYPEAHEAD
+X#ifdef FIONREAD
+X	ioctl(SHTTY, FIONREAD, &val);
+X	if (val) return;
+X#endif
+X#endif
+X	inittty();
+X	ti = shttyinfo;
+X#ifdef TERMIOS
+X	ti.termios.c_lflag &= ~(ICANON|ECHO);
+X	ti.termios.c_cc[VQUIT] =
+X#ifdef VDISCARD
+X		ti.termios.c_cc[VDISCARD] = 
+X#endif
+X#ifdef VSUSP
+X		ti.termios.c_cc[VSUSP] =
+X#endif
+X#ifdef VDSUSP
+X		ti.termios.c_cc[VDSUSP] =
+X#endif
+X		0;
+X	ti.termios.c_cc[VMIN] = 1;
+X	ti.termios.c_cc[VTIME] = 0;
+X	ti.termios.c_iflag &= ~(INLCR|ICRNL);
+X#else
+X#ifdef TERMIO
+X	ti.termio.c_lflag &= ~(ICANON|ECHO);
+X	ti.termio.c_cc[VQUIT] =
+X		0;
+X	ti.termio.c_cc[VMIN] = 1;
+X	ti.termio.c_cc[VTIME] = 0;
+X	ti.termio.c_iflag &= ~(INLCR|ICRNL);
+X#else
+X	ti.sgttyb.sg_flags = (ti.sgttyb.sg_flags | CBREAK) & ~ECHO;
+X	ti.tchars.t_quitc =
+X		ti.ltchars.t_suspc =
+X		ti.ltchars.t_dsuspc = ti.ltchars.t_lnextc = -1;
+X#endif
+X#endif
+X#ifdef TTY_NEEDS_DRAINING
+X	drainoutput();
+X#endif
+X	settyinfo(&ti);
+X}
+X
+Xvoid unsetterm() /**/
+X{
+X	settyinfo(&shttyinfo);
+X}
+X
+Xstatic char *kungetbuf;
+Xstatic int kungetct,kungetsz;
+X
+Xvoid ungetkey(ch) /**/
+Xint ch;
+X{
+X	if (kungetct == kungetsz)
+X		kungetbuf = realloc(kungetbuf,kungetsz *= 2);
+X	kungetbuf[kungetct++] = ch;
+X}
+X
+Xvoid ungetkeys(s,len) /**/
+Xchar *s;int len;
+X{
+X	s += len;
+X	while (len--)
+X		ungetkey(*--s);
+X}
+X
+Xunsigned int getkey(tmok) /**/
+Xint tmok;
+X{
+Xchar cc;
+Xunsigned int ret;
+X
+X	if (kungetct)
+X		ret = (unsigned int) (unsigned char) kungetbuf[--kungetct];
+X	else {
+X		while (read(0,&cc,1) != 1)
+X			if (errno == EINTR) {
+X				if (!errflag)
+X					continue;
+X				errflag = 0;
+X				if (tmok)
+X					return -1;
+X				return 3;
+X			} else if (errno == EWOULDBLOCK) {
+X				fcntl(0,F_SETFL,0);
+X			} else {
+X				zerr("error on TTY read: %e",NULL,errno);
+X				exit(1);
+X			}
+X		ret = (unsigned int) (unsigned char) cc;
+X	}
+X	if (vichgflag) {
+X		if (vichgbufptr == vichgbufsz)
+X			vichgbuf = realloc(vichgbuf,vichgbufsz *= 2);
+X		vichgbuf[vichgbufptr++] = ret;
+X	}
+X	return ret;
+X}
+X
+X/* read a line */
+X
+Xchar *zleread(ppt,ppt2,plen) /**/
+Xchar *ppt;char *ppt2;int plen;
+X{
+Xint z;
+Xlong costmult;
+Xstruct timeval tv;
+Xfd_set foofd;
+Xchar *s;
+X
+X	tv.tv_sec = 0;
+X	fflush(stdout);
+X	fflush(stderr);
+X	intr();
+X	costmult = 3840000L/((baud) ? baud : 2400);
+X	insmode = 1; eofsent = 0; resetneeded =0 ;
+X	pmpt = ppt;
+X	pmpt2 = ppt2;
+X	permalloc();
+X	histline = curhist;
+X	pptlen = plen;
+X	resetneeded = 1;
+X	FD_ZERO(&foofd);
+X	zleactive = 1;
+X	undoing = 1;
+X	line = zalloc(linesz = 256);
+X	*line = '\0';
+X	virangeflag = lastcmd = done = cs = ll = mark = 0;
+X	curhistline = NULL;
+X	mult = 1;
+X	vibufspec = 0;
+X	bindtab = mainbindtab;
+X	vichgflag = 0;
+X	viinsbegin = 0;
+X	statusline = NULL;
+X	if (s = getnode(bufstack))
+X		{
+X		setline(s);
+X		free(s);
+X		if (stackcs != -1)
+X			{
+X			cs = stackcs;
+X			stackcs = -1;
+X			if (cs > ll)
+X				cs = ll;
+X			}
+X		if (stackhist != -1)
+X			{
+X			histline = stackhist;
+X			stackhist = -1;
+X			}
+X		}
+X	initundo();
+X	if (unset(NOPROMPTCLOBBER))
+X		putchar('\r');
+X	if (tmout)
+X		alarm(tmout);
+X	if (zrecall) {
+X		zrecall = 0;
+X		uphistory();
+X	}
+X	refresh();
+X	errflag = 0;
+X	while (!done && !errflag)
+X		{
+X		struct zlecmd *zc;
+X		
+X		statusline = NULL;
+X		bindk = getkeycmd();
+X		if (c == 4 && !ll)
+X			{
+X			eofsent = 1;
+X			break;
+X			}
+X		if (bindk != -1)
+X			{
+X			zc = zlecmds+bindk;
+X			if (!(lastcmd & ZLE_ARG))
+X				mult = 1;
+X			if ((lastcmd & ZLE_UNDO) != (zc->flags & ZLE_UNDO) && undoing)
+X				addundo();
+X			if (menucmp && !(zc->flags & ZLE_MENUCMP))
+X				freemenu();
+X			if (zc->func)
+X				(zc->func)();
+X			lastcmd = zc->flags;
+X			if (!(lastcmd & ZLE_UNDO)) addundo();
+X			}
+X		else
+X			{
+X			errflag = 1;
+X			break;
+X			}
+SHAR_EOF
+true || echo 'restore of zsh2.1/src/zle_main.c failed'
+fi
+echo 'End of zsh2.1.0 part 11'
+echo 'File zsh2.1/src/zle_main.c is continued in part 12'
+echo 12 > _shar_seq_.tmp
+exit 0
+
+exit 0 # Just in case...
+-- 
+Kent Landfield                   INTERNET: kent@sparky.IMD.Sterling.COM
+Sterling Software, IMD           UUCP:     uunet!sparky!kent
+Phone:    (402) 291-8300         FAX:      (402) 291-4362
+Please send comp.sources.misc-related mail to kent@uunet.uu.net.
